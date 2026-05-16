@@ -62,6 +62,8 @@ export const STRINGS = {
       featureTrustBody: "Context-first intros; identities unlock only after mutual trust.",
       intentHelper:
         "Tell us in your own words — we turn it into a clear request and protect your privacy until there's a mutual yes.",
+      intentTooShort:
+        "Please enter at least 12 characters so we can understand what you're looking for.",
       intentPlaceholder:
         "I'm a product designer in Hong Kong looking for a technical cofounder to ship a B2B SaaS MVP.",
       intentCta: "Start matching",
@@ -320,6 +322,7 @@ export const STRINGS = {
       featureTrustBody: "先以訊息互相認識；彼此信任後才揭露身分。",
       intentHelper:
         "用「我想找……」的方式描述——我們會整理成清楚的徵求，並在彼此同意前保護你的隱私。",
+      intentTooShort: "請至少輸入 12 個字，方便我們理解你在找什麼。",
       intentPlaceholder:
         "我是香港的產品設計師，想找一位技術共同創辦人一起做出 B2B SaaS 的 MVP。",
       intentCta: "開始尋找",

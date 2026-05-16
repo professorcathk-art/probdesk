@@ -5,6 +5,7 @@ import type { Lang, Strings } from "@/lib/i18n/strings";
 import { STRINGS } from "@/lib/i18n/strings";
 
 const STORAGE_KEY = "vennode-lang";
+const COOKIE_NAME = "VENNODE_LANG";
 
 type LanguageContextValue = {
   lang: Lang;
@@ -14,8 +15,21 @@ type LanguageContextValue = {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
+function readLangCookie(): Lang | null {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=(en|zh)(?:;|$)`));
+  const v = m?.[1];
+  return v === "zh" || v === "en" ? v : null;
+}
+
+function writeLangCookie(lang: Lang) {
+  document.cookie = `${COOKIE_NAME}=${lang};path=/;max-age=31536000;SameSite=Lax`;
+}
+
 function detectInitialLang(): Lang {
   if (typeof window === "undefined") return "en";
+  const cookieLang = readLangCookie();
+  if (cookieLang) return cookieLang;
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === "zh" || stored === "en") return stored;
   const nav = navigator.language?.toLowerCase() ?? "";
@@ -28,7 +42,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- read localStorage / navigator after mount to avoid SSR mismatch */
-    setLangState(detectInitialLang());
+    const next = detectInitialLang();
+    setLangState(next);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, next);
+      writeLangCookie(next);
+    } catch {
+      writeLangCookie(next);
+    }
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
@@ -37,7 +58,12 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, [lang]);
 
   const setLang = useCallback((next: Lang) => {
-    window.localStorage.setItem(STORAGE_KEY, next);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, next);
+    } catch {
+      /* private mode */
+    }
+    writeLangCookie(next);
     setLangState(next);
   }, []);
 

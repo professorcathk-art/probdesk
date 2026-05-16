@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Inbox, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { IntentRow, SuggestionCard } from "@/actions/intents";
@@ -39,8 +39,10 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useConnectionCredits } from "@/hooks/use-connection-credits";
+import { LANDING_INTENT_SESSION_KEY, MIN_INTENT_CHARS } from "@/lib/intent-draft";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { useSessionStore } from "@/stores/session-store";
 
 type Props = {
   userId: string;
@@ -161,6 +163,33 @@ export function ConsoleClient({
   const [createDraft, setCreateDraft] = useState("");
   const [createLocation, setCreateLocation] = useState("");
   const [createBusy, setCreateBusy] = useState(false);
+  const openedFromLandingHandoffRef = useRef(false);
+
+  function consumeLandingHandoffDraft() {
+    useSessionStore.getState().clearLandingIntent();
+    try {
+      sessionStorage.removeItem(LANDING_INTENT_SESSION_KEY);
+    } catch {
+      /* noop */
+    }
+  }
+
+  useEffect(() => {
+    let raw = useSessionStore.getState().landingIntentText?.trim() ?? "";
+    if (raw.length < MIN_INTENT_CHARS) {
+      try {
+        raw = sessionStorage.getItem(LANDING_INTENT_SESSION_KEY)?.trim() ?? "";
+      } catch {
+        raw = "";
+      }
+    }
+    if (raw.length < MIN_INTENT_CHARS) return;
+    openedFromLandingHandoffRef.current = true;
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate create dialog from landing draft once on mount */
+    setCreateDraft(raw);
+    setCreateLocation("");
+    setCreateOpen(true);
+  }, []);
 
   const [editIntent, setEditIntent] = useState<IntentRow | null>(null);
   const [editDraft, setEditDraft] = useState("");
@@ -277,6 +306,8 @@ export function ConsoleClient({
       setError(res.message);
       return;
     }
+    openedFromLandingHandoffRef.current = false;
+    consumeLandingHandoffDraft();
     const newIntentId = res.intentId;
     setCreateDraft("");
     setCreateLocation("");
@@ -678,7 +709,16 @@ export function ConsoleClient({
         </Tabs>
       </main>
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog
+        open={createOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open);
+          if (!open && openedFromLandingHandoffRef.current) {
+            openedFromLandingHandoffRef.current = false;
+            consumeLandingHandoffDraft();
+          }
+        }}
+      >
         <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-slate-950/95 text-slate-50 sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t.dialogNewTitle}</DialogTitle>

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/components/language-provider";
+import { LANDING_INTENT_SESSION_KEY, MIN_INTENT_CHARS } from "@/lib/intent-draft";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
 
@@ -19,6 +20,7 @@ export default function OnboardingPage() {
   const { strings } = useLanguage();
   const landingIntentText = useSessionStore((s) => s.landingIntentText);
   const clearLandingIntent = useSessionStore((s) => s.clearLandingIntent);
+  const setLandingIntentText = useSessionStore((s) => s.setLandingIntentText);
 
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [draftIntent, setDraftIntent] = useState<string | undefined>(undefined);
@@ -57,7 +59,23 @@ export default function OnboardingPage() {
 
   const resolvedDraft = draftIntent ?? landingIntentText ?? "";
 
-  const canBootstrap = useMemo(() => resolvedDraft.trim().length >= 12, [resolvedDraft]);
+  const canBootstrap = useMemo(() => resolvedDraft.trim().length >= MIN_INTENT_CHARS, [resolvedDraft]);
+
+  useEffect(() => {
+    if (checkingAuth) return;
+    try {
+      const backup = sessionStorage.getItem(LANDING_INTENT_SESSION_KEY)?.trim() ?? "";
+      if (backup.length < MIN_INTENT_CHARS) return;
+      /* eslint-disable-next-line react-hooks/set-state-in-effect -- merge OAuth/sessionStorage timing */
+      setDraftIntent((prev) => prev ?? backup);
+      if (!useSessionStore.getState().landingIntentText) {
+        setLandingIntentText(backup);
+      }
+      sessionStorage.removeItem(LANDING_INTENT_SESSION_KEY);
+    } catch {
+      /* private mode */
+    }
+  }, [checkingAuth, setLandingIntentText]);
 
   async function runBootstrap() {
     setBusy(true);

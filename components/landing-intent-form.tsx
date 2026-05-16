@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/components/language-provider";
+import { LANDING_INTENT_SESSION_KEY, MIN_INTENT_CHARS } from "@/lib/intent-draft";
 import { useSessionStore } from "@/stores/session-store";
 
 export function LandingIntentForm() {
@@ -13,12 +14,22 @@ export function LandingIntentForm() {
   const L = strings.landing;
   const setLandingIntentText = useSessionStore((s) => s.setLandingIntentText);
   const [value, setValue] = useState("");
+  const [tooShort, setTooShort] = useState(false);
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const text = value.trim();
-    if (text.length < 12) return;
+    if (text.length < MIN_INTENT_CHARS) {
+      setTooShort(true);
+      return;
+    }
+    setTooShort(false);
     setLandingIntentText(text);
+    try {
+      sessionStorage.setItem(LANDING_INTENT_SESSION_KEY, text);
+    } catch {
+      /* private mode */
+    }
     router.push("/login");
   }
 
@@ -31,11 +42,20 @@ export function LandingIntentForm() {
         <Input
           id="intent"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            setValue(e.target.value);
+            if (tooShort) setTooShort(false);
+          }}
           placeholder={L.intentPlaceholder}
+          aria-invalid={tooShort}
           className="h-14 border-0 bg-transparent px-4 text-base text-slate-50 placeholder:text-slate-500 focus-visible:ring-0"
         />
       </div>
+      {tooShort ? (
+        <p role="alert" className="text-sm text-amber-400/95">
+          {L.intentTooShort}
+        </p>
+      ) : null}
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="max-w-xl text-sm leading-relaxed text-slate-400">{L.intentHelper}</p>
         <Button
