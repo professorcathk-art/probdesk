@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserRound } from "lucide-react";
@@ -35,16 +34,13 @@ export function SiteNav({
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
-        <Link href="/" className="flex min-h-11 min-w-0 items-center gap-2.5 sm:min-h-10">
-          <Image
-            src="/logo.png"
-            alt="Vennode"
-            width={32}
-            height={32}
-            className="h-8 w-8 shrink-0 rounded-md object-contain"
-            priority
-          />
-          <span className="text-sm font-semibold tracking-[0.22em] text-slate-100">VENNODE</span>
+        <Link
+          href="/"
+          className="flex min-h-11 min-w-0 items-center sm:min-h-10"
+        >
+          <span className="font-[family-name:var(--font-heading)] text-base font-semibold tracking-tight text-white">
+            Vennode
+          </span>
         </Link>
         <nav className="flex flex-wrap items-center justify-end gap-2">
           <div

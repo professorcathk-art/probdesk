@@ -16,25 +16,25 @@ export const STRINGS = {
       langToggle: "Language",
     },
     landing: {
-      kicker: "Matching built on what you're looking for",
-      headline: "Say who you are. Say who you're looking for. We'll help you meet the right people.",
+      kicker: "Meet the right people",
+      headline: "Tell us who you're looking for, and we'll find the perfect match.",
       subhead:
-        "Vennode uses Smart Matchmaking with mutual acceptance — stay with curated introductions, or list on Explore for inbound requests. Identities stay protected until both sides agree.",
+        "Vennode uses smart matchmaking to find your ideal connections. Your identity remains completely private until both parties agree. You can also post your request publicly on the Explore page, or reach out to others directly.",
       openConsole: "Open Manage",
       continueOnboarding: "Continue onboarding",
       browseSquare: "Browse Explore",
       marqueeTitle: "See what's live on Explore",
       marqueeCardLabel: "Request",
-      marqueeTapHint: "Tap a card to pause the feed — preview and send an invite.",
+      marqueeTapHint: "Click a card to preview and send an invite.",
       marqueeEmpty: "No public requests on Explore yet. Browse the feed anytime or publish your own.",
       marqueePreviewTitle: "Explore listing",
       marqueeOwnListing: "This is your listing",
       previewClose: "Close",
       aboutVennodeTitle: "About Vennode",
       aboutVennodeSubtitle: "How we protect what you're looking for while helping you meet the right people.",
-      useCasesTitle: "Start with what matters",
+      useCasesTitle: "Connections that actually matter",
       useCasesSubtitle:
-        "Partners, friends, backers, mentors — say clearly what you want and meet people who mean it.",
+        "Whether you're looking for a co-founder, a mentor, or a life partner—tell us what you need, and meet people who are just as serious.",
       useCasePartnerTitle: "Find a partner",
       useCasePartnerBody:
         "Romantic or life partnership — start with an honest ask and mutual consent before identities unlock.",
@@ -64,7 +64,7 @@ export const STRINGS = {
         "Tell us in your own words — we turn it into a clear request and protect your privacy until there's a mutual yes.",
       intentPlaceholder:
         "I'm a product designer in Hong Kong looking for a technical cofounder to ship a B2B SaaS MVP.",
-      intentCta: "Find my match",
+      intentCta: "Start matching",
     },
     marketplace: {
       kicker: "Explore",
@@ -274,25 +274,25 @@ export const STRINGS = {
       langToggle: "語言",
     },
     landing: {
-      kicker: "從你想找的人開始",
-      headline: "說清楚你是誰、想找誰。我們幫你遇上對的人。",
+      kicker: "幫你遇見對的人",
+      headline: "告訴我們你的期待，剩下的交給我們。",
       subhead:
-        "Vennode 透過智慧配對與雙向同意運作——你可留在精選介紹流程，或在探索廣場公開徵求；雙方同意前，身分都受到保護。",
+        "Vennode 透過智慧配對為你尋找契合對象。在雙方同意之前，你的真實身分將完全保密。你也可以在「探索廣場」公開你的徵求，或主動聯繫感興趣的人。",
       openConsole: "開啟管理中心",
       continueOnboarding: "繼續設定",
       browseSquare: "瀏覽探索廣場",
       marqueeTitle: "大家都在探索廣場找……",
       marqueeCardLabel: "徵求",
-      marqueeTapHint: "點一下卡片可暫停跑馬燈，預覽並發送邀請。",
+      marqueeTapHint: "點擊卡片即可預覽，並發送邀請。",
       marqueeEmpty: "探索廣場上暫時還沒有公開徵求。你可隨時逛逛，或發布自己的徵求。",
       marqueePreviewTitle: "探索廣場徵求",
       marqueeOwnListing: "這是你在探索廣場上的徵求",
       previewClose: "關閉",
       aboutVennodeTitle: "關於 Vennode",
       aboutVennodeSubtitle: "我們如何在保護你的徵求與隱私的前提下，幫你遇見對的人。",
-      useCasesTitle: "從真正在乎的事開始",
+      useCasesTitle: "適合各種高質量的連結",
       useCasesSubtitle:
-        "伴侶、朋友、投資人、導師——說清楚你想找什麼，認識同樣認真的人。",
+        "無論是尋找創業夥伴、人生導師，還是另一半，只要說出你的期待，就能遇見同樣真誠的人。",
       useCasePartnerTitle: "找伴侶",
       useCasePartnerBody:
         "感情或人生伴侶——先以真誠的徵求與雙向同意開始，必要時才揭露身分。",
@@ -322,7 +322,7 @@ export const STRINGS = {
         "用「我想找……」的方式描述——我們會整理成清楚的徵求，並在彼此同意前保護你的隱私。",
       intentPlaceholder:
         "我是香港的產品設計師，想找一位技術共同創辦人一起做出 B2B SaaS 的 MVP。",
-      intentCta: "幫我找對象",
+      intentCta: "開始尋找",
     },
     marketplace: {
       kicker: "探索廣場",
