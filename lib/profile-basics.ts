@@ -13,6 +13,28 @@ export type ProfileBasicsInput = {
   gender?: string | null;
 };
 
+/** Minimum profile required before using Manage / Explore / etc. (middleware). */
+export const PROFILE_CORE_INCOMPLETE_MSG =
+  "Please complete your profile: display name, bio (12+ characters), location, and industry. / 請完成個人檔案：顯示名稱、簡介（至少 12 字）、所在地與產業／領域。";
+
+export type ProfileCoreInput = Pick<
+  ProfileBasicsInput,
+  "display_name" | "bio" | "location" | "industry"
+>;
+
+export function validateMandatoryProfileCore(
+  row: ProfileCoreInput,
+): { ok: true } | { ok: false; message: string } {
+  const display_name = row.display_name?.trim() ?? "";
+  const bio = row.bio?.trim() ?? "";
+  const location = row.location?.trim() ?? "";
+  const industry = row.industry?.trim() ?? "";
+  if (!display_name || !location || !industry || bio.length < 12) {
+    return { ok: false, message: PROFILE_CORE_INCOMPLETE_MSG };
+  }
+  return { ok: true };
+}
+
 /** User-facing when server blocks onboarding completion / explore / first console intent. */
 export const PROFILE_BASICS_INCOMPLETE_MSG =
   "Complete your profile first: display name, bio (at least 12 characters), location, industry, availability, and gender. / 請先填妥個人檔案：顯示名稱、簡介（至少 12 字）、所在地、產業、可聯絡時段與性別。";

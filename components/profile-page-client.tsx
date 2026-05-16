@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 type Props = {
   profileAvatarUrl: string | null;
   profileIdentity: ProfileIdentity;
+  showProfileRequiredBanner?: boolean;
 };
 
 function genderLabel(cx: {
@@ -45,7 +46,11 @@ function genderLabel(cx: {
   }
 }
 
-export function ProfilePageClient({ profileAvatarUrl, profileIdentity }: Props) {
+export function ProfilePageClient({
+  profileAvatarUrl,
+  profileIdentity,
+  showProfileRequiredBanner = false,
+}: Props) {
   const router = useRouter();
   const { strings } = useLanguage();
   const p = strings.profilePage;
@@ -117,6 +122,12 @@ export function ProfilePageClient({ profileAvatarUrl, profileIdentity }: Props) 
           <h1 className="text-3xl font-semibold tracking-tight text-white">{p.title}</h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-400">{p.subtitle}</p>
         </header>
+
+        {showProfileRequiredBanner ? (
+          <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-amber-100">
+            {p.profileRequiredBanner}
+          </p>
+        ) : null}
 
         {error ? (
           <p className="rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</p>

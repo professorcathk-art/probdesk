@@ -6,7 +6,11 @@ import { ConsoleClient } from "./console-client";
 
 export const dynamic = "force-dynamic";
 
-export default async function ConsolePage() {
+export default async function ConsolePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tab?: string; peer?: string }>;
+}) {
   const { user, onboardingStatus } = await getAuthContext();
 
   if (!user) {
@@ -16,6 +20,20 @@ export default async function ConsolePage() {
   if (onboardingStatus !== "complete") {
     redirect("/onboarding");
   }
+
+  const sp = (await searchParams) ?? {};
+  const peerRaw = typeof sp.peer === "string" ? sp.peer : undefined;
+  const tabRaw = typeof sp.tab === "string" ? sp.tab : undefined;
+  const validTabs = ["intents", "requests", "connections"] as const;
+  const initialConsoleTab: (typeof validTabs)[number] = validTabs.includes(
+    tabRaw as (typeof validTabs)[number],
+  )
+    ? (tabRaw as (typeof validTabs)[number])
+    : peerRaw
+      ? "connections"
+      : "intents";
+  const initialOpenPeerId =
+    peerRaw && /^[0-9a-f-]{36}$/i.test(peerRaw) ? peerRaw : null;
 
   const intentsRes = await listMyIntents();
   const matchesRes = await listMatches();
@@ -27,10 +45,13 @@ export default async function ConsolePage() {
 
   return (
     <ConsoleClient
+      key={`${initialConsoleTab}-${initialOpenPeerId ?? ""}`}
       userId={user.id}
       intents={intents}
       matches={matches}
       blockedPeerIds={blockedPeerIds}
+      initialConsoleTab={initialConsoleTab}
+      initialOpenPeerId={initialOpenPeerId}
     />
   );
 }

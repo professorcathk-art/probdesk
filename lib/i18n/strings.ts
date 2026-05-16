@@ -77,7 +77,6 @@ export const STRINGS = {
       loadErrorPrefix: "Could not load listings:",
       anonymous: "Anonymous seeker",
       anonymousHint: "Identities unlock after you match",
-      demoBadge: "Demo listing · invites go to our team inbox",
       locationUnknown: "Hidden location",
       connect: "Send invite",
       pending: "Pending",
@@ -133,6 +132,12 @@ export const STRINGS = {
       outboundNone: "None pending.",
       outboundLine: "Intro sent",
       outboundAwaiting: "Awaiting response",
+      outboundAcceptedTitle: "Invites that connected",
+      outboundAcceptedDesc:
+        "The other person accepted your introduction — open Messages to pick up the conversation.",
+      statusConnectedBadge: "Connected",
+      messagePeerCta: "Messages",
+      outboundAcceptedEmpty: "When someone accepts your invite, it will appear here with a shortcut to chat.",
       curatedTitle: "Curated introductions",
       curatedDesc: "Hand-picked cold-start intros — both sides still choose to accept.",
       noCurated: "No curated introductions yet.",
@@ -148,7 +153,7 @@ export const STRINGS = {
       pendingBtn: "Waiting",
       connectionsTitle: "Active connections",
       connectionsDesc:
-        "One conversation per person — if you have several mutual intros with the same match, messages are combined here.",
+        "People you've mutually accepted show up here — open a thread below to keep chatting.",
       noConnections: "No active connections yet.",
       mutualMatch: "Mutual match",
       multiIntroTpl: "{n} mutual introductions · shared thread",
@@ -194,7 +199,6 @@ export const STRINGS = {
       peerConnection: "Connection",
       peerFallbackName: "Peer",
       messagesCombined: "Messages",
-      messagesMergedSuffix: " (combined)",
       chatYou: "You",
       chatPeer: "Peer",
       refreshMessages: "Refresh",
@@ -216,6 +220,8 @@ export const STRINGS = {
       maxSizeErr: "Max 5 MB — choose a smaller image or compress it.",
       signInRequired: "Sign in required.",
       uploadFailedErr: "Upload failed.",
+      profileRequiredBanner:
+        "Please finish the required profile fields below before using Manage or Explore.",
     },
     credits: {
       dailyLimitReached: "Daily Limit Reached",
@@ -356,7 +362,6 @@ export const STRINGS = {
       loadErrorPrefix: "無法載入清單：",
       anonymous: "匿名徵求者",
       anonymousHint: "配對成功後解鎖真實身分",
-      demoBadge: "示例徵求 · 邀請由官方代收",
       locationUnknown: "隱藏地區",
       connect: "發送邀請",
       pending: "等待中",
@@ -411,6 +416,12 @@ export const STRINGS = {
       outboundNone: "沒有待處理的送出邀請。",
       outboundLine: "已送出介紹",
       outboundAwaiting: "等待回覆",
+      outboundAcceptedTitle: "已成功連結的邀請",
+      outboundAcceptedDesc:
+        "對方已接受你的開場訊息——點「訊息」前往對話，繼續交流。",
+      statusConnectedBadge: "已連結",
+      messagePeerCta: "訊息",
+      outboundAcceptedEmpty: "當對方接受你的邀請後，會顯示在這裡，並可由此進入對話。",
       curatedTitle: "精選介紹",
       curatedDesc: "協助新使用者起步的介紹——雙方仍可選擇是否接受。",
       noCurated: "目前沒有精選介紹。",
@@ -425,7 +436,7 @@ export const STRINGS = {
       pendingBtn: "等待中",
       connectionsTitle: "進行中的連結",
       connectionsDesc:
-        "每位對象一個對話——若與同一人有多個互相同意的介紹，訊息會合併在同一串。",
+        "互相接受的對象會出現在這裡——在下方開啟對話即可繼續聊天。",
       noConnections: "尚無進行中的連結。",
       mutualMatch: "互相接受的配對",
       multiIntroTpl: "{n} 個互相介紹 · 合併對話",
@@ -471,7 +482,6 @@ export const STRINGS = {
       peerConnection: "連結對象",
       peerFallbackName: "對方",
       messagesCombined: "訊息",
-      messagesMergedSuffix: "（合併）",
       chatYou: "你",
       chatPeer: "對方",
       refreshMessages: "重新整理",
@@ -493,6 +503,8 @@ export const STRINGS = {
       maxSizeErr: "檔案請小於 5 MB，或先壓縮圖片。",
       signInRequired: "請先登入。",
       uploadFailedErr: "上傳失敗。",
+      profileRequiredBanner:
+        "請先完成下方必填的個人檔案欄位，再使用管理中心或探索廣場等功能。",
     },
     credits: {
       dailyLimitReached: "今日額度已用盡",

@@ -176,7 +176,6 @@ export function MergedMatchChatPanel({ matchIds, sendOnMatchId, userId }: Merged
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
           {c.messagesCombined}
-          {matchIds.length > 1 ? c.messagesMergedSuffix : ""}
         </p>
         <Button
           type="button"

@@ -53,6 +53,8 @@ type Props = {
   intents: IntentRow[];
   matches: MatchRow[];
   blockedPeerIds: string[];
+  initialConsoleTab?: "intents" | "requests" | "connections";
+  initialOpenPeerId?: string | null;
 };
 
 function DualIntentBlurbs({ idA, idB }: { idA: string | null; idB: string | null }) {
@@ -139,6 +141,8 @@ export function ConsoleClient({
   intents,
   matches,
   blockedPeerIds,
+  initialConsoleTab = "intents",
+  initialOpenPeerId = null,
 }: Props) {
   const router = useRouter();
   const { strings } = useLanguage();
@@ -161,7 +165,11 @@ export function ConsoleClient({
     headline: string;
   } | null>(null);
 
-  const [selectedPeerId, setSelectedPeerId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"intents" | "requests" | "connections">(() =>
+    initialOpenPeerId ? "connections" : initialConsoleTab,
+  );
+
+  const [selectedPeerId, setSelectedPeerId] = useState<string | null>(() => initialOpenPeerId ?? null);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createDraft, setCreateDraft] = useState("");
@@ -204,6 +212,12 @@ export function ConsoleClient({
     () => matches.filter((m) => m.status === "Pending" && m.sender_id === userId),
     [matches, userId],
   );
+
+  const outboundAccepted = useMemo(() => {
+    const rows = matches.filter((m) => m.status === "Accepted" && m.sender_id === userId);
+    rows.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return rows;
+  }, [matches, userId]);
 
   const systemRecommended = useMemo(
     () => matches.filter((m) => m.status === "Pending_System" && (m.sender_id === userId || m.receiver_id === userId)),
@@ -361,7 +375,7 @@ export function ConsoleClient({
           <p className="rounded-xl border border-sky-500/25 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">{t.freshMatchesSearching}</p>
         ) : null}
 
-        <Tabs defaultValue="intents" className="gap-6">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="gap-6">
           <TabsList className="md:w-full md:max-w-3xl md:flex-wrap">
             <TabsTrigger value="intents">{t.tabIntents}</TabsTrigger>
             <TabsTrigger value="requests">{t.tabRequests}</TabsTrigger>
@@ -592,6 +606,46 @@ export function ConsoleClient({
             </section>
 
             <section className="space-y-4">
+              <h2 className="text-xl font-semibold text-white">{t.outboundAcceptedTitle}</h2>
+              <p className="text-sm text-slate-500">{t.outboundAcceptedDesc}</p>
+              {outboundAccepted.length === 0 ? (
+                <p className="text-sm text-slate-500">{t.outboundAcceptedEmpty}</p>
+              ) : (
+                <div className="grid gap-4">
+                  {outboundAccepted.map((m) => (
+                    <Card key={m.id} className="border-emerald-500/20 bg-white/[0.035] backdrop-blur-xl">
+                      <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-stretch md:justify-between md:gap-6">
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.contextMessage}</p>
+                          <p className="text-sm leading-relaxed text-slate-100">{m.introductory_context}</p>
+                          {m.compatibility_reason ? (
+                            <p className="text-xs leading-relaxed text-slate-500">
+                              {t.compatibility} {m.match_score ?? "—"} · {m.compatibility_reason}
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="flex shrink-0 flex-col items-stretch justify-center gap-3 md:w-44 md:items-end">
+                          <Badge variant="outline" className="border-emerald-400/35 bg-emerald-500/10 text-emerald-100">
+                            {t.statusConnectedBadge}
+                          </Badge>
+                          <Link
+                            href={`/console?tab=connections&peer=${encodeURIComponent(m.receiver_id)}`}
+                            className={cn(
+                              buttonVariants({ variant: "default", size: "sm" }),
+                              "galaxy-btn-glow inline-flex justify-center border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25",
+                            )}
+                          >
+                            {t.messagePeerCta}
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="space-y-4">
               <h2 className="text-xl font-semibold text-white">{t.curatedTitle}</h2>
               <p className="text-sm text-slate-500">{t.curatedDesc}</p>
               <div className="grid gap-4">
@@ -643,7 +697,7 @@ export function ConsoleClient({
 
           <TabsContent value="connections" className="space-y-4">
             <h2 className="text-xl font-semibold text-white">{t.connectionsTitle}</h2>
-            <p className="text-sm text-slate-500">{t.connectionsDesc}</p>
+            {t.connectionsDesc ? <p className="text-sm text-slate-500">{t.connectionsDesc}</p> : null}
             <div className="grid gap-4">
               {connectionsByPeer.length === 0 ? (
                 <Card className="border-dashed border-white/15 bg-white/[0.02] backdrop-blur-xl">
