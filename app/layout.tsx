@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { getMetadataBase } from "@/lib/site-url";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
   title: "Probdesk — Intent-driven matching",
   description:
     "High-intent human matching with hybrid search, Square marketplace, and double-blind mutual acceptance.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: getMetadataBase(),
 };
 
 export default function RootLayout({

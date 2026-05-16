@@ -1,38 +1,53 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getSiteOrigin } from "@/lib/site-url";
 
 export async function signInWithMagicLink(email: string) {
-  const supabase = await createClient();
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  try {
+    const supabase = await createClient();
+    const origin = getSiteOrigin();
 
-  const { error } = await supabase.auth.signInWithOtp({
-    email: email.trim(),
-    options: {
-      emailRedirectTo: `${origin}/auth/callback`,
-    },
-  });
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        emailRedirectTo: `${origin}/auth/callback`,
+      },
+    });
 
-  if (error) return { ok: false as const, message: error.message };
-  return { ok: true as const };
+    if (error) return { ok: false as const, message: error.message };
+    return { ok: true as const };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Sign-in is temporarily unavailable.";
+    return { ok: false as const, message: msg };
+  }
 }
 
 export async function signInWithGoogle() {
-  const supabase = await createClient();
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  try {
+    const supabase = await createClient();
+    const origin = getSiteOrigin();
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: `${origin}/auth/callback`,
-    },
-  });
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${origin}/auth/callback`,
+      },
+    });
 
-  if (error) return { ok: false as const, message: error.message };
-  return { ok: true as const, url: data.url };
+    if (error) return { ok: false as const, message: error.message };
+    return { ok: true as const, url: data.url };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Sign-in is temporarily unavailable.";
+    return { ok: false as const, message: msg };
+  }
 }
 
 export async function signOut() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  try {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+  } catch {
+    /* ignore missing client config */
+  }
 }

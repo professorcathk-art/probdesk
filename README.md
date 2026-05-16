@@ -35,7 +35,7 @@ Add these **before** the first successful build (Project → Settings → Enviro
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `NEXT_PUBLIC_SITE_URL` — your deployment URL, e.g. `https://your-project.vercel.app`
+- `NEXT_PUBLIC_SITE_URL` — your canonical URL (must be **non-empty** if set). If omitted, Vercel `VERCEL_URL` is used automatically for redirects/metadata.
 - `AIML_API_KEY` (and optional `AIML_API_BASE_URL`, model overrides)
 
 Supabase **Authentication → URL configuration** must list `https://<your-domain>/auth/callback` as a redirect URL.

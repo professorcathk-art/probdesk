@@ -13,16 +13,21 @@ export type MarketplaceListing = {
 export async function listMarketplaceListings(): Promise<
   { listings: MarketplaceListing[] } | { error: string }
 > {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("intent_requests")
-    .select("id, natural_language_input, location_filter, extracted_persona, user_id")
-    .eq("is_marketplace_public", true)
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .limit(60);
+    const { data, error } = await supabase
+      .from("intent_requests")
+      .select("id, natural_language_input, location_filter, extracted_persona, user_id")
+      .eq("is_marketplace_public", true)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(60);
 
-  if (error) return { error: error.message };
-  return { listings: (data ?? []) as MarketplaceListing[] };
+    if (error) return { error: error.message };
+    return { listings: (data ?? []) as MarketplaceListing[] };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Server configuration error";
+    return { error: msg };
+  }
 }

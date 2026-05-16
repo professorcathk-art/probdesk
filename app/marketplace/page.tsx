@@ -30,6 +30,12 @@ export default async function MarketplacePage() {
           </Link>
         </header>
 
+        {"error" in res ? (
+          <p className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            Could not load listings: {res.error}. Confirm Supabase URL and anon key are set for this deployment.
+          </p>
+        ) : null}
+
         <MarketplaceGrid listings={listings} currentUserId={user?.id ?? null} />
       </div>
     </div>

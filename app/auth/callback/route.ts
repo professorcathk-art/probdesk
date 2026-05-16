@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getSiteOrigin } from "@/lib/site-url";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? url.origin;
+  const site = getSiteOrigin(request);
 
   if (!code) {
     return NextResponse.redirect(`${site}/login?error=missing_code`);
