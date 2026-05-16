@@ -5,6 +5,8 @@ import { listMarketplaceListings } from "@/actions/marketplace";
 import { getAuthContext } from "@/lib/auth-context";
 import { MarketplaceGrid } from "./marketplace-grid";
 
+export const dynamic = "force-dynamic";
+
 export default async function MarketplacePage() {
   const res = await listMarketplaceListings();
   const listings = "error" in res ? [] : res.listings;

@@ -4,6 +4,8 @@ import { listMyIntents } from "@/actions/intents";
 import { getAuthContext } from "@/lib/auth-context";
 import { DashboardClient } from "./dashboard-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const { user, onboardingStatus } = await getAuthContext();
 

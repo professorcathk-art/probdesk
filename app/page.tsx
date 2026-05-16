@@ -6,6 +6,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getAuthContext } from "@/lib/auth-context";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const { user, onboardingStatus } = await getAuthContext();
 
