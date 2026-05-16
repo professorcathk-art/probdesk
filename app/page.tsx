@@ -1,3 +1,5 @@
+import { getSquarePendingIntentIdsForCurrentUser } from "@/actions/matches";
+import { listMarketplaceListings } from "@/actions/marketplace";
 import { LandingGalaxyScene } from "@/components/landing-galaxy-scene";
 import { LandingPageBody } from "@/components/landing-page-body";
 import { getAuthContext } from "@/lib/auth-context";
@@ -7,10 +9,24 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const { user, onboardingStatus } = await getAuthContext();
 
+  const listingsRes = await listMarketplaceListings();
+  const squareListings = "error" in listingsRes ? [] : listingsRes.listings.slice(0, 48);
+
+  let squarePendingIntentIds: string[] = [];
+  if (user) {
+    const pendingRes = await getSquarePendingIntentIdsForCurrentUser();
+    squarePendingIntentIds = "error" in pendingRes ? [] : pendingRes.intentIds;
+  }
+
   return (
     <div className="relative min-h-screen text-slate-50">
       <LandingGalaxyScene />
-      <LandingPageBody user={user} onboardingStatus={onboardingStatus} />
+      <LandingPageBody
+        user={user}
+        onboardingStatus={onboardingStatus}
+        squareListings={squareListings}
+        squarePendingIntentIds={squarePendingIntentIds}
+      />
     </div>
   );
 }

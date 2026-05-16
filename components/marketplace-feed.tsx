@@ -33,7 +33,7 @@ export function MarketplaceFeed({
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">{strings.marketplace.description}</p>
         </div>
         <Link href="/console" className={cn(buttonVariants({ variant: "ghost" }), "text-sky-300/90 underline-offset-4 hover:underline")}>
-          {strings.marketplace.backConsole}
+          {strings.marketplace.backManage}
         </Link>
       </header>
 

@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { Inbox, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { IntentRow, SuggestionCard } from "@/actions/intents";
 import {
@@ -12,17 +14,13 @@ import {
 } from "@/actions/intents";
 import type { MatchRow } from "@/actions/matches";
 import { respondToMatch } from "@/actions/matches";
-import type { ProfileIdentity } from "@/actions/profile";
-import { updateMyProfileIdentity } from "@/actions/profile";
-import { signOut } from "@/actions/auth";
 import { ConnectModal } from "@/components/connect-modal";
-import { ConsoleAvatarUpload } from "@/components/console-avatar-upload";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { IntentShareButton } from "@/components/intent-share-button";
 import { useLanguage } from "@/components/language-provider";
 import { MergedMatchChatPanel } from "@/components/match-chat-panel";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -39,14 +37,13 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
 type Props = {
   userId: string;
   intents: IntentRow[];
   matches: MatchRow[];
   blockedPeerIds: string[];
-  profileAvatarUrl: string | null;
-  profileIdentity: ProfileIdentity;
 };
 
 function DualIntentBlurbs({ idA, idB }: { idA: string | null; idB: string | null }) {
@@ -133,8 +130,6 @@ export function ConsoleClient({
   intents,
   matches,
   blockedPeerIds,
-  profileAvatarUrl,
-  profileIdentity,
 }: Props) {
   const router = useRouter();
   const { strings } = useLanguage();
@@ -165,21 +160,8 @@ export function ConsoleClient({
   const [editLocation, setEditLocation] = useState("");
   const [editBusy, setEditBusy] = useState(false);
 
-  const [pfName, setPfName] = useState(profileIdentity.display_name ?? "");
-  const [pfBio, setPfBio] = useState(profileIdentity.bio ?? "");
-  const [pfLoc, setPfLoc] = useState(profileIdentity.location ?? "");
-  const [pfInd, setPfInd] = useState(profileIdentity.industry ?? "");
-  const [pfBusy, setPfBusy] = useState(false);
-  const [pfNote, setPfNote] = useState<string | null>(null);
-
-  /* eslint-disable react-hooks/set-state-in-effect -- sync draft inputs when server passes refreshed profile */
-  useEffect(() => {
-    setPfName(profileIdentity.display_name ?? "");
-    setPfBio(profileIdentity.bio ?? "");
-    setPfLoc(profileIdentity.location ?? "");
-    setPfInd(profileIdentity.industry ?? "");
-  }, [profileIdentity.display_name, profileIdentity.bio, profileIdentity.location, profileIdentity.industry]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  const [postCreateDiscovering, setPostCreateDiscovering] = useState(false);
+  const [freshMatchesModal, setFreshMatchesModal] = useState<SuggestionCard[] | null>(null);
 
   const pendingInbound = useMemo(
     () => matches.filter((m) => m.status === "Pending" && m.receiver_id === userId),
@@ -266,6 +248,11 @@ export function ConsoleClient({
     setConnectOpen(true);
   }
 
+  function openConnectAndDismissFresh(card: SuggestionCard) {
+    setFreshMatchesModal(null);
+    openConnect(card);
+  }
+
   function previewFrom(row: MatchRow | undefined) {
     return row?.ai_context_sender as { headline?: string; summary?: string; signals?: string[] } | undefined;
   }
@@ -279,10 +266,21 @@ export function ConsoleClient({
       setError(res.message);
       return;
     }
+    const newIntentId = res.intentId;
     setCreateDraft("");
     setCreateLocation("");
     setCreateOpen(false);
+    setPostCreateDiscovering(true);
+    setError(null);
+    const discover = await computeHybridSuggestions(newIntentId);
+    setPostCreateDiscovering(false);
     await router.refresh();
+    if (discover.ok && discover.suggestions.length > 0) {
+      setSuggestionsByIntent((prev) => ({ ...prev, [newIntentId]: discover.suggestions }));
+      setFreshMatchesModal(discover.suggestions);
+    } else if (!discover.ok) {
+      setError(discover.message);
+    }
   }
 
   async function onEditIntent() {
@@ -305,25 +303,6 @@ export function ConsoleClient({
     setEditLocation(i.location_filter ?? "");
   }
 
-  async function saveProfile() {
-    setPfBusy(true);
-    setPfNote(null);
-    setError(null);
-    const res = await updateMyProfileIdentity({
-      display_name: pfName,
-      bio: pfBio,
-      location: pfLoc,
-      industry: pfInd,
-    });
-    setPfBusy(false);
-    if (!res.ok) {
-      setError(res.message);
-      return;
-    }
-    setPfNote(t.profileSaved);
-    await router.refresh();
-  }
-
   return (
     <div className="relative min-h-screen text-slate-50">
       <GalaxyBackdrop />
@@ -334,20 +313,14 @@ export function ConsoleClient({
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">{t.title}</h1>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-400">{t.subtitle}</p>
           </div>
-          <Button
-            variant="outline"
-            className="galaxy-btn-glow border-white/15 bg-white/[0.03] text-slate-100"
-            onClick={async () => {
-              await signOut();
-              router.replace("/");
-            }}
-          >
-            {t.signOut}
-          </Button>
         </header>
 
         {error ? (
           <p className="rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</p>
+        ) : null}
+
+        {postCreateDiscovering ? (
+          <p className="rounded-xl border border-sky-500/25 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">{t.freshMatchesSearching}</p>
         ) : null}
 
         <Tabs defaultValue="intents" className="gap-6">
@@ -355,12 +328,9 @@ export function ConsoleClient({
             <TabsTrigger value="intents">{t.tabIntents}</TabsTrigger>
             <TabsTrigger value="requests">{t.tabRequests}</TabsTrigger>
             <TabsTrigger value="connections">{t.tabConnections}</TabsTrigger>
-            <TabsTrigger value="profile">{t.tabProfile}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="intents" className="space-y-6">
-            <ConsoleAvatarUpload initialUrl={profileAvatarUrl} />
-
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-white">{t.yourIntents}</h2>
               <Button
@@ -502,7 +472,21 @@ export function ConsoleClient({
               <p className="text-sm text-slate-500">{t.pendingInboundDesc}</p>
               <div className="grid gap-4">
                 {pendingInbound.length === 0 ? (
-                  <p className="text-sm text-slate-500">{t.noInbound}</p>
+                  <Card className="border-dashed border-white/15 bg-white/[0.02] backdrop-blur-xl">
+                    <CardContent className="flex flex-col items-center justify-center gap-4 py-14 text-center">
+                      <Inbox className="h-12 w-12 text-slate-600" strokeWidth={1.25} aria-hidden />
+                      <p className="max-w-sm text-sm leading-relaxed text-slate-400">{t.emptyInboundBody}</p>
+                      <Link
+                        href="/square"
+                        className={cn(
+                          buttonVariants({ variant: "default" }),
+                          "galaxy-btn-glow inline-flex border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25",
+                        )}
+                      >
+                        {t.browseExplore}
+                      </Link>
+                    </CardContent>
+                  </Card>
                 ) : (
                   pendingInbound.map((m) => {
                     const preview = previewFrom(m);
@@ -621,7 +605,21 @@ export function ConsoleClient({
             <p className="text-sm text-slate-500">{t.connectionsDesc}</p>
             <div className="grid gap-4">
               {connectionsByPeer.length === 0 ? (
-                <p className="text-sm text-slate-500">{t.noConnections}</p>
+                <Card className="border-dashed border-white/15 bg-white/[0.02] backdrop-blur-xl">
+                  <CardContent className="flex flex-col items-center justify-center gap-4 py-14 text-center">
+                    <Users className="h-12 w-12 text-slate-600" strokeWidth={1.25} aria-hidden />
+                    <p className="max-w-sm text-sm leading-relaxed text-slate-400">{t.emptyConnectionsBody}</p>
+                    <Link
+                      href="/square"
+                      className={cn(
+                        buttonVariants({ variant: "default" }),
+                        "galaxy-btn-glow inline-flex border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25",
+                      )}
+                    >
+                      {t.browseExplore}
+                    </Link>
+                  </CardContent>
+                </Card>
               ) : (
                 connectionsByPeer.map(([peerId, peerMatches]) => {
                   const matchIds = peerMatches.map((m) => m.id);
@@ -662,70 +660,6 @@ export function ConsoleClient({
                 })
               )}
             </div>
-          </TabsContent>
-
-          <TabsContent value="profile" className="space-y-6">
-            <Card className="border-white/10 bg-white/[0.035] backdrop-blur-xl">
-              <CardHeader>
-                <CardTitle className="text-slate-100">{t.profileCardTitle}</CardTitle>
-                <CardDescription className="text-slate-400">{t.profileCardDesc}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {pfNote ? <p className="text-sm text-emerald-400/95">{pfNote}</p> : null}
-                <div className="space-y-2">
-                  <Label htmlFor="pf-name" className="text-slate-300">
-                    {t.profileDisplayName}
-                  </Label>
-                  <Input
-                    id="pf-name"
-                    value={pfName}
-                    onChange={(e) => setPfName(e.target.value)}
-                    className="border-white/10 bg-white/[0.03] text-slate-50"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pf-bio" className="text-slate-300">
-                    {t.profileBio}
-                  </Label>
-                  <Textarea
-                    id="pf-bio"
-                    value={pfBio}
-                    onChange={(e) => setPfBio(e.target.value)}
-                    className="min-h-[100px] border-white/10 bg-white/[0.03] text-slate-50"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pf-loc" className="text-slate-300">
-                    {t.profileLocation}
-                  </Label>
-                  <Input
-                    id="pf-loc"
-                    value={pfLoc}
-                    onChange={(e) => setPfLoc(e.target.value)}
-                    className="border-white/10 bg-white/[0.03] text-slate-50"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pf-ind" className="text-slate-300">
-                    {t.profileIndustry}
-                  </Label>
-                  <Input
-                    id="pf-ind"
-                    value={pfInd}
-                    onChange={(e) => setPfInd(e.target.value)}
-                    className="border-white/10 bg-white/[0.03] text-slate-50"
-                  />
-                </div>
-                <Button
-                  type="button"
-                  disabled={pfBusy}
-                  className="galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
-                  onClick={() => void saveProfile()}
-                >
-                  {pfBusy ? t.profileSaving : t.profileSave}
-                </Button>
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
       </main>
@@ -807,6 +741,54 @@ export function ConsoleClient({
               onClick={() => void onEditIntent()}
             >
               {editBusy ? t.saveBusy : t.saveChanges}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={freshMatchesModal !== null}
+        onOpenChange={(open) => {
+          if (!open) setFreshMatchesModal(null);
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-slate-950/95 text-slate-50 sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{t.freshMatchesTitle}</DialogTitle>
+            <DialogDescription className="text-slate-400">{t.freshMatchesSubtitle}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-3">
+            {(freshMatchesModal ?? []).map((s) => {
+              const blocked = blockedPeers.has(s.owner_user_id);
+              return (
+                <div
+                  key={s.intent_id}
+                  className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-xl"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/10 bg-gradient-to-br from-sky-500/40 to-indigo-600/30 blur-[3px]" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-slate-500">{t.compatibility}</p>
+                      <p className="text-lg font-semibold text-sky-200">{s.match_score}</p>
+                    </div>
+                  </div>
+                  <p className="mt-3 line-clamp-4 flex-1 break-words text-sm text-slate-200">{s.natural_language_input}</p>
+                  <p className="mt-3 break-words text-xs leading-relaxed text-slate-400">{s.compatibility_reason}</p>
+                  <Button
+                    size="sm"
+                    className="galaxy-btn-glow mt-4 w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
+                    disabled={blocked}
+                    onClick={() => !blocked && openConnectAndDismissFresh(s)}
+                  >
+                    {blocked ? t.alreadyPending : t.requestConnection}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="border-white/15 text-slate-200" onClick={() => setFreshMatchesModal(null)}>
+              {t.freshMatchesGotIt}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -10,6 +11,8 @@ const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 export function ConsoleAvatarUpload({ initialUrl }: { initialUrl: string | null }) {
   const router = useRouter();
+  const { strings } = useLanguage();
+  const p = strings.profilePage;
   const inputRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState(initialUrl);
   const [busy, setBusy] = useState(false);
@@ -19,11 +22,11 @@ export function ConsoleAvatarUpload({ initialUrl }: { initialUrl: string | null 
     if (!file) return;
     setErr(null);
     if (!ALLOWED.includes(file.type)) {
-      setErr("Use JPG, PNG, WebP, or GIF.");
+      setErr(p.fileTypeErr);
       return;
     }
     if (file.size > MAX_BYTES) {
-      setErr("Max 5 MB — choose a smaller image or compress it.");
+      setErr(p.maxSizeErr);
       return;
     }
 
@@ -34,7 +37,7 @@ export function ConsoleAvatarUpload({ initialUrl }: { initialUrl: string | null 
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        setErr("Sign in required.");
+        setErr(p.signInRequired);
         setBusy(false);
         return;
       }
@@ -67,7 +70,7 @@ export function ConsoleAvatarUpload({ initialUrl }: { initialUrl: string | null 
       setUrl(avatar_url);
       router.refresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Upload failed.");
+      setErr(e instanceof Error ? e.message : p.uploadFailedErr);
     }
     setBusy(false);
   }
@@ -80,12 +83,12 @@ export function ConsoleAvatarUpload({ initialUrl }: { initialUrl: string | null 
           <img src={url} alt="" className="h-16 w-16 rounded-full border border-white/15 object-cover" />
         ) : (
           <div className="flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-white/20 bg-white/[0.04] text-[10px] leading-tight text-slate-500">
-            No photo
+            {p.noPhoto}
           </div>
         )}
         <div>
-          <p className="text-sm font-medium text-white">Profile photo</p>
-          <p className="text-xs text-slate-500">Uploaded directly to storage (avoids size limits). Max 5 MB.</p>
+          <p className="text-sm font-medium text-white">{p.avatarPhoto}</p>
+          <p className="text-xs text-slate-500">{p.avatarHint}</p>
           {err ? <p className="mt-1 text-xs text-red-400">{err}</p> : null}
         </div>
       </div>
@@ -107,7 +110,7 @@ export function ConsoleAvatarUpload({ initialUrl }: { initialUrl: string | null 
         disabled={busy}
         onClick={() => inputRef.current?.click()}
       >
-        {busy ? "Uploading…" : url ? "Replace photo" : "Upload photo"}
+        {busy ? p.uploading : url ? p.replacePhoto : p.uploadPhoto}
       </Button>
     </div>
   );

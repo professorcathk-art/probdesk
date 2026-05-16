@@ -35,7 +35,7 @@ export async function bootstrapIntentFromLanding(naturalLanguageInput: string) {
 
   const trimmed = naturalLanguageInput.trim();
   if (trimmed.length < 12) {
-    return { ok: false as const, message: "Intent is too short." };
+    return { ok: false as const, message: "Request is too short." };
   }
 
   let parsed: Awaited<ReturnType<typeof parseIntentWithMini>>;
@@ -251,7 +251,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     .single();
 
   if (error || !intent) {
-    return { ok: false, message: error?.message ?? "Intent not found" };
+    return { ok: false, message: error?.message ?? "Request not found" };
   }
 
   if (!intent.location_filter) {
@@ -266,7 +266,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     target_embedding: intent.embedding as unknown as string,
     p_location: intent.location_filter,
     p_threshold: 0.55,
-    p_limit: 12,
+    p_limit: 24,
     p_exclude_user_id: user.id,
   });
 
@@ -284,32 +284,39 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     similarity: number;
   }[];
 
-  const top = rows.slice(0, 3);
+  const pool = rows.slice(0, 6);
 
-  const suggestions: SuggestionCard[] = [];
+  const scored = await Promise.all(
+    pool.map(async (row) => {
+      try {
+        const vibe = await vibeCheckWith4o({
+          senderIntent: intent.natural_language_input,
+          candidateIntent: row.natural_language_input,
+        });
+        return {
+          row,
+          match_score: vibe.match_score,
+          compatibility_reason: vibe.compatibility_reason,
+        };
+      } catch {
+        return {
+          row,
+          match_score: Math.round((row.similarity ?? 0) * 100),
+          compatibility_reason:
+            "Strong semantic overlap on goals and constraints — worth a careful intro if incentives align.",
+        };
+      }
+    }),
+  );
 
-  for (const row of top) {
-    try {
-      const vibe = await vibeCheckWith4o({
-        senderIntent: intent.natural_language_input,
-        candidateIntent: row.natural_language_input,
-      });
-      suggestions.push({
-        ...row,
-        extracted_persona: row.extracted_persona,
-        match_score: vibe.match_score,
-        compatibility_reason: vibe.compatibility_reason,
-      });
-    } catch {
-      suggestions.push({
-        ...row,
-        extracted_persona: row.extracted_persona,
-        match_score: Math.round((row.similarity ?? 0) * 100),
-        compatibility_reason:
-          "Strong semantic overlap on goals and constraints — worth a careful intro if incentives align.",
-      });
-    }
-  }
+  scored.sort((a, b) => b.match_score - a.match_score);
+
+  const suggestions: SuggestionCard[] = scored.slice(0, 3).map(({ row, match_score, compatibility_reason }) => ({
+    ...row,
+    extracted_persona: row.extracted_persona,
+    match_score,
+    compatibility_reason,
+  }));
 
   return { ok: true, suggestions };
 }
@@ -327,7 +334,7 @@ export async function createConsoleIntent(naturalLanguageInput: string, location
 
   const trimmed = naturalLanguageInput.trim();
   if (trimmed.length < 12) {
-    return { ok: false as const, message: "Intent is too short." };
+    return { ok: false as const, message: "Request is too short." };
   }
 
   let parsed: Awaited<ReturnType<typeof parseIntentWithMini>>;
@@ -359,7 +366,7 @@ export async function createConsoleIntent(naturalLanguageInput: string, location
     location_filter = profile?.location?.trim() ?? null;
   }
 
-  const { error } = await supabase.from("intent_requests").insert({
+  const { data: inserted, error } = await supabase.from("intent_requests").insert({
     user_id: user.id,
     natural_language_input: trimmed,
     extracted_persona: parsed.extracted_persona,
@@ -367,12 +374,12 @@ export async function createConsoleIntent(naturalLanguageInput: string, location
     embedding: vectorLiteral(embedding),
     status: "active",
     is_marketplace_public: false,
-  });
+  }).select("id").single();
 
-  if (error) return { ok: false as const, message: error.message };
+  if (error || !inserted) return { ok: false as const, message: error?.message ?? "Insert failed" };
 
   revalidatePath("/console");
-  return { ok: true as const };
+  return { ok: true as const, intentId: inserted.id as string };
 }
 
 export async function updateConsoleIntent(
@@ -388,7 +395,7 @@ export async function updateConsoleIntent(
 
   const trimmed = naturalLanguageInput.trim();
   if (trimmed.length < 12) {
-    return { ok: false as const, message: "Intent is too short." };
+    return { ok: false as const, message: "Request is too short." };
   }
 
   const { data: existing } = await supabase

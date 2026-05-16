@@ -1,12 +1,35 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { UserRound } from "lucide-react";
+import { signOut } from "@/actions/auth";
 import { useLanguage } from "@/components/language-provider";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLinkItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-export function SiteNav({ isAuthenticated }: { isAuthenticated: boolean }) {
+export function SiteNav({
+  isAuthenticated,
+  avatarUrl,
+}: {
+  isAuthenticated: boolean;
+  avatarUrl: string | null;
+}) {
+  const router = useRouter();
   const { lang, setLang, strings } = useLanguage();
+
+  async function onSignOut() {
+    await signOut();
+    router.replace("/");
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
@@ -46,13 +69,7 @@ export function SiteNav({ isAuthenticated }: { isAuthenticated: boolean }) {
             href="/square"
             className={cn(buttonVariants({ variant: "ghost" }), "text-slate-200 hover:bg-white/5 hover:text-white")}
           >
-            {strings.nav.square}
-          </Link>
-          <Link
-            href="/console"
-            className={cn(buttonVariants({ variant: "ghost" }), "text-slate-200 hover:bg-white/5 hover:text-white")}
-          >
-            {strings.nav.console}
+            {strings.nav.explore}
           </Link>
           {!isAuthenticated ? (
             <Link
@@ -64,7 +81,36 @@ export function SiteNav({ isAuthenticated }: { isAuthenticated: boolean }) {
             >
               {strings.nav.enter}
             </Link>
-          ) : null}
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label={strings.nav.accountMenu}
+                className={cn(
+                  "flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/[0.04] text-slate-300 transition-colors hover:border-white/25 hover:bg-white/[0.07]",
+                )}
+              >
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- remote Supabase Storage URL
+                  <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <UserRound className="h-5 w-5 opacity-80" strokeWidth={1.75} aria-hidden />
+                )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLinkItem href="/console">{strings.nav.manage}</DropdownMenuLinkItem>
+                <DropdownMenuLinkItem href="/profile">{strings.nav.profile}</DropdownMenuLinkItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-slate-300"
+                  onClick={() => {
+                    void onSignOut();
+                  }}
+                >
+                  {strings.nav.signOut}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </nav>
       </div>
     </header>

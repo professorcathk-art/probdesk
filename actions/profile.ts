@@ -45,6 +45,8 @@ export async function uploadProfileAvatar(formData: FormData) {
   if (dbErr) return { ok: false as const, message: dbErr.message };
 
   revalidatePath("/console");
+  revalidatePath("/profile");
+  revalidatePath("/");
   return { ok: true as const, avatar_url };
 }
 
@@ -119,5 +121,7 @@ export async function updateMyProfileIdentity(fields: {
   if (error) return { ok: false as const, message: error.message };
 
   revalidatePath("/console");
+  revalidatePath("/profile");
+  revalidatePath("/");
   return { ok: true as const };
 }

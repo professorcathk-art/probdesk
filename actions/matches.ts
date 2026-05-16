@@ -50,7 +50,7 @@ export async function initiateConnection(params: {
     .single();
 
   if (intentError || !receiverIntent || receiverIntent.user_id !== params.receiverUserId) {
-    return { ok: false as const, message: "Intent not found." };
+    return { ok: false as const, message: "Request not found." };
   }
 
   if (await hasBlockingMatchBetween(supabase, user.id, params.receiverUserId)) {

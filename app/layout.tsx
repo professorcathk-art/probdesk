@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import { Footer } from "@/components/footer";
 import { LanguageProvider } from "@/components/language-provider";
 import { SiteNav } from "@/components/site-nav";
+import { getMyProfileAvatar } from "@/actions/profile";
 import { getAuthContext } from "@/lib/auth-context";
 import { getMetadataBase } from "@/lib/site-url";
 import "./globals.css";
@@ -18,9 +19,9 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Probdesk — Intent-driven matching",
+  title: "Probdesk — Matching built on what you're looking for",
   description:
-    "High-intent human matching with Smart Matchmaking, Square marketplace, and mutual acceptance before identities unlock.",
+    "Thoughtful human matching with Smart Matchmaking, Explore, and mutual acceptance before identities unlock.",
   metadataBase: getMetadataBase(),
 };
 
@@ -30,12 +31,17 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const { user } = await getAuthContext();
+  let avatarUrl: string | null = null;
+  if (user) {
+    const av = await getMyProfileAvatar();
+    avatarUrl = "error" in av ? null : av.avatar_url;
+  }
 
   return (
     <html lang="en" className={`dark ${inter.variable} ${spaceGrotesk.variable} h-full`}>
       <body className="flex min-h-full flex-col antialiased">
         <LanguageProvider>
-          <SiteNav isAuthenticated={!!user} />
+          <SiteNav isAuthenticated={!!user} avatarUrl={avatarUrl} />
           <div className="relative flex-1">{children}</div>
           <Footer />
         </LanguageProvider>

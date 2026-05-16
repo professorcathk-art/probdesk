@@ -232,6 +232,10 @@
   animation: landing-marquee 48s linear infinite;
 }
 
+.landing-marquee-paused {
+  animation-play-state: paused;
+}
+
 @keyframes landing-marquee {
   from {
     transform: translateX(0);
