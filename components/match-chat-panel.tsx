@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { listMatchMessages, listMergedMatchMessages, sendMatchMessage } from "@/actions/matches";
 import type { MessageRow } from "@/actions/matches";
+import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -12,6 +13,8 @@ type Props = {
 };
 
 export function MatchChatPanel({ matchId, userId }: Props) {
+  const { strings } = useLanguage();
+  const c = strings.console;
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -63,7 +66,7 @@ export function MatchChatPanel({ matchId, userId }: Props) {
   return (
     <div className="flex max-h-[min(70vh,440px)] min-h-0 flex-col space-y-4 overflow-hidden rounded-xl border border-white/10 bg-black/25 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Messages</p>
+        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{c.messagesCombined}</p>
         <Button
           type="button"
           variant="outline"
@@ -71,7 +74,7 @@ export function MatchChatPanel({ matchId, userId }: Props) {
           className="border-white/15 bg-transparent text-slate-200 hover:bg-white/[0.06]"
           onClick={() => void load()}
         >
-          Refresh
+          {c.refreshMessages}
         </Button>
       </div>
 
@@ -79,11 +82,11 @@ export function MatchChatPanel({ matchId, userId }: Props) {
 
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain text-sm">
         {messages.length === 0 ? (
-          <p className="text-slate-500">No messages yet — say hello.</p>
+          <p className="text-slate-500">{c.noMessages}</p>
         ) : (
           messages.map((msg) => (
             <div key={msg.id} className="rounded-lg bg-white/[0.04] px-3 py-2">
-              <p className="text-[11px] text-slate-500">{msg.sender_id === userId ? "You" : "Peer"}</p>
+              <p className="text-[11px] text-slate-500">{msg.sender_id === userId ? c.chatYou : c.chatPeer}</p>
               <p className="text-slate-200">{msg.content}</p>
             </div>
           ))
@@ -93,7 +96,7 @@ export function MatchChatPanel({ matchId, userId }: Props) {
       <Textarea
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        placeholder="Write a message…"
+        placeholder={c.sendPlaceholder}
         className="min-h-[88px] border-white/10 bg-white/[0.03] text-slate-50"
       />
       <Button
@@ -102,7 +105,7 @@ export function MatchChatPanel({ matchId, userId }: Props) {
         className="galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
         onClick={() => void onSend()}
       >
-        {busy ? "Sending…" : "Send"}
+        {busy ? c.sending : c.send}
       </Button>
     </div>
   );
@@ -116,6 +119,8 @@ type MergedProps = {
 };
 
 export function MergedMatchChatPanel({ matchIds, sendOnMatchId, userId }: MergedProps) {
+  const { strings } = useLanguage();
+  const c = strings.console;
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -170,7 +175,8 @@ export function MergedMatchChatPanel({ matchIds, sendOnMatchId, userId }: Merged
     <div className="flex max-h-[min(70vh,440px)] min-h-0 flex-col space-y-4 overflow-hidden rounded-xl border border-white/10 bg-black/25 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
-          Messages {matchIds.length > 1 ? "(combined)" : ""}
+          {c.messagesCombined}
+          {matchIds.length > 1 ? c.messagesMergedSuffix : ""}
         </p>
         <Button
           type="button"
@@ -179,7 +185,7 @@ export function MergedMatchChatPanel({ matchIds, sendOnMatchId, userId }: Merged
           className="border-white/15 bg-transparent text-slate-200 hover:bg-white/[0.06]"
           onClick={() => void load()}
         >
-          Refresh
+          {c.refreshMessages}
         </Button>
       </div>
 
@@ -187,11 +193,11 @@ export function MergedMatchChatPanel({ matchIds, sendOnMatchId, userId }: Merged
 
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain text-sm">
         {messages.length === 0 ? (
-          <p className="text-slate-500">No messages yet — say hello.</p>
+          <p className="text-slate-500">{c.noMessages}</p>
         ) : (
           messages.map((msg) => (
             <div key={msg.id} className="rounded-lg bg-white/[0.04] px-3 py-2">
-              <p className="text-[11px] text-slate-500">{msg.sender_id === userId ? "You" : "Peer"}</p>
+              <p className="text-[11px] text-slate-500">{msg.sender_id === userId ? c.chatYou : c.chatPeer}</p>
               <p className="text-slate-200">{msg.content}</p>
             </div>
           ))
@@ -201,7 +207,7 @@ export function MergedMatchChatPanel({ matchIds, sendOnMatchId, userId }: Merged
       <Textarea
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        placeholder="Write a message…"
+        placeholder={c.sendPlaceholder}
         className="min-h-[88px] border-white/10 bg-white/[0.03] text-slate-50"
       />
       <Button
@@ -210,7 +216,7 @@ export function MergedMatchChatPanel({ matchIds, sendOnMatchId, userId }: Merged
         className="galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
         onClick={() => void onSend()}
       >
-        {busy ? "Sending…" : "Send"}
+        {busy ? c.sending : c.send}
       </Button>
     </div>
   );

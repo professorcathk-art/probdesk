@@ -6,7 +6,7 @@ import { getAuthContext } from "@/lib/auth-context";
 
 export const dynamic = "force-dynamic";
 
-export default async function MarketplacePage({
+export default async function SquarePage({
   searchParams,
 }: {
   searchParams?: Promise<{ intent?: string }>;

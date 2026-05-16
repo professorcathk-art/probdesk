@@ -12,10 +12,14 @@ import {
 } from "@/actions/intents";
 import type { MatchRow } from "@/actions/matches";
 import { respondToMatch } from "@/actions/matches";
+import type { ProfileIdentity } from "@/actions/profile";
+import { updateMyProfileIdentity } from "@/actions/profile";
 import { signOut } from "@/actions/auth";
 import { ConnectModal } from "@/components/connect-modal";
 import { ConsoleAvatarUpload } from "@/components/console-avatar-upload";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
+import { IntentShareButton } from "@/components/intent-share-button";
+import { useLanguage } from "@/components/language-provider";
 import { MergedMatchChatPanel } from "@/components/match-chat-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,9 +46,11 @@ type Props = {
   matches: MatchRow[];
   blockedPeerIds: string[];
   profileAvatarUrl: string | null;
+  profileIdentity: ProfileIdentity;
 };
 
 function DualIntentBlurbs({ idA, idB }: { idA: string | null; idB: string | null }) {
+  const { strings } = useLanguage();
   const [lines, setLines] = useState<string[]>([]);
 
   useEffect(() => {
@@ -63,21 +69,24 @@ function DualIntentBlurbs({ idA, idB }: { idA: string | null; idB: string | null
 
   return (
     <div className="space-y-2 blur-[1.5px]">
-      {lines.map((t, i) => (
+      {lines.map((line, i) => (
         <p key={i} className="text-sm leading-relaxed text-slate-300">
-          {t}
+          {line}
         </p>
       ))}
-      {lines.length === 0 ? <p className="text-xs text-slate-500">Loading intent snippets…</p> : null}
+      {lines.length === 0 ? <p className="text-xs text-slate-500">{strings.console.peerLoading}</p> : null}
     </div>
   );
 }
 
 function PeerIdentityCard({ peerUserId }: { peerUserId: string }) {
+  const { strings } = useLanguage();
   const [peer, setPeer] = useState<{
     display_name: string | null;
     industry: string | null;
     avatar_url: string | null;
+    bio: string | null;
+    location: string | null;
   } | null>(null);
 
   useEffect(() => {
@@ -86,7 +95,7 @@ function PeerIdentityCard({ peerUserId }: { peerUserId: string }) {
       const supabase = createClient();
       const { data } = await supabase
         .from("profiles")
-        .select("display_name, industry, avatar_url")
+        .select("display_name, industry, avatar_url, bio, location")
         .eq("user_id", peerUserId)
         .maybeSingle();
       if (!cancelled) setPeer(data);
@@ -109,16 +118,27 @@ function PeerIdentityCard({ peerUserId }: { peerUserId: string }) {
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-emerald-400/25 bg-gradient-to-br from-emerald-500/25 to-sky-600/20 blur-[2px]" />
       )}
       <div className="min-w-0 flex-1">
-        <p className="text-xs uppercase tracking-[0.16em] text-emerald-300/80">Connection</p>
-        <p className="mt-2 text-base font-semibold text-white">{peer?.display_name ?? "Peer"}</p>
+        <p className="text-xs uppercase tracking-[0.16em] text-emerald-300/80">{strings.console.peerConnection}</p>
+        <p className="mt-2 text-base font-semibold text-white">{peer?.display_name ?? strings.console.peerFallbackName}</p>
         <p className="text-sm text-slate-400">{peer?.industry ?? ""}</p>
+        {peer?.location ? <p className="mt-1 text-sm text-slate-500">{peer.location}</p> : null}
+        {peer?.bio ? <p className="mt-2 text-sm leading-relaxed text-slate-300">{peer.bio}</p> : null}
       </div>
     </div>
   );
 }
 
-export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profileAvatarUrl }: Props) {
+export function ConsoleClient({
+  userId,
+  intents,
+  matches,
+  blockedPeerIds,
+  profileAvatarUrl,
+  profileIdentity,
+}: Props) {
   const router = useRouter();
+  const { strings } = useLanguage();
+  const t = strings.console;
 
   const blockedPeers = useMemo(() => new Set(blockedPeerIds), [blockedPeerIds]);
 
@@ -144,6 +164,22 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
   const [editDraft, setEditDraft] = useState("");
   const [editLocation, setEditLocation] = useState("");
   const [editBusy, setEditBusy] = useState(false);
+
+  const [pfName, setPfName] = useState(profileIdentity.display_name ?? "");
+  const [pfBio, setPfBio] = useState(profileIdentity.bio ?? "");
+  const [pfLoc, setPfLoc] = useState(profileIdentity.location ?? "");
+  const [pfInd, setPfInd] = useState(profileIdentity.industry ?? "");
+  const [pfBusy, setPfBusy] = useState(false);
+  const [pfNote, setPfNote] = useState<string | null>(null);
+
+  /* eslint-disable react-hooks/set-state-in-effect -- sync draft inputs when server passes refreshed profile */
+  useEffect(() => {
+    setPfName(profileIdentity.display_name ?? "");
+    setPfBio(profileIdentity.bio ?? "");
+    setPfLoc(profileIdentity.location ?? "");
+    setPfInd(profileIdentity.industry ?? "");
+  }, [profileIdentity.display_name, profileIdentity.bio, profileIdentity.location, profileIdentity.industry]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const pendingInbound = useMemo(
     () => matches.filter((m) => m.status === "Pending" && m.receiver_id === userId),
@@ -269,17 +305,34 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
     setEditLocation(i.location_filter ?? "");
   }
 
+  async function saveProfile() {
+    setPfBusy(true);
+    setPfNote(null);
+    setError(null);
+    const res = await updateMyProfileIdentity({
+      display_name: pfName,
+      bio: pfBio,
+      location: pfLoc,
+      industry: pfInd,
+    });
+    setPfBusy(false);
+    if (!res.ok) {
+      setError(res.message);
+      return;
+    }
+    setPfNote(t.profileSaved);
+    await router.refresh();
+  }
+
   return (
     <div className="relative min-h-screen text-slate-50">
       <GalaxyBackdrop />
       <main className="relative z-[1] mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 md:gap-10 md:px-6 md:py-16">
         <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">Console</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">Intent control & connections</h1>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-400">
-              Manage intents, resolve requests, and message active connections — organized in tabs.
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">{t.kicker}</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">{t.title}</h1>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-400">{t.subtitle}</p>
           </div>
           <Button
             variant="outline"
@@ -289,7 +342,7 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
               router.replace("/");
             }}
           >
-            Sign out
+            {t.signOut}
           </Button>
         </header>
 
@@ -298,17 +351,18 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
         ) : null}
 
         <Tabs defaultValue="intents" className="gap-6">
-          <TabsList className="md:w-full md:max-w-2xl">
-            <TabsTrigger value="intents">Intents</TabsTrigger>
-            <TabsTrigger value="requests">Requests</TabsTrigger>
-            <TabsTrigger value="connections">Connections</TabsTrigger>
+          <TabsList className="md:w-full md:max-w-3xl md:flex-wrap">
+            <TabsTrigger value="intents">{t.tabIntents}</TabsTrigger>
+            <TabsTrigger value="requests">{t.tabRequests}</TabsTrigger>
+            <TabsTrigger value="connections">{t.tabConnections}</TabsTrigger>
+            <TabsTrigger value="profile">{t.tabProfile}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="intents" className="space-y-6">
             <ConsoleAvatarUpload initialUrl={profileAvatarUrl} />
 
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-white">Your intents</h2>
+              <h2 className="text-lg font-semibold text-white">{t.yourIntents}</h2>
               <Button
                 type="button"
                 className="galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
@@ -318,7 +372,7 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
                   setCreateOpen(true);
                 }}
               >
-                Create new intent
+                {t.createIntent}
               </Button>
             </div>
 
@@ -326,10 +380,8 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
               {intents.length === 0 ? (
                 <Card className="border-white/10 bg-white/[0.035] backdrop-blur-xl">
                   <CardHeader>
-                    <CardTitle className="text-slate-100">No intents yet</CardTitle>
-                    <CardDescription className="text-slate-400">
-                      Create one above or complete onboarding if you haven&apos;t.
-                    </CardDescription>
+                    <CardTitle className="text-slate-100">{t.noIntentsTitle}</CardTitle>
+                    <CardDescription className="text-slate-400">{t.noIntentsDesc}</CardDescription>
                   </CardHeader>
                 </Card>
               ) : (
@@ -338,16 +390,17 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
                     <CardHeader className="gap-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <CardTitle className="text-base text-slate-100">Intent</CardTitle>
+                          <CardTitle className="text-base text-slate-100">{t.intentCardTitle}</CardTitle>
                           <CardDescription className="text-slate-300">{intent.natural_language_input}</CardDescription>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline" className="border-white/15 text-slate-200">
-                            {intent.location_filter ?? "Location unset"}
+                            {intent.location_filter ?? t.locationUnset}
                           </Badge>
                           <Badge variant="outline" className="border-white/15 text-slate-200">
                             {intent.status}
                           </Badge>
+                          <IntentShareButton intentId={intent.id} size="icon" variant="outline" />
                           <Button
                             type="button"
                             variant="outline"
@@ -355,7 +408,7 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
                             className="border-white/15 bg-transparent text-slate-200"
                             onClick={() => openEdit(intent)}
                           >
-                            Edit
+                            {t.edit}
                           </Button>
                         </div>
                       </div>
@@ -370,9 +423,9 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
                           />
                           <div>
                             <Label htmlFor={`sq-${intent.id}`} className="text-slate-100">
-                              List this request in the public marketplace (Square)
+                              {t.listOnSquare}
                             </Label>
-                            <p className="mt-1 text-xs text-slate-500">Inbound requests stay anonymous until mutual acceptance.</p>
+                            <p className="mt-1 text-xs text-slate-500">{t.listOnSquareHint}</p>
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -381,58 +434,55 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
                             className="galaxy-btn-glow border-white/15 bg-transparent text-slate-100"
                             onClick={() => void togglePaused(intent.id, intent.status === "active" ? "paused" : "active")}
                           >
-                            {intent.status === "active" ? "Pause retrieval" : "Resume retrieval"}
+                            {intent.status === "active" ? t.pauseMatching : t.resumeMatching}
                           </Button>
                           <Button
                             className="galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
                             disabled={busyIntent === intent.id || intent.status !== "active"}
                             onClick={() => void loadSuggestions(intent.id)}
                           >
-                            {busyIntent === intent.id ? "Refreshing…" : "Refresh system matches"}
+                            {busyIntent === intent.id ? t.discovering : t.discoverMatches}
                           </Button>
                         </div>
                       </div>
 
                       <div className="space-y-3">
                         <div className="space-y-1">
-                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Hybrid queue (blurred)</p>
-                          <p className="text-xs leading-relaxed text-slate-500">
-                            After you tap <span className="text-slate-400">Refresh system matches</span>, Probdesk runs embedding + location search to surface a short list of similar intents nearby.
-                            Avatars stay blurred until someone sends a connection request.
-                          </p>
+                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{t.matchQueueTitle}</p>
+                          <p className="text-xs leading-relaxed text-slate-500">{t.matchQueueDesc}</p>
                         </div>
-                        <ScrollArea className="w-full whitespace-nowrap pb-3">
-                          <div className="flex w-max gap-4 pb-1">
+                        <ScrollArea className="w-full pb-3">
+                          <div className="flex w-max max-w-none flex-nowrap gap-4 pb-1">
                             {(suggestionsByIntent[intent.id] ?? []).map((s) => {
                               const blocked = blockedPeers.has(s.owner_user_id);
                               return (
                                 <div
                                   key={s.intent_id}
-                                  className="w-[min(280px,85vw)] shrink-0 rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-xl"
+                                  className="w-[min(280px,85vw)] max-w-[min(280px,85vw)] shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-xl"
                                 >
-                                  <div className="flex items-center gap-3">
-                                    <div className="relative h-12 w-12 overflow-hidden rounded-full border border-white/10 bg-gradient-to-br from-sky-500/40 to-indigo-600/30 blur-[3px]" />
-                                    <div>
-                                      <p className="text-xs text-slate-500">Match score</p>
+                                  <div className="flex min-w-0 items-center gap-3">
+                                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/10 bg-gradient-to-br from-sky-500/40 to-indigo-600/30 blur-[3px]" />
+                                    <div className="min-w-0">
+                                      <p className="text-xs text-slate-500">{t.compatibility}</p>
                                       <p className="text-lg font-semibold text-sky-200">{s.match_score}</p>
                                     </div>
                                   </div>
-                                  <p className="mt-3 line-clamp-4 text-sm text-slate-200">{s.natural_language_input}</p>
-                                  <p className="mt-3 text-xs leading-relaxed text-slate-400">{s.compatibility_reason}</p>
+                                  <p className="mt-3 line-clamp-4 break-words text-sm text-slate-200">{s.natural_language_input}</p>
+                                  <p className="mt-3 break-words text-xs leading-relaxed text-slate-400">{s.compatibility_reason}</p>
                                   <Button
                                     size="sm"
                                     className="galaxy-btn-glow mt-4 w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
                                     disabled={blocked}
                                     onClick={() => !blocked && openConnect(s)}
                                   >
-                                    {blocked ? "Already pending / connected" : "Request connection"}
+                                    {blocked ? t.alreadyPending : t.requestConnection}
                                   </Button>
                                 </div>
                               );
                             })}
                             {(suggestionsByIntent[intent.id] ?? []).length === 0 ? (
                               <div className="rounded-2xl border border-dashed border-white/10 px-6 py-10 text-sm text-slate-500">
-                                Tap <span className="text-slate-400">Refresh system matches</span> above to load AI-ranked candidates for this intent.
+                                {t.matchQueueEmpty}
                               </div>
                             ) : null}
                           </div>
@@ -448,29 +498,29 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
 
           <TabsContent value="requests" className="space-y-10">
             <section className="space-y-4">
-              <h2 className="text-xl font-semibold text-white">Pending inbound requests</h2>
-              <p className="text-sm text-slate-500">Someone connected with you via Square or hybrid queue.</p>
+              <h2 className="text-xl font-semibold text-white">{t.pendingInboundTitle}</h2>
+              <p className="text-sm text-slate-500">{t.pendingInboundDesc}</p>
               <div className="grid gap-4">
                 {pendingInbound.length === 0 ? (
-                  <p className="text-sm text-slate-500">No inbound requests.</p>
+                  <p className="text-sm text-slate-500">{t.noInbound}</p>
                 ) : (
                   pendingInbound.map((m) => {
                     const preview = previewFrom(m);
                     return (
                       <Card key={m.id} className="border-white/10 bg-white/[0.035] backdrop-blur-xl">
                         <CardHeader>
-                          <CardTitle className="text-base text-slate-100">New introduction</CardTitle>
+                          <CardTitle className="text-base text-slate-100">{t.newIntro}</CardTitle>
                           <CardDescription className="text-slate-400">
-                            Score {m.match_score ?? "—"} · {m.compatibility_reason}
+                            {t.compatibility} {m.match_score ?? "—"} · {m.compatibility_reason}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                           <div>
-                            <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Context message</p>
+                            <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.contextMessage}</p>
                             <p className="mt-2 text-slate-200">{m.introductory_context}</p>
                           </div>
                           <div className="rounded-xl border border-white/10 bg-black/30 p-4">
-                            <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Blurred persona preview</p>
+                            <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.personaPreview}</p>
                             <div className="mt-2 blur-sm">
                               <p className="font-medium text-slate-100">{preview?.headline}</p>
                               <p className="mt-2 text-slate-300">{preview?.summary}</p>
@@ -486,10 +536,10 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
                               className="galaxy-btn-glow border border-emerald-400/35 bg-emerald-500/15 text-emerald-50 hover:bg-emerald-500/25"
                               onClick={() => void onRespond(m.id, "Accepted")}
                             >
-                              Accept
+                              {t.accept}
                             </Button>
                             <Button variant="ghost" className="text-slate-300 hover:bg-white/5" onClick={() => void onRespond(m.id, "Rejected")}>
-                              Decline
+                              {t.decline}
                             </Button>
                           </div>
                         </CardContent>
@@ -501,15 +551,15 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
             </section>
 
             <section className="space-y-4">
-              <h2 className="text-xl font-semibold text-white">Outbound requests</h2>
-              <p className="text-sm text-slate-500">Waiting on the other party.</p>
+              <h2 className="text-xl font-semibold text-white">{t.outboundTitle}</h2>
+              <p className="text-sm text-slate-500">{t.outboundDesc}</p>
               {outboundPending.length === 0 ? (
-                <p className="text-sm text-slate-500">None pending.</p>
+                <p className="text-sm text-slate-500">{t.outboundNone}</p>
               ) : (
                 <ul className="space-y-2 text-sm text-slate-400">
                   {outboundPending.map((m) => (
                     <li key={m.id} className="rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3">
-                      Intro sent · {m.compatibility_reason ?? "Awaiting response"}
+                      {t.outboundLine} · {m.compatibility_reason ?? t.outboundAwaiting}
                     </li>
                   ))}
                 </ul>
@@ -517,11 +567,11 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
             </section>
 
             <section className="space-y-4">
-              <h2 className="text-xl font-semibold text-white">System recommended</h2>
-              <p className="text-sm text-slate-500">Admin-curated cold-start matches — both sides must accept.</p>
+              <h2 className="text-xl font-semibold text-white">{t.curatedTitle}</h2>
+              <p className="text-sm text-slate-500">{t.curatedDesc}</p>
               <div className="grid gap-4">
                 {systemRecommended.length === 0 ? (
-                  <p className="text-sm text-slate-500">No system introductions.</p>
+                  <p className="text-sm text-slate-500">{t.noCurated}</p>
                 ) : (
                   systemRecommended.map((m) => {
                     const isSender = m.sender_id === userId;
@@ -531,9 +581,9 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
                       <Card key={m.id} className="border-indigo-500/20 bg-white/[0.035] backdrop-blur-xl">
                         <CardHeader>
                           <div className="flex flex-wrap items-center justify-between gap-2">
-                            <CardTitle className="text-base text-slate-100">Curated pairing</CardTitle>
+                            <CardTitle className="text-base text-slate-100">{t.curatedPairing}</CardTitle>
                             <Badge variant="outline" className="border-indigo-400/30 text-indigo-100">
-                              Pending_System
+                              {t.pendingSystemBadge}
                             </Badge>
                           </div>
                           <CardDescription>{m.introductory_context}</CardDescription>
@@ -541,23 +591,20 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
                         <CardContent className="space-y-4">
                           <DualIntentBlurbs idA={m.intent_request_id} idB={m.counterparty_intent_id} />
                           <p className="text-xs text-slate-500">
-                            Your acknowledgement: {myAck ? "Recorded" : "Pending"} · Peer: {peerAck ? "Recorded" : "Waiting"}
+                            {t.yourAck} {myAck ? t.recorded : t.waiting} · {t.peerAck}{" "}
+                            {peerAck ? t.recorded : t.waiting}
                           </p>
-                          {myAck && !peerAck ? (
-                            <p className="text-xs text-indigo-200/90">
-                              You&apos;ve already confirmed. Waiting for the other person to accept — then this moves to Connections.
-                            </p>
-                          ) : null}
+                          {myAck && !peerAck ? <p className="text-xs text-indigo-200/90">{t.pendingNote}</p> : null}
                           <div className="flex flex-wrap gap-2">
                             <Button
                               className="galaxy-btn-glow border border-emerald-400/35 bg-emerald-500/15 text-emerald-50 hover:bg-emerald-500/25"
                               disabled={myAck && !peerAck}
                               onClick={() => void onRespond(m.id, "Accepted")}
                             >
-                              {myAck && !peerAck ? "Pending" : "Accept"}
+                              {myAck && !peerAck ? t.pendingBtn : t.acceptBtn}
                             </Button>
                             <Button variant="ghost" className="text-slate-300 hover:bg-white/5" onClick={() => void onRespond(m.id, "Rejected")}>
-                              Decline
+                              {t.decline}
                             </Button>
                           </div>
                         </CardContent>
@@ -570,13 +617,11 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
           </TabsContent>
 
           <TabsContent value="connections" className="space-y-4">
-            <h2 className="text-xl font-semibold text-white">Active connections</h2>
-            <p className="text-sm text-slate-500">
-              One conversation per person — if you have multiple accepted introductions with the same match, messages are combined here.
-            </p>
+            <h2 className="text-xl font-semibold text-white">{t.connectionsTitle}</h2>
+            <p className="text-sm text-slate-500">{t.connectionsDesc}</p>
             <div className="grid gap-4">
               {connectionsByPeer.length === 0 ? (
-                <p className="text-sm text-slate-500">No active connections yet.</p>
+                <p className="text-sm text-slate-500">{t.noConnections}</p>
               ) : (
                 connectionsByPeer.map(([peerId, peerMatches]) => {
                   const matchIds = peerMatches.map((m) => m.id);
@@ -584,7 +629,7 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
                   const open = selectedPeerId === peerId;
                   const subtitle =
                     peerMatches.length > 1
-                      ? `${peerMatches.length} mutual introductions · showing shared thread`
+                      ? t.multiIntroTpl.replace("{n}", String(peerMatches.length))
                       : peerMatches[0]?.compatibility_reason ?? "";
                   return (
                     <Card
@@ -592,7 +637,7 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
                       className={`border-white/10 bg-white/[0.035] backdrop-blur-xl transition-shadow ${open ? "ring-1 ring-sky-500/45 shadow-[0_0_24px_rgba(56,189,248,0.12)]" : ""}`}
                     >
                       <CardHeader>
-                        <CardTitle className="text-base text-slate-100">Mutual match</CardTitle>
+                        <CardTitle className="text-base text-slate-100">{t.mutualMatch}</CardTitle>
                         <CardDescription className="text-slate-400">{subtitle}</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
@@ -604,7 +649,7 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
                           className="galaxy-btn-glow border-white/15 text-slate-200"
                           onClick={() => setSelectedPeerId(open ? null : peerId)}
                         >
-                          {open ? "Hide messaging" : "Open messaging"}
+                          {open ? t.hideMessaging : t.openMessaging}
                         </Button>
                         {open && sendOnMatchId ? (
                           <div className="min-h-0">
@@ -618,39 +663,101 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
               )}
             </div>
           </TabsContent>
+
+          <TabsContent value="profile" className="space-y-6">
+            <Card className="border-white/10 bg-white/[0.035] backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle className="text-slate-100">{t.profileCardTitle}</CardTitle>
+                <CardDescription className="text-slate-400">{t.profileCardDesc}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {pfNote ? <p className="text-sm text-emerald-400/95">{pfNote}</p> : null}
+                <div className="space-y-2">
+                  <Label htmlFor="pf-name" className="text-slate-300">
+                    {t.profileDisplayName}
+                  </Label>
+                  <Input
+                    id="pf-name"
+                    value={pfName}
+                    onChange={(e) => setPfName(e.target.value)}
+                    className="border-white/10 bg-white/[0.03] text-slate-50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pf-bio" className="text-slate-300">
+                    {t.profileBio}
+                  </Label>
+                  <Textarea
+                    id="pf-bio"
+                    value={pfBio}
+                    onChange={(e) => setPfBio(e.target.value)}
+                    className="min-h-[100px] border-white/10 bg-white/[0.03] text-slate-50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pf-loc" className="text-slate-300">
+                    {t.profileLocation}
+                  </Label>
+                  <Input
+                    id="pf-loc"
+                    value={pfLoc}
+                    onChange={(e) => setPfLoc(e.target.value)}
+                    className="border-white/10 bg-white/[0.03] text-slate-50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pf-ind" className="text-slate-300">
+                    {t.profileIndustry}
+                  </Label>
+                  <Input
+                    id="pf-ind"
+                    value={pfInd}
+                    onChange={(e) => setPfInd(e.target.value)}
+                    className="border-white/10 bg-white/[0.03] text-slate-50"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  disabled={pfBusy}
+                  className="galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
+                  onClick={() => void saveProfile()}
+                >
+                  {pfBusy ? t.profileSaving : t.profileSave}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-slate-950/95 text-slate-50 sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>New intent</DialogTitle>
-            <DialogDescription className="text-slate-400">
-              Describe what you&apos;re looking for. We&apos;ll parse location signals and embed for hybrid matching.
-            </DialogDescription>
+            <DialogTitle>{t.dialogNewTitle}</DialogTitle>
+            <DialogDescription className="text-slate-400">{t.dialogNewDesc}</DialogDescription>
           </DialogHeader>
           <Textarea
             value={createDraft}
             onChange={(e) => setCreateDraft(e.target.value)}
-            placeholder="At least 12 characters…"
+            placeholder={t.minChars}
             className="min-h-[140px] border-white/10 bg-white/[0.03] text-slate-50"
           />
           <div className="space-y-2">
             <Label htmlFor="create-intent-location" className="text-slate-300">
-              Location filter (optional)
+              {t.locationOptional}
             </Label>
             <Input
               id="create-intent-location"
               value={createLocation}
               onChange={(e) => setCreateLocation(e.target.value)}
-              placeholder="e.g. Hong Kong — used for hybrid matching"
+              placeholder={t.locationPlaceholderCreate}
               className="border-white/10 bg-white/[0.03] text-slate-50"
             />
-            <p className="text-xs text-slate-500">Leave blank to infer from your text or profile location.</p>
+            <p className="text-xs text-slate-500">{t.locationHintCreate}</p>
           </div>
           <DialogFooter className="gap-2">
             <Button type="button" variant="ghost" className="text-slate-300" onClick={() => setCreateOpen(false)}>
-              Cancel
+              {t.cancel}
             </Button>
             <Button
               type="button"
@@ -658,7 +765,7 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
               className="border border-sky-400/35 bg-sky-500/15 text-sky-50"
               onClick={() => void onCreateIntent()}
             >
-              {createBusy ? "Creating…" : "Create intent"}
+              {createBusy ? t.createBusy : t.createSubmit}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -667,32 +774,31 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
       <Dialog open={!!editIntent} onOpenChange={(o) => !o && setEditIntent(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-slate-950/95 text-slate-50 sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit intent</DialogTitle>
-            <DialogDescription className="text-slate-400">Rewrites embeddings and parsed persona.</DialogDescription>
+            <DialogTitle>{t.dialogEditTitle}</DialogTitle>
+            <DialogDescription className="text-slate-400">{t.dialogEditDesc}</DialogDescription>
           </DialogHeader>
           <Textarea
             value={editDraft}
             onChange={(e) => setEditDraft(e.target.value)}
+            placeholder={t.minChars}
             className="min-h-[140px] border-white/10 bg-white/[0.03] text-slate-50"
           />
           <div className="space-y-2">
             <Label htmlFor="edit-intent-location" className="text-slate-300">
-              Location filter
+              {t.locationLabelEdit}
             </Label>
             <Input
               id="edit-intent-location"
               value={editLocation}
               onChange={(e) => setEditLocation(e.target.value)}
-              placeholder="City / region for hybrid search"
+              placeholder={t.locationPlaceholderEdit}
               className="border-white/10 bg-white/[0.03] text-slate-50"
             />
-            <p className="text-xs text-slate-500">
-              Saved with your intent. Leave blank to reuse AI-parsed location from the text, then previous value, then profile.
-            </p>
+            <p className="text-xs text-slate-500">{t.locationHintEdit}</p>
           </div>
           <DialogFooter className="gap-2">
             <Button type="button" variant="ghost" className="text-slate-300" onClick={() => setEditIntent(null)}>
-              Cancel
+              {t.cancel}
             </Button>
             <Button
               type="button"
@@ -700,7 +806,7 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
               className="border border-sky-400/35 bg-sky-500/15 text-sky-50"
               onClick={() => void onEditIntent()}
             >
-              {editBusy ? "Saving…" : "Save changes"}
+              {editBusy ? t.saveBusy : t.saveChanges}
             </Button>
           </DialogFooter>
         </DialogContent>

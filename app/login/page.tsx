@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { signInWithGoogle, signInWithMagicLink } from "@/actions/auth";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
+import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
+  const { strings } = useLanguage();
   const [email, setEmail] = useState("");
   const [info, setInfo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -46,9 +48,7 @@ export default function LoginPage() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">Passwordless entry</p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">Sign in to continue your intent</h1>
-          <p className="mt-3 text-sm leading-relaxed text-slate-400">
-            We&apos;ll route your landing statement into onboarding, embeddings, and hybrid retrieval.
-          </p>
+          <p className="mt-3 text-sm leading-relaxed text-slate-400">{strings.login.sub}</p>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 backdrop-blur-xl">

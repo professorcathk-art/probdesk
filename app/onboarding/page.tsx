@@ -10,11 +10,13 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useLanguage } from "@/components/language-provider";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { strings } = useLanguage();
   const landingIntentText = useSessionStore((s) => s.landingIntentText);
   const clearLandingIntent = useSessionStore((s) => s.clearLandingIntent);
 
@@ -110,10 +112,7 @@ export default function OnboardingPage() {
         <header className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">Progressive onboarding</p>
           <h1 className="text-3xl font-semibold tracking-tight text-white">Shape your intent with precision</h1>
-          <p className="text-sm leading-relaxed text-slate-400">
-            We parse once with a fast model, embed with <span className="text-slate-200">text-embedding-3-small</span>,
-            then ask three enrichment questions before activating hybrid retrieval.
-          </p>
+          <p className="text-sm leading-relaxed text-slate-400">{strings.onboarding.sub}</p>
         </header>
 
         {!intentId ? (

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getBlockingPeerIdsForCurrentUser, listMatches } from "@/actions/matches";
 import { listMyIntents } from "@/actions/intents";
-import { getMyProfileAvatar } from "@/actions/profile";
+import { getMyProfileAvatar, getMyProfileIdentity } from "@/actions/profile";
 import { getAuthContext } from "@/lib/auth-context";
 import { ConsoleClient } from "./console-client";
 
@@ -22,11 +22,16 @@ export default async function ConsolePage() {
   const matchesRes = await listMatches();
   const blockedRes = await getBlockingPeerIdsForCurrentUser();
   const avatarRes = await getMyProfileAvatar();
+  const profileRes = await getMyProfileIdentity();
 
   const intents = "error" in intentsRes ? [] : intentsRes.intents;
   const matches = "error" in matchesRes ? [] : matchesRes.matches;
   const blockedPeerIds = "error" in blockedRes ? [] : blockedRes.peerIds;
   const profileAvatarUrl = "error" in avatarRes ? null : avatarRes.avatar_url;
+  const profileIdentity =
+    "error" in profileRes
+      ? { display_name: null, bio: null, location: null, industry: null }
+      : profileRes;
 
   return (
     <ConsoleClient
@@ -35,6 +40,7 @@ export default async function ConsolePage() {
       matches={matches}
       blockedPeerIds={blockedPeerIds}
       profileAvatarUrl={profileAvatarUrl}
+      profileIdentity={profileIdentity}
     />
   );
 }

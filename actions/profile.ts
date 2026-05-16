@@ -60,3 +60,64 @@ export async function getMyProfileAvatar(): Promise<{ avatar_url: string | null 
   if (error) return { error: error.message };
   return { avatar_url: data?.avatar_url ?? null };
 }
+
+export type ProfileIdentity = {
+  display_name: string | null;
+  bio: string | null;
+  location: string | null;
+  industry: string | null;
+};
+
+export async function getMyProfileIdentity(): Promise<ProfileIdentity | { error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("display_name, bio, location, industry")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) return { error: error.message };
+  return {
+    display_name: data?.display_name ?? null,
+    bio: data?.bio ?? null,
+    location: data?.location ?? null,
+    industry: data?.industry ?? null,
+  };
+}
+
+export async function updateMyProfileIdentity(fields: {
+  display_name: string;
+  bio: string;
+  location: string;
+  industry: string;
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, message: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("profiles")
+    .upsert(
+      {
+        user_id: user.id,
+        display_name: fields.display_name.trim() || null,
+        bio: fields.bio.trim() || null,
+        location: fields.location.trim() || null,
+        industry: fields.industry.trim() || null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+
+  if (error) return { ok: false as const, message: error.message };
+
+  revalidatePath("/console");
+  return { ok: true as const };
+}

@@ -227,3 +227,22 @@
 .landing-galaxy-star--warm {
   background-color: rgba(254, 249, 231, 0.95);
 }
+
+.landing-marquee-track {
+  animation: landing-marquee 48s linear infinite;
+}
+
+@keyframes landing-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-marquee-track {
+    animation: none;
+  }
+}

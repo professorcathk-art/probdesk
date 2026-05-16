@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import { Footer } from "@/components/footer";
+import { LanguageProvider } from "@/components/language-provider";
 import { SiteNav } from "@/components/site-nav";
 import { getAuthContext } from "@/lib/auth-context";
 import { getMetadataBase } from "@/lib/site-url";
@@ -19,7 +20,7 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "Probdesk — Intent-driven matching",
   description:
-    "High-intent human matching with hybrid search, Square marketplace, and double-blind mutual acceptance.",
+    "High-intent human matching with Smart Matchmaking, Square marketplace, and mutual acceptance before identities unlock.",
   metadataBase: getMetadataBase(),
 };
 
@@ -33,9 +34,11 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`dark ${inter.variable} ${spaceGrotesk.variable} h-full`}>
       <body className="flex min-h-full flex-col antialiased">
-        <SiteNav isAuthenticated={!!user} />
-        <div className="relative flex-1">{children}</div>
-        <Footer />
+        <LanguageProvider>
+          <SiteNav isAuthenticated={!!user} />
+          <div className="relative flex-1">{children}</div>
+          <Footer />
+        </LanguageProvider>
       </body>
     </html>
   );

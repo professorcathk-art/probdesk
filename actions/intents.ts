@@ -255,11 +255,11 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   }
 
   if (!intent.location_filter) {
-    return { ok: false, message: "Add a location to your intent or profile to run hybrid search." };
+    return { ok: false, message: "Add a location to your intent or profile so we can discover matches nearby." };
   }
 
   if (!intent.embedding) {
-    return { ok: false, message: "Embedding missing — recreate intent." };
+    return { ok: false, message: "This intent could not be processed — please create a new one." };
   }
 
   const { data: rpcRows, error: rpcError } = await supabase.rpc("match_intents", {
