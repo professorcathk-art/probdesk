@@ -28,10 +28,15 @@ export function DropdownMenuContent({
 }) {
   return (
     <Menu.Portal>
-      <Menu.Positioner side={side} align={align} sideOffset={sideOffset} className="outline-none">
+      <Menu.Positioner
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+        className={cn("z-[500] outline-none")}
+      >
         <Menu.Popup
           className={cn(
-            "min-w-[11rem] overflow-hidden rounded-xl border border-white/10 bg-slate-950/98 py-1 shadow-xl backdrop-blur-xl outline-none",
+            "z-[500] min-w-[11rem] overflow-hidden rounded-xl border border-white/15 bg-slate-950 py-1 text-slate-200 shadow-2xl outline-none",
           )}
         >
           {children}

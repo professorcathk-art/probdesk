@@ -39,7 +39,11 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useConnectionCredits } from "@/hooks/use-connection-credits";
-import { LANDING_INTENT_SESSION_KEY, MIN_INTENT_CHARS } from "@/lib/intent-draft";
+import {
+  clearLandingIntentDraftBackups,
+  MIN_INTENT_CHARS,
+  readLandingIntentDraftBackup,
+} from "@/lib/intent-draft";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
@@ -167,21 +171,13 @@ export function ConsoleClient({
 
   function consumeLandingHandoffDraft() {
     useSessionStore.getState().clearLandingIntent();
-    try {
-      sessionStorage.removeItem(LANDING_INTENT_SESSION_KEY);
-    } catch {
-      /* noop */
-    }
+    clearLandingIntentDraftBackups();
   }
 
   useEffect(() => {
     let raw = useSessionStore.getState().landingIntentText?.trim() ?? "";
     if (raw.length < MIN_INTENT_CHARS) {
-      try {
-        raw = sessionStorage.getItem(LANDING_INTENT_SESSION_KEY)?.trim() ?? "";
-      } catch {
-        raw = "";
-      }
+      raw = readLandingIntentDraftBackup()?.trim() ?? "";
     }
     if (raw.length < MIN_INTENT_CHARS) return;
     openedFromLandingHandoffRef.current = true;

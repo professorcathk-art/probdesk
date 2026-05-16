@@ -11,13 +11,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/components/language-provider";
-import { LANDING_INTENT_SESSION_KEY, MIN_INTENT_CHARS } from "@/lib/intent-draft";
+import {
+  clearLandingIntentDraftBackups,
+  MIN_INTENT_CHARS,
+  readLandingIntentDraftBackup,
+} from "@/lib/intent-draft";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
 
 export default function OnboardingPage() {
   const router = useRouter();
   const { strings } = useLanguage();
+  const ob = strings.onboarding;
   const landingIntentText = useSessionStore((s) => s.landingIntentText);
   const clearLandingIntent = useSessionStore((s) => s.clearLandingIntent);
   const setLandingIntentText = useSessionStore((s) => s.setLandingIntentText);
@@ -36,6 +41,8 @@ export default function OnboardingPage() {
     available_time: "",
     location: "",
     bio: "",
+    preferred_contact_channel: "" as "" | "whatsapp" | "line" | "wechat",
+    preferred_contact_detail: "",
   });
 
   useEffect(() => {
@@ -64,14 +71,15 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (checkingAuth) return;
     try {
-      const backup = sessionStorage.getItem(LANDING_INTENT_SESSION_KEY)?.trim() ?? "";
-      if (backup.length < MIN_INTENT_CHARS) return;
-      /* eslint-disable-next-line react-hooks/set-state-in-effect -- merge OAuth/sessionStorage timing */
-      setDraftIntent((prev) => prev ?? backup);
-      if (!useSessionStore.getState().landingIntentText) {
-        setLandingIntentText(backup);
+      const backup = readLandingIntentDraftBackup();
+      if (backup) {
+        /* eslint-disable-next-line react-hooks/set-state-in-effect -- merge OAuth/sessionStorage timing */
+        setDraftIntent((prev) => prev ?? backup);
+        if (!useSessionStore.getState().landingIntentText) {
+          setLandingIntentText(backup);
+        }
+        clearLandingIntentDraftBackups();
       }
-      sessionStorage.removeItem(LANDING_INTENT_SESSION_KEY);
     } catch {
       /* private mode */
     }
@@ -92,6 +100,7 @@ export default function OnboardingPage() {
       setProfile((p) => (p.location ? p : { ...p, location: res.locationHint ?? "" }));
     }
     clearLandingIntent();
+    clearLandingIntentDraftBackups();
   }
 
   async function onFinish() {
@@ -130,7 +139,7 @@ export default function OnboardingPage() {
         <header className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">Progressive onboarding</p>
           <h1 className="text-3xl font-semibold tracking-tight text-white">Shape your intent with precision</h1>
-          <p className="text-sm leading-relaxed text-slate-400">{strings.onboarding.sub}</p>
+          <p className="text-sm leading-relaxed text-slate-400">{ob.sub}</p>
         </header>
 
         {!intentId ? (
@@ -220,6 +229,43 @@ export default function OnboardingPage() {
                   onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
                   className="border-white/10 bg-white/[0.03] text-slate-50"
                 />
+              </div>
+            </div>
+
+            <div className="space-y-3 rounded-xl border border-white/10 bg-black/25 p-4">
+              <p className="text-sm font-medium text-white">{ob.contactSectionTitle}</p>
+              <p className="text-xs leading-relaxed text-slate-500">{ob.contactPrivacyNote}</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-slate-200">{ob.contactChannelLabel}</Label>
+                  <select
+                    value={profile.preferred_contact_channel}
+                    onChange={(e) =>
+                      setProfile((p) => ({
+                        ...p,
+                        preferred_contact_channel: e.target.value as typeof p.preferred_contact_channel,
+                      }))
+                    }
+                    className={cn(
+                      "h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-slate-50 outline-none focus-visible:border-sky-400/40 focus-visible:ring-2 focus-visible:ring-sky-500/30",
+                    )}
+                  >
+                    <option value="">{ob.contactChannelUnset}</option>
+                    <option value="whatsapp">{ob.contactWhatsApp}</option>
+                    <option value="line">{ob.contactLine}</option>
+                    <option value="wechat">{ob.contactWeChat}</option>
+                  </select>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-slate-200">{ob.contactDetailLabel}</Label>
+                  <Input
+                    value={profile.preferred_contact_detail}
+                    onChange={(e) => setProfile((p) => ({ ...p, preferred_contact_detail: e.target.value }))}
+                    placeholder={ob.contactDetailPlaceholder}
+                    className="border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500"
+                    autoComplete="off"
+                  />
+                </div>
               </div>
             </div>
 

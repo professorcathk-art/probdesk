@@ -10,7 +10,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLinkItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -32,7 +31,7 @@ export function SiteNav({
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-[200] isolate border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
         <Link
           href="/"
@@ -103,12 +102,22 @@ export function SiteNav({
                   <UserRound className="h-5 w-5 opacity-80" strokeWidth={1.75} aria-hidden />
                 )}
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLinkItem href="/console">{strings.nav.manage}</DropdownMenuLinkItem>
-                <DropdownMenuLinkItem href="/profile">{strings.nav.profile}</DropdownMenuLinkItem>
+              <DropdownMenuContent align="end" sideOffset={10}>
+                <DropdownMenuItem
+                  className="cursor-pointer text-slate-200"
+                  onClick={() => router.push("/console")}
+                >
+                  {strings.nav.manage}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer text-slate-200"
+                  onClick={() => router.push("/profile")}
+                >
+                  {strings.nav.profile}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className="text-slate-300"
+                  className="cursor-pointer text-slate-300"
                   onClick={() => {
                     void onSignOut();
                   }}

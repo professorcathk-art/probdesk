@@ -26,15 +26,26 @@ function writeLangCookie(lang: Lang) {
   document.cookie = `${COOKIE_NAME}=${lang};path=/;max-age=31536000;SameSite=Lax`;
 }
 
+function browserLanguageBucket(): Lang {
+  const list =
+    typeof navigator !== "undefined"
+      ? [...(navigator.languages ?? []), navigator.language].filter(Boolean)
+      : [];
+  for (const raw of list) {
+    const tag = String(raw).toLowerCase();
+    /* zh-CN, zh-TW, zh-HK, etc. → zh (Traditional Chinese UI copy in STRINGS.zh) */
+    if (tag.startsWith("zh")) return "zh";
+  }
+  return "en";
+}
+
 function detectInitialLang(): Lang {
   if (typeof window === "undefined") return "en";
   const cookieLang = readLangCookie();
   if (cookieLang) return cookieLang;
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === "zh" || stored === "en") return stored;
-  const nav = navigator.language?.toLowerCase() ?? "";
-  if (nav.startsWith("zh")) return "zh";
-  return "en";
+  return browserLanguageBucket();
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {

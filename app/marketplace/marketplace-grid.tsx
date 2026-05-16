@@ -66,6 +66,11 @@ export function MarketplaceGrid({ listings, currentUserId, pendingIntentIds, hig
                     <LockedAvatarPreview />
                     <div>
                       <CardTitle className="text-base text-slate-200">{mp.anonymous}</CardTitle>
+                      {item.is_demo_listing ? (
+                        <Badge variant="outline" className="mt-2 border-amber-400/35 text-amber-100/95">
+                          {mp.demoBadge}
+                        </Badge>
+                      ) : null}
                       <CardDescription className="text-slate-500">{mp.anonymousHint}</CardDescription>
                     </div>
                   </div>

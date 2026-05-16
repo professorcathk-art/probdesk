@@ -6,14 +6,10 @@ import { getAuthContext } from "@/lib/auth-context";
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
-  const { user, onboardingStatus } = await getAuthContext();
+  const { user } = await getAuthContext();
 
   if (!user) {
     redirect("/login");
-  }
-
-  if (onboardingStatus !== "complete") {
-    redirect("/onboarding");
   }
 
   const avatarRes = await getMyProfileAvatar();

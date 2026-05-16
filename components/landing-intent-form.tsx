@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/components/language-provider";
-import { LANDING_INTENT_SESSION_KEY, MIN_INTENT_CHARS } from "@/lib/intent-draft";
+import { MIN_INTENT_CHARS, persistLandingIntentDraft } from "@/lib/intent-draft";
 import { useSessionStore } from "@/stores/session-store";
 
 export function LandingIntentForm() {
@@ -25,11 +25,7 @@ export function LandingIntentForm() {
     }
     setTooShort(false);
     setLandingIntentText(text);
-    try {
-      sessionStorage.setItem(LANDING_INTENT_SESSION_KEY, text);
-    } catch {
-      /* private mode */
-    }
+    persistLandingIntentDraft(text);
     router.push("/login");
   }
 

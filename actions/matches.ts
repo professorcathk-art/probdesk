@@ -71,13 +71,10 @@ export async function initiateConnection(params: {
   } = await supabase.auth.getUser();
 
   if (!user) return { ok: false as const, message: "Not authenticated" };
-  if (user.id === params.receiverUserId) {
-    return { ok: false as const, message: "You cannot connect with yourself." };
-  }
 
   const { data: receiverIntent, error: intentError } = await supabase
     .from("intent_requests")
-    .select("id, user_id, natural_language_input")
+    .select("id, user_id, natural_language_input, is_demo_listing")
     .eq("id", params.receiverIntentId)
     .single();
 
@@ -85,7 +82,23 @@ export async function initiateConnection(params: {
     return { ok: false as const, message: "Request not found." };
   }
 
-  if (await hasBlockingMatchBetween(supabase, user.id, params.receiverUserId)) {
+  const demoInbox = process.env["MARKETPLACE_DEMO_INBOX_USER_ID"]?.trim();
+  let receiverId = params.receiverUserId;
+  if (receiverIntent.is_demo_listing === true) {
+    if (!demoInbox) {
+      return {
+        ok: false as const,
+        message: "Demo marketplace is not configured (MARKETPLACE_DEMO_INBOX_USER_ID).",
+      };
+    }
+    receiverId = demoInbox;
+  }
+
+  if (user.id === receiverId) {
+    return { ok: false as const, message: "You cannot connect with yourself." };
+  }
+
+  if (await hasBlockingMatchBetween(supabase, user.id, receiverId)) {
     return { ok: false as const, message: DUPLICATE_MATCH_MESSAGE };
   }
 
@@ -162,7 +175,7 @@ export async function initiateConnection(params: {
 
   const { error } = await supabase.from("matches").insert({
     sender_id: user.id,
-    receiver_id: params.receiverUserId,
+    receiver_id: receiverId,
     intent_request_id: params.receiverIntentId,
     introductory_context: params.introductory_context,
     match_score,

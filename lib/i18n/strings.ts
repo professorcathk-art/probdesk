@@ -77,6 +77,7 @@ export const STRINGS = {
       loadErrorPrefix: "Could not load listings:",
       anonymous: "Anonymous seeker",
       anonymousHint: "Identities unlock after you match",
+      demoBadge: "Demo listing · invites go to our team inbox",
       locationUnknown: "Hidden location",
       connect: "Send invite",
       pending: "Pending",
@@ -237,6 +238,16 @@ export const STRINGS = {
     onboarding: {
       sub:
         "We read what you're looking for once, ask a few sharpening questions, then turn on Smart Matchmaking when you're ready.",
+      contactSectionTitle: "Contact method (optional)",
+      contactPrivacyNote:
+        "If you add WhatsApp, LINE, or WeChat, we store it privately — it is never shown to anyone until both sides agree to connect.",
+      contactChannelLabel: "Preferred app",
+      contactChannelUnset: "Select…",
+      contactWhatsApp: "WhatsApp",
+      contactLine: "LINE",
+      contactWeChat: "WeChat",
+      contactDetailLabel: "Your handle or ID",
+      contactDetailPlaceholder: "e.g. +852… / LINE ID / WeChat ID",
     },
     footer: {
       privacy: "Privacy Policy",
@@ -336,6 +347,7 @@ export const STRINGS = {
       loadErrorPrefix: "無法載入清單：",
       anonymous: "匿名徵求者",
       anonymousHint: "配對成功後解鎖真實身分",
+      demoBadge: "示例徵求 · 邀請由官方代收",
       locationUnknown: "隱藏地區",
       connect: "發送邀請",
       pending: "等待中",
@@ -493,6 +505,16 @@ export const STRINGS = {
     onboarding: {
       sub:
         "我們會先讀取你的徵求、問幾個釐清問題，然後在你準備好時開啟智慧配對。",
+      contactSectionTitle: "聯絡方式（選填）",
+      contactPrivacyNote:
+        "你可選填 WhatsApp、LINE 或 WeChat；資料僅供平台內部使用，雙方同意連結前，不會向對方揭露。",
+      contactChannelLabel: "偏好 App",
+      contactChannelUnset: "請選擇…",
+      contactWhatsApp: "WhatsApp",
+      contactLine: "LINE",
+      contactWeChat: "微信 WeChat",
+      contactDetailLabel: "帳號／電話／ID",
+      contactDetailPlaceholder: "例如：+852…、LINE ID、微信号",
     },
     footer: {
       privacy: "隱私權政策",

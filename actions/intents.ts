@@ -103,6 +103,8 @@ export async function completeOnboarding(params: {
     available_time?: string;
     location?: string;
     bio?: string;
+    preferred_contact_channel?: "whatsapp" | "line" | "wechat" | "" | null;
+    preferred_contact_detail?: string;
   };
 }) {
   const supabase = await createClient();
@@ -113,6 +115,18 @@ export async function completeOnboarding(params: {
 
   if (userError || !user) {
     return { ok: false as const, message: "Not authenticated" };
+  }
+
+  const chRaw = params.profile.preferred_contact_channel?.trim() ?? "";
+  const detRaw = params.profile.preferred_contact_detail?.trim() ?? "";
+  const hasPair = chRaw.length > 0 && detRaw.length > 0;
+  const hasPartial = (chRaw.length > 0) !== (detRaw.length > 0);
+  if (hasPartial) {
+    return { ok: false as const, message: "Choose both a contact method and your handle, or leave both empty." };
+  }
+  const allowed = new Set(["whatsapp", "line", "wechat"]);
+  if (chRaw && !allowed.has(chRaw)) {
+    return { ok: false as const, message: "Invalid contact method." };
   }
 
   const { error: intentError } = await supabase
@@ -136,6 +150,8 @@ export async function completeOnboarding(params: {
       available_time: params.profile.available_time ?? null,
       location: params.profile.location ?? null,
       bio: params.profile.bio ?? null,
+      preferred_contact_channel: hasPair ? chRaw : null,
+      preferred_contact_detail: hasPair ? detRaw : null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },
@@ -163,6 +179,7 @@ export async function completeOnboarding(params: {
 
   revalidatePath("/console");
   revalidatePath("/onboarding");
+  revalidatePath("/profile");
 
   return { ok: true as const };
 }
