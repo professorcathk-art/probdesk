@@ -16,7 +16,7 @@ import { signOut } from "@/actions/auth";
 import { ConnectModal } from "@/components/connect-modal";
 import { ConsoleAvatarUpload } from "@/components/console-avatar-upload";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
-import { MatchChatPanel } from "@/components/match-chat-panel";
+import { MergedMatchChatPanel } from "@/components/match-chat-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -132,14 +133,16 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
     headline: string;
   } | null>(null);
 
-  const [selectedActiveId, setSelectedActiveId] = useState<string | null>(null);
+  const [selectedPeerId, setSelectedPeerId] = useState<string | null>(null);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createDraft, setCreateDraft] = useState("");
+  const [createLocation, setCreateLocation] = useState("");
   const [createBusy, setCreateBusy] = useState(false);
 
   const [editIntent, setEditIntent] = useState<IntentRow | null>(null);
   const [editDraft, setEditDraft] = useState("");
+  const [editLocation, setEditLocation] = useState("");
   const [editBusy, setEditBusy] = useState(false);
 
   const pendingInbound = useMemo(
@@ -158,6 +161,21 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
   );
 
   const activeConnections = useMemo(() => matches.filter((m) => m.status === "Accepted"), [matches]);
+
+  /** One card per peer; multiple Accepted rows with the same person merge into a single chat thread. */
+  const connectionsByPeer = useMemo(() => {
+    const map = new Map<string, MatchRow[]>();
+    for (const m of activeConnections) {
+      const peer = m.sender_id === userId ? m.receiver_id : m.sender_id;
+      const list = map.get(peer) ?? [];
+      list.push(m);
+      map.set(peer, list);
+    }
+    for (const [, arr] of map) {
+      arr.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    }
+    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [activeConnections, userId]);
 
   async function refreshFromServer() {
     router.refresh();
@@ -199,7 +217,7 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
       setError(res.message);
       return;
     }
-    setSelectedActiveId(null);
+    setSelectedPeerId(null);
     await router.refresh();
   }
 
@@ -219,13 +237,14 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
   async function onCreateIntent() {
     setCreateBusy(true);
     setError(null);
-    const res = await createConsoleIntent(createDraft);
+    const res = await createConsoleIntent(createDraft, createLocation.trim() || undefined);
     setCreateBusy(false);
     if (!res.ok) {
       setError(res.message);
       return;
     }
     setCreateDraft("");
+    setCreateLocation("");
     setCreateOpen(false);
     await router.refresh();
   }
@@ -234,7 +253,7 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
     if (!editIntent) return;
     setEditBusy(true);
     setError(null);
-    const res = await updateConsoleIntent(editIntent.id, editDraft);
+    const res = await updateConsoleIntent(editIntent.id, editDraft, editLocation.trim() || undefined);
     setEditBusy(false);
     if (!res.ok) {
       setError(res.message);
@@ -247,6 +266,7 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
   function openEdit(i: IntentRow) {
     setEditIntent(i);
     setEditDraft(i.natural_language_input);
+    setEditLocation(i.location_filter ?? "");
   }
 
   return (
@@ -294,6 +314,7 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
                 className="galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
                 onClick={() => {
                   setCreateDraft("");
+                  setCreateLocation("");
                   setCreateOpen(true);
                 }}
               >
@@ -373,7 +394,13 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
                       </div>
 
                       <div className="space-y-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Hybrid queue (blurred)</p>
+                        <div className="space-y-1">
+                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Hybrid queue (blurred)</p>
+                          <p className="text-xs leading-relaxed text-slate-500">
+                            After you tap <span className="text-slate-400">Refresh system matches</span>, Probdesk runs embedding + location search to surface a short list of similar intents nearby.
+                            Avatars stay blurred until someone sends a connection request.
+                          </p>
+                        </div>
                         <ScrollArea className="w-full whitespace-nowrap pb-3">
                           <div className="flex w-max gap-4 pb-1">
                             {(suggestionsByIntent[intent.id] ?? []).map((s) => {
@@ -405,7 +432,7 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
                             })}
                             {(suggestionsByIntent[intent.id] ?? []).length === 0 ? (
                               <div className="rounded-2xl border border-dashed border-white/10 px-6 py-10 text-sm text-slate-500">
-                                Run hybrid retrieval to populate candidates.
+                                Tap <span className="text-slate-400">Refresh system matches</span> above to load AI-ranked candidates for this intent.
                               </div>
                             ) : null}
                           </div>
@@ -544,22 +571,29 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
 
           <TabsContent value="connections" className="space-y-4">
             <h2 className="text-xl font-semibold text-white">Active connections</h2>
-            <p className="text-sm text-slate-500">Open messaging — refresh manually (no realtime).</p>
+            <p className="text-sm text-slate-500">
+              One conversation per person — if you have multiple accepted introductions with the same match, messages are combined here.
+            </p>
             <div className="grid gap-4">
-              {activeConnections.length === 0 ? (
+              {connectionsByPeer.length === 0 ? (
                 <p className="text-sm text-slate-500">No active connections yet.</p>
               ) : (
-                activeConnections.map((m) => {
-                  const peerId = m.sender_id === userId ? m.receiver_id : m.sender_id;
-                  const open = selectedActiveId === m.id;
+                connectionsByPeer.map(([peerId, peerMatches]) => {
+                  const matchIds = peerMatches.map((m) => m.id);
+                  const sendOnMatchId = peerMatches[0]?.id ?? "";
+                  const open = selectedPeerId === peerId;
+                  const subtitle =
+                    peerMatches.length > 1
+                      ? `${peerMatches.length} mutual introductions · showing shared thread`
+                      : peerMatches[0]?.compatibility_reason ?? "";
                   return (
                     <Card
-                      key={m.id}
+                      key={peerId}
                       className={`border-white/10 bg-white/[0.035] backdrop-blur-xl transition-shadow ${open ? "ring-1 ring-sky-500/45 shadow-[0_0_24px_rgba(56,189,248,0.12)]" : ""}`}
                     >
                       <CardHeader>
                         <CardTitle className="text-base text-slate-100">Mutual match</CardTitle>
-                        <CardDescription className="text-slate-400">{m.compatibility_reason}</CardDescription>
+                        <CardDescription className="text-slate-400">{subtitle}</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <PeerIdentityCard peerUserId={peerId} />
@@ -568,13 +602,13 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
                           variant="outline"
                           size="sm"
                           className="galaxy-btn-glow border-white/15 text-slate-200"
-                          onClick={() => setSelectedActiveId(open ? null : m.id)}
+                          onClick={() => setSelectedPeerId(open ? null : peerId)}
                         >
                           {open ? "Hide messaging" : "Open messaging"}
                         </Button>
-                        {open ? (
+                        {open && sendOnMatchId ? (
                           <div className="min-h-0">
-                            <MatchChatPanel matchId={m.id} userId={userId} />
+                            <MergedMatchChatPanel matchIds={matchIds} sendOnMatchId={sendOnMatchId} userId={userId} />
                           </div>
                         ) : null}
                       </CardContent>
@@ -601,6 +635,19 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
             placeholder="At least 12 characters…"
             className="min-h-[140px] border-white/10 bg-white/[0.03] text-slate-50"
           />
+          <div className="space-y-2">
+            <Label htmlFor="create-intent-location" className="text-slate-300">
+              Location filter (optional)
+            </Label>
+            <Input
+              id="create-intent-location"
+              value={createLocation}
+              onChange={(e) => setCreateLocation(e.target.value)}
+              placeholder="e.g. Hong Kong — used for hybrid matching"
+              className="border-white/10 bg-white/[0.03] text-slate-50"
+            />
+            <p className="text-xs text-slate-500">Leave blank to infer from your text or profile location.</p>
+          </div>
           <DialogFooter className="gap-2">
             <Button type="button" variant="ghost" className="text-slate-300" onClick={() => setCreateOpen(false)}>
               Cancel
@@ -628,6 +675,21 @@ export function ConsoleClient({ userId, intents, matches, blockedPeerIds, profil
             onChange={(e) => setEditDraft(e.target.value)}
             className="min-h-[140px] border-white/10 bg-white/[0.03] text-slate-50"
           />
+          <div className="space-y-2">
+            <Label htmlFor="edit-intent-location" className="text-slate-300">
+              Location filter
+            </Label>
+            <Input
+              id="edit-intent-location"
+              value={editLocation}
+              onChange={(e) => setEditLocation(e.target.value)}
+              placeholder="City / region for hybrid search"
+              className="border-white/10 bg-white/[0.03] text-slate-50"
+            />
+            <p className="text-xs text-slate-500">
+              Saved with your intent. Leave blank to reuse AI-parsed location from the text, then previous value, then profile.
+            </p>
+          </div>
           <DialogFooter className="gap-2">
             <Button type="button" variant="ghost" className="text-slate-300" onClick={() => setEditIntent(null)}>
               Cancel

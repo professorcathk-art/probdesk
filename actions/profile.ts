@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
+/** Prefer browser → Supabase Storage from `ConsoleAvatarUpload` to avoid platform body limits (413). */
 export async function uploadProfileAvatar(formData: FormData) {
   const supabase = await createClient();
   const {

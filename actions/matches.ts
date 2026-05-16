@@ -18,6 +18,7 @@ export type MatchRow = {
   counterparty_intent_id: string | null;
   system_ack_sender: boolean;
   system_ack_receiver: boolean;
+  created_at: string;
 };
 
 export type MessageRow = {
@@ -137,7 +138,7 @@ export async function listMatches(): Promise<{ matches: MatchRow[] } | { error: 
   const { data, error } = await supabase
     .from("matches")
     .select(
-      "id, sender_id, receiver_id, status, introductory_context, match_score, compatibility_reason, ai_context_sender, intent_request_id, counterparty_intent_id, system_ack_sender, system_ack_receiver",
+      "id, sender_id, receiver_id, status, introductory_context, match_score, compatibility_reason, ai_context_sender, intent_request_id, counterparty_intent_id, system_ack_sender, system_ack_receiver, created_at",
     )
     .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
     .order("created_at", { ascending: false });
@@ -299,6 +300,51 @@ export async function listMatchMessages(matchId: string) {
     .from("messages")
     .select("id, sender_id, content, created_at")
     .eq("match_id", matchId)
+    .order("created_at", { ascending: true });
+
+  if (error) return { ok: false as const, message: error.message, messages: [] as MessageRow[] };
+  return { ok: true as const, messages: (data ?? []) as MessageRow[] };
+}
+
+/** Timeline of messages across multiple Accepted matches with the same peer. */
+export async function listMergedMatchMessages(matchIds: string[]) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, message: "Not authenticated", messages: [] as MessageRow[] };
+
+  const ids = [...new Set(matchIds)].filter(Boolean);
+  if (ids.length === 0) return { ok: false as const, message: "No threads.", messages: [] as MessageRow[] };
+
+  const { data: rows, error: mErr } = await supabase
+    .from("matches")
+    .select("id, status, sender_id, receiver_id")
+    .in("id", ids);
+
+  if (mErr || !rows || rows.length !== ids.length) {
+    return { ok: false as const, message: mErr?.message ?? "Could not load threads.", messages: [] as MessageRow[] };
+  }
+
+  const peerIds = new Set<string>();
+  for (const r of rows) {
+    if (r.status !== "Accepted") {
+      return { ok: false as const, message: "Only accepted threads can be merged.", messages: [] as MessageRow[] };
+    }
+    if (r.sender_id !== user.id && r.receiver_id !== user.id) {
+      return { ok: false as const, message: "Forbidden", messages: [] as MessageRow[] };
+    }
+    peerIds.add(r.sender_id === user.id ? r.receiver_id : r.sender_id);
+  }
+
+  if (peerIds.size !== 1) {
+    return { ok: false as const, message: "Merged chat must be with one peer.", messages: [] as MessageRow[] };
+  }
+
+  const { data, error } = await supabase
+    .from("messages")
+    .select("id, sender_id, content, created_at")
+    .in("match_id", ids)
     .order("created_at", { ascending: true });
 
   if (error) return { ok: false as const, message: error.message, messages: [] as MessageRow[] };

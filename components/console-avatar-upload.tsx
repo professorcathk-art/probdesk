@@ -1,10 +1,15 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { uploadProfileAvatar } from "@/actions/profile";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
+const MAX_BYTES = 5 * 1024 * 1024;
+const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
 export function ConsoleAvatarUpload({ initialUrl }: { initialUrl: string | null }) {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState(initialUrl);
   const [busy, setBusy] = useState(false);
@@ -12,17 +17,59 @@ export function ConsoleAvatarUpload({ initialUrl }: { initialUrl: string | null 
 
   async function onFile(file: File | undefined) {
     if (!file) return;
-    setBusy(true);
     setErr(null);
-    const fd = new FormData();
-    fd.set("avatar", file);
-    const res = await uploadProfileAvatar(fd);
-    setBusy(false);
-    if (!res.ok) {
-      setErr(res.message);
+    if (!ALLOWED.includes(file.type)) {
+      setErr("Use JPG, PNG, WebP, or GIF.");
       return;
     }
-    setUrl(res.avatar_url);
+    if (file.size > MAX_BYTES) {
+      setErr("Max 5 MB — choose a smaller image or compress it.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setErr("Sign in required.");
+        setBusy(false);
+        return;
+      }
+
+      const path = `${user.id}/avatar`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, {
+        upsert: true,
+        contentType: file.type,
+      });
+      if (upErr) {
+        setErr(upErr.message);
+        setBusy(false);
+        return;
+      }
+
+      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+      const avatar_url = pub.publicUrl;
+
+      const { error: dbErr } = await supabase
+        .from("profiles")
+        .update({ avatar_url, updated_at: new Date().toISOString() })
+        .eq("user_id", user.id);
+
+      if (dbErr) {
+        setErr(dbErr.message);
+        setBusy(false);
+        return;
+      }
+
+      setUrl(avatar_url);
+      router.refresh();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Upload failed.");
+    }
+    setBusy(false);
   }
 
   return (
@@ -38,7 +85,7 @@ export function ConsoleAvatarUpload({ initialUrl }: { initialUrl: string | null 
         )}
         <div>
           <p className="text-sm font-medium text-white">Profile photo</p>
-          <p className="text-xs text-slate-500">Shown to mutual connections after acceptance.</p>
+          <p className="text-xs text-slate-500">Uploaded directly to storage (avoids size limits). Max 5 MB.</p>
           {err ? <p className="mt-1 text-xs text-red-400">{err}</p> : null}
         </div>
       </div>

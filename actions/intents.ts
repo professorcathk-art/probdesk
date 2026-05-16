@@ -314,7 +314,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   return { ok: true, suggestions };
 }
 
-export async function createConsoleIntent(naturalLanguageInput: string) {
+export async function createConsoleIntent(naturalLanguageInput: string, locationFilterInput?: string | null) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -342,9 +342,17 @@ export async function createConsoleIntent(naturalLanguageInput: string) {
   }
 
   const persona = parsed.extracted_persona as Record<string, unknown>;
-  let location_filter =
+  const parsedLoc =
     parsed.location_filter?.trim() ||
     (typeof persona.location === "string" ? persona.location.trim() : null);
+
+  const explicit = locationFilterInput?.trim();
+  let location_filter: string | null = null;
+  if (explicit) {
+    location_filter = explicit;
+  } else if (parsedLoc) {
+    location_filter = parsedLoc;
+  }
 
   if (!location_filter) {
     const { data: profile } = await supabase.from("profiles").select("location").eq("user_id", user.id).maybeSingle();
@@ -367,7 +375,11 @@ export async function createConsoleIntent(naturalLanguageInput: string) {
   return { ok: true as const };
 }
 
-export async function updateConsoleIntent(intentId: string, naturalLanguageInput: string) {
+export async function updateConsoleIntent(
+  intentId: string,
+  naturalLanguageInput: string,
+  locationFilterInput?: string | null,
+) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -378,6 +390,13 @@ export async function updateConsoleIntent(intentId: string, naturalLanguageInput
   if (trimmed.length < 12) {
     return { ok: false as const, message: "Intent is too short." };
   }
+
+  const { data: existing } = await supabase
+    .from("intent_requests")
+    .select("location_filter")
+    .eq("id", intentId)
+    .eq("user_id", user.id)
+    .maybeSingle();
 
   let parsed: Awaited<ReturnType<typeof parseIntentWithMini>>;
   let embedding: number[];
@@ -391,9 +410,24 @@ export async function updateConsoleIntent(intentId: string, naturalLanguageInput
   }
 
   const persona = parsed.extracted_persona as Record<string, unknown>;
-  const location_filter =
+  const parsedLoc =
     parsed.location_filter?.trim() ||
     (typeof persona.location === "string" ? persona.location.trim() : null);
+
+  const explicit = locationFilterInput?.trim();
+  let location_filter: string | null = null;
+  if (explicit) {
+    location_filter = explicit;
+  } else if (parsedLoc) {
+    location_filter = parsedLoc;
+  } else {
+    location_filter = existing?.location_filter ?? null;
+  }
+
+  if (!location_filter) {
+    const { data: profile } = await supabase.from("profiles").select("location").eq("user_id", user.id).maybeSingle();
+    location_filter = profile?.location?.trim() ?? null;
+  }
 
   const { error } = await supabase
     .from("intent_requests")
