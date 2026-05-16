@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { signInWithGoogle, signInWithMagicLink } from "@/actions/auth";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
-import { SiteNav } from "@/components/site-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -43,7 +42,6 @@ export default function LoginPage() {
   return (
     <div className="relative min-h-screen text-slate-50">
       <GalaxyBackdrop />
-      <SiteNav />
       <main className="mx-auto flex max-w-lg flex-col gap-8 px-6 py-16 md:py-24">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">Passwordless entry</p>

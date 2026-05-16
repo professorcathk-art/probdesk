@@ -161,7 +161,7 @@ export async function completeOnboarding(params: {
 
   await supabase.from("users").update({ onboarding_status: "complete" }).eq("id", user.id);
 
-  revalidatePath("/dashboard");
+  revalidatePath("/console");
   revalidatePath("/onboarding");
 
   return { ok: true as const };
@@ -198,7 +198,7 @@ export async function setIntentMarketplacePublic(intentId: string, isPublic: boo
     .eq("user_id", user.id);
 
   if (error) return { ok: false as const, message: error.message };
-  revalidatePath("/dashboard");
+  revalidatePath("/console");
   revalidatePath("/marketplace");
   return { ok: true as const };
 }
@@ -217,7 +217,7 @@ export async function setIntentStatus(intentId: string, status: "active" | "paus
     .eq("user_id", user.id);
 
   if (error) return { ok: false as const, message: error.message };
-  revalidatePath("/dashboard");
+  revalidatePath("/console");
   return { ok: true as const };
 }
 

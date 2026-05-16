@@ -14,6 +14,16 @@ export type MatchRow = {
   compatibility_reason: string | null;
   ai_context_sender: Record<string, unknown> | null;
   intent_request_id: string | null;
+  counterparty_intent_id: string | null;
+  system_ack_sender: boolean;
+  system_ack_receiver: boolean;
+};
+
+export type MessageRow = {
+  id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
 };
 
 export async function initiateConnection(params: {
@@ -102,10 +112,12 @@ export async function initiateConnection(params: {
     compatibility_reason,
     ai_context_sender,
     status: "Pending",
+    system_ack_sender: false,
+    system_ack_receiver: false,
   });
 
   if (error) return { ok: false as const, message: error.message };
-  revalidatePath("/dashboard");
+  revalidatePath("/console");
   revalidatePath("/marketplace");
   return { ok: true as const };
 }
@@ -120,13 +132,19 @@ export async function listMatches(): Promise<{ matches: MatchRow[] } | { error: 
   const { data, error } = await supabase
     .from("matches")
     .select(
-      "id, sender_id, receiver_id, status, introductory_context, match_score, compatibility_reason, ai_context_sender, intent_request_id",
+      "id, sender_id, receiver_id, status, introductory_context, match_score, compatibility_reason, ai_context_sender, intent_request_id, counterparty_intent_id, system_ack_sender, system_ack_receiver",
     )
     .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
     .order("created_at", { ascending: false });
 
   if (error) return { error: error.message };
-  return { matches: (data ?? []) as MatchRow[] };
+  return {
+    matches: (data ?? []).map((m) => ({
+      ...m,
+      system_ack_sender: Boolean(m.system_ack_sender),
+      system_ack_receiver: Boolean(m.system_ack_receiver),
+    })) as MatchRow[],
+  };
 }
 
 export async function respondToMatch(matchId: string, decision: "Accepted" | "Rejected") {
@@ -138,28 +156,88 @@ export async function respondToMatch(matchId: string, decision: "Accepted" | "Re
 
   const { data: row } = await supabase
     .from("matches")
-    .select("receiver_id, status")
+    .select(
+      "receiver_id, sender_id, status, system_ack_sender, system_ack_receiver",
+    )
     .eq("id", matchId)
     .single();
 
-  if (!row || row.receiver_id !== user.id) {
-    return { ok: false as const, message: "Only the receiver can respond." };
-  }
-  if (row.status !== "Pending") {
-    return { ok: false as const, message: "Match is no longer pending." };
+  if (!row) return { ok: false as const, message: "Match not found." };
+
+  const participant = user.id === row.sender_id || user.id === row.receiver_id;
+
+  if (decision === "Rejected") {
+    if (row.status !== "Pending" && row.status !== "Pending_System") {
+      return { ok: false as const, message: "Match is no longer pending." };
+    }
+    if (row.status === "Pending" && row.receiver_id !== user.id) {
+      return { ok: false as const, message: "Only the inbound recipient can decline this request." };
+    }
+    if (row.status === "Pending_System" && !participant) {
+      return { ok: false as const, message: "Not a participant." };
+    }
+    const { error } = await supabase
+      .from("matches")
+      .update({ status: "Rejected", updated_at: new Date().toISOString() })
+      .eq("id", matchId);
+    if (error) return { ok: false as const, message: error.message };
+    revalidatePath("/console");
+    return { ok: true as const };
   }
 
-  const { error } = await supabase
-    .from("matches")
-    .update({ status: decision, updated_at: new Date().toISOString() })
-    .eq("id", matchId);
+  /* Accepted */
+  if (row.status === "Pending") {
+    if (row.receiver_id !== user.id) {
+      return { ok: false as const, message: "Only the inbound recipient can accept." };
+    }
+    const { error } = await supabase
+      .from("matches")
+      .update({ status: "Accepted", updated_at: new Date().toISOString() })
+      .eq("id", matchId);
+    if (error) return { ok: false as const, message: error.message };
+    revalidatePath("/console");
+    return { ok: true as const };
+  }
 
-  if (error) return { ok: false as const, message: error.message };
-  revalidatePath("/dashboard");
-  return { ok: true as const };
+  if (row.status === "Pending_System") {
+    if (!participant) return { ok: false as const, message: "Not a participant." };
+
+    const isSender = user.id === row.sender_id;
+    const ackS = Boolean(row.system_ack_sender);
+    const ackR = Boolean(row.system_ack_receiver);
+    const nextSenderAck = ackS || isSender;
+    const nextReceiverAck = ackR || !isSender;
+
+    if (nextSenderAck && nextReceiverAck) {
+      const { error } = await supabase
+        .from("matches")
+        .update({
+          status: "Accepted",
+          system_ack_sender: true,
+          system_ack_receiver: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", matchId);
+      if (error) return { ok: false as const, message: error.message };
+    } else {
+      const { error } = await supabase
+        .from("matches")
+        .update({
+          system_ack_sender: nextSenderAck,
+          system_ack_receiver: nextReceiverAck,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", matchId);
+      if (error) return { ok: false as const, message: error.message };
+    }
+    revalidatePath("/console");
+    return { ok: true as const };
+  }
+
+  return { ok: false as const, message: "Match is no longer pending." };
 }
 
-export async function sendMatchMessage(matchId: string, body: string) {
+export async function sendMatchMessage(matchId: string, content: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -180,14 +258,14 @@ export async function sendMatchMessage(matchId: string, body: string) {
     return { ok: false as const, message: "Not a participant." };
   }
 
-  const { error } = await supabase.from("match_messages").insert({
+  const { error } = await supabase.from("messages").insert({
     match_id: matchId,
     sender_id: user.id,
-    body: body.trim(),
+    content: content.trim(),
   });
 
   if (error) return { ok: false as const, message: error.message };
-  revalidatePath("/dashboard");
+  revalidatePath("/console");
   return { ok: true as const };
 }
 
@@ -196,7 +274,7 @@ export async function listMatchMessages(matchId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, message: "Not authenticated", messages: [] as const };
+  if (!user) return { ok: false as const, message: "Not authenticated", messages: [] as MessageRow[] };
 
   const { data: match } = await supabase
     .from("matches")
@@ -205,19 +283,19 @@ export async function listMatchMessages(matchId: string) {
     .single();
 
   if (!match || match.status !== "Accepted") {
-    return { ok: false as const, message: "Not accepted yet.", messages: [] as const };
+    return { ok: false as const, message: "Not accepted yet.", messages: [] as MessageRow[] };
   }
 
   if (match.sender_id !== user.id && match.receiver_id !== user.id) {
-    return { ok: false as const, message: "Forbidden", messages: [] as const };
+    return { ok: false as const, message: "Forbidden", messages: [] as MessageRow[] };
   }
 
   const { data, error } = await supabase
-    .from("match_messages")
-    .select("id, sender_id, body, created_at")
+    .from("messages")
+    .select("id, sender_id, content, created_at")
     .eq("match_id", matchId)
     .order("created_at", { ascending: true });
 
-  if (error) return { ok: false as const, message: error.message, messages: [] as const };
-  return { ok: true as const, messages: data ?? [] };
+  if (error) return { ok: false as const, message: error.message, messages: [] as MessageRow[] };
+  return { ok: true as const, messages: (data ?? []) as MessageRow[] };
 }

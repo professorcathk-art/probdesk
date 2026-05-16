@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Space_Grotesk } from "next/font/google";
+import { Footer } from "@/components/footer";
+import { SiteNav } from "@/components/site-nav";
+import { getAuthContext } from "@/lib/auth-context";
 import { getMetadataBase } from "@/lib/site-url";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-sans-body",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-heading",
   subsets: ["latin"],
 });
 
@@ -20,17 +23,20 @@ export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { user } = await getAuthContext();
+
   return (
-    <html
-      lang="en"
-      className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en" className={`dark ${inter.variable} ${spaceGrotesk.variable} h-full`}>
+      <body className="flex min-h-full flex-col antialiased">
+        <SiteNav isAuthenticated={!!user} />
+        <div className="relative flex-1">{children}</div>
+        <Footer />
+      </body>
     </html>
   );
 }

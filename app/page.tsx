@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { LandingIntentForm } from "@/components/landing-intent-form";
-import { SiteNav } from "@/components/site-nav";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getAuthContext } from "@/lib/auth-context";
@@ -14,7 +13,6 @@ export default async function Home() {
   return (
     <div className="relative min-h-screen text-slate-50">
       <GalaxyBackdrop />
-      <SiteNav />
       <main className="mx-auto flex max-w-6xl flex-col gap-16 px-6 pb-24 pt-16 md:pt-24">
         <section className="space-y-8">
           <div className="space-y-5">
@@ -36,7 +34,7 @@ export default async function Home() {
           {user ? (
             <div className="flex flex-wrap gap-3">
               <Link
-                href={onboardingStatus === "complete" ? "/dashboard" : "/onboarding"}
+                href={onboardingStatus === "complete" ? "/console" : "/onboarding"}
                 className={cn(
                   buttonVariants({ variant: "default" }),
                   "border border-white/10 bg-white/[0.06] text-white hover:bg-white/10",

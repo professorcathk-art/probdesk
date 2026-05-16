@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     .single();
 
   const next =
-    row?.onboarding_status === "complete" ? "/dashboard" : "/onboarding";
+    row?.onboarding_status === "complete" ? "/console" : "/onboarding";
 
   return NextResponse.redirect(`${site}${next}`);
 }

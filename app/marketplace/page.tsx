@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
-import { SiteNav } from "@/components/site-nav";
 import { listMarketplaceListings } from "@/actions/marketplace";
 import { getAuthContext } from "@/lib/auth-context";
 import { MarketplaceGrid } from "./marketplace-grid";
@@ -15,7 +14,6 @@ export default async function MarketplacePage() {
   return (
     <div className="relative min-h-screen text-slate-50">
       <GalaxyBackdrop />
-      <SiteNav />
       <div className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-16 md:py-20">
         <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
@@ -25,7 +23,7 @@ export default async function MarketplacePage() {
               Opt-in intents only. Personas stay blurred until mutual acceptance — connect with a mandatory context message.
             </p>
           </div>
-          <Link href="/dashboard" className="text-sm text-sky-300/90 underline-offset-4 hover:underline">
+          <Link href="/console" className="text-sm text-sky-300/90 underline-offset-4 hover:underline">
             Back to console
           </Link>
         </header>

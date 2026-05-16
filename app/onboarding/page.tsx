@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import { bootstrapIntentFromLanding, completeOnboarding } from "@/actions/intents";
 import { createClient } from "@/lib/supabase/client";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
-import { SiteNav } from "@/components/site-nav";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -92,14 +91,13 @@ export default function OnboardingPage() {
       setError(res.message);
       return;
     }
-    router.replace("/dashboard");
+    router.replace("/console");
   }
 
   if (checkingAuth) {
     return (
       <div className="relative min-h-screen text-slate-50">
         <GalaxyBackdrop />
-        <SiteNav />
         <main className="mx-auto max-w-3xl px-6 py-24 text-slate-400">Authenticating…</main>
       </div>
     );
@@ -108,7 +106,6 @@ export default function OnboardingPage() {
   return (
     <div className="relative min-h-screen text-slate-50">
       <GalaxyBackdrop />
-      <SiteNav />
       <main className="mx-auto flex max-w-3xl flex-col gap-10 px-6 py-16 md:py-24">
         <header className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">Progressive onboarding</p>
