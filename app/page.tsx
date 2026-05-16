@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
+import { LandingStarfield } from "@/components/landing-starfield";
 import { LandingIntentForm } from "@/components/landing-intent-form";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,8 @@ export default async function Home() {
   return (
     <div className="relative min-h-screen text-slate-50">
       <GalaxyBackdrop />
-      <main className="mx-auto flex max-w-6xl flex-col gap-16 px-6 pb-24 pt-16 md:pt-24">
+      <LandingStarfield />
+      <main className="relative z-[1] mx-auto flex max-w-6xl flex-col gap-16 px-6 pb-24 pt-16 md:pt-24">
         <section className="space-y-8">
           <div className="space-y-5">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">

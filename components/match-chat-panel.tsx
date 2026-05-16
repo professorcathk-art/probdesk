@@ -61,7 +61,7 @@ export function MatchChatPanel({ matchId, userId }: Props) {
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-white/10 bg-black/25 p-4">
+    <div className="flex max-h-[min(70vh,440px)] min-h-0 flex-col space-y-4 overflow-hidden rounded-xl border border-white/10 bg-black/25 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Messages</p>
         <Button
@@ -77,7 +77,7 @@ export function MatchChatPanel({ matchId, userId }: Props) {
 
       {error ? <p className="text-sm text-red-400">{error}</p> : null}
 
-      <div className="max-h-64 space-y-2 overflow-y-auto text-sm">
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain text-sm">
         {messages.length === 0 ? (
           <p className="text-slate-500">No messages yet — say hello.</p>
         ) : (

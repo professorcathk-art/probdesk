@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { isAdminEmail } from "@/lib/admin-emails";
+import { DUPLICATE_MATCH_MESSAGE, hasBlockingMatchBetween } from "@/lib/match-blocking";
 
 export type AdminUserRow = {
   id: string;
@@ -19,6 +20,23 @@ export type AdminIntentRow = {
   location_filter: string | null;
   status: string;
   is_marketplace_public: boolean;
+  created_at: string;
+  profile_display_name: string | null;
+  profile_location: string | null;
+  profile_industry: string | null;
+  profile_available_time: string | null;
+};
+
+export type AdminMatchTrackerRow = {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  sender_email: string | null;
+  receiver_email: string | null;
+  status: string;
+  intent_request_id: string | null;
+  counterparty_intent_id: string | null;
+  match_type: string;
   created_at: string;
 };
 
@@ -57,7 +75,7 @@ export async function adminListDirectory(): Promise<
 
     if (uErr) return { ok: false, message: uErr.message };
 
-    const { data: intents, error: iErr } = await svc
+    const { data: intentsRaw, error: iErr } = await svc
       .from("intent_requests")
       .select("id, user_id, natural_language_input, location_filter, status, is_marketplace_public, created_at")
       .eq("status", "active")
@@ -65,11 +83,75 @@ export async function adminListDirectory(): Promise<
 
     if (iErr) return { ok: false, message: iErr.message };
 
+    const userIds = [...new Set((intentsRaw ?? []).map((i) => i.user_id))];
+    const { data: profiles } =
+      userIds.length > 0
+        ? await svc.from("profiles").select("user_id, display_name, location, industry, available_time").in("user_id", userIds)
+        : { data: [] as { user_id: string; display_name: string | null; location: string | null; industry: string | null; available_time: string | null }[] };
+
+    const profileByUser = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+
+    const intents: AdminIntentRow[] = (intentsRaw ?? []).map((i) => {
+      const p = profileByUser.get(i.user_id);
+      return {
+        ...i,
+        profile_display_name: p?.display_name ?? null,
+        profile_location: p?.location ?? null,
+        profile_industry: p?.industry ?? null,
+        profile_available_time: p?.available_time ?? null,
+      };
+    });
+
     return {
       ok: true,
       users: (users ?? []) as AdminUserRow[],
-      intents: (intents ?? []) as AdminIntentRow[],
+      intents,
     };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Forbidden";
+    return { ok: false, message: msg };
+  }
+}
+
+export async function adminListMatchTracker(): Promise<
+  { ok: true; matches: AdminMatchTrackerRow[] } | { ok: false; message: string }
+> {
+  try {
+    await assertAdmin();
+    let svc;
+    try {
+      svc = createServiceRoleClient();
+    } catch {
+      return { ok: false, message: "Missing SUPABASE_SERVICE_ROLE_KEY." };
+    }
+
+    const { data: rows, error } = await svc
+      .from("matches")
+      .select("id, sender_id, receiver_id, status, intent_request_id, counterparty_intent_id, created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) return { ok: false, message: error.message };
+
+    const ids = [...new Set((rows ?? []).flatMap((r) => [r.sender_id, r.receiver_id]))];
+    const { data: usersRows } =
+      ids.length > 0 ? await svc.from("users").select("id, email").in("id", ids) : { data: [] as { id: string; email: string | null }[] };
+
+    const emailById = new Map((usersRows ?? []).map((u) => [u.id, u.email]));
+
+    const matches: AdminMatchTrackerRow[] = (rows ?? []).map((r) => ({
+      id: r.id,
+      sender_id: r.sender_id,
+      receiver_id: r.receiver_id,
+      sender_email: emailById.get(r.sender_id) ?? null,
+      receiver_email: emailById.get(r.receiver_id) ?? null,
+      status: r.status,
+      intent_request_id: r.intent_request_id,
+      counterparty_intent_id: r.counterparty_intent_id,
+      match_type: r.status === "Pending_System" ? "System (admin)" : r.status === "Pending" ? "User request" : r.status,
+      created_at: r.created_at,
+    }));
+
+    return { ok: true, matches };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Forbidden";
     return { ok: false, message: msg };
@@ -107,6 +189,10 @@ export async function adminForceSystemMatch(params: { intentAId: string; intentB
     const b = rows.find((r) => r.id === intentBId);
     if (!a || !b || a.user_id === b.user_id) {
       return { ok: false, message: "Intents must belong to two different users." };
+    }
+
+    if (await hasBlockingMatchBetween(svc, a.user_id, b.user_id)) {
+      return { ok: false, message: DUPLICATE_MATCH_MESSAGE };
     }
 
     const { error: insErr } = await svc.from("matches").insert({

@@ -1,7 +1,8 @@
-import Link from "next/link";
-import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
+import { getSquarePendingIntentIdsForCurrentUser } from "@/actions/matches";
 import { listMarketplaceListings } from "@/actions/marketplace";
+import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { getAuthContext } from "@/lib/auth-context";
+import Link from "next/link";
 import { MarketplaceGrid } from "./marketplace-grid";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,8 @@ export default async function MarketplacePage() {
   const res = await listMarketplaceListings();
   const listings = "error" in res ? [] : res.listings;
   const { user } = await getAuthContext();
+  const pendingRes = await getSquarePendingIntentIdsForCurrentUser();
+  const pendingIntentIds = "error" in pendingRes ? [] : pendingRes.intentIds;
 
   return (
     <div className="relative min-h-screen text-slate-50">
@@ -34,7 +37,7 @@ export default async function MarketplacePage() {
           </p>
         ) : null}
 
-        <MarketplaceGrid listings={listings} currentUserId={user?.id ?? null} />
+        <MarketplaceGrid listings={listings} currentUserId={user?.id ?? null} pendingIntentIds={pendingIntentIds} />
       </div>
     </div>
   );

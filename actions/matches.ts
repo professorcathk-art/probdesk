@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sanitizeProfilePreview, vibeCheckWith4o } from "@/lib/aiml";
+import { DUPLICATE_MATCH_MESSAGE, BLOCKING_MATCH_STATUSES, hasBlockingMatchBetween } from "@/lib/match-blocking";
 
 export type MatchRow = {
   id: string;
@@ -49,6 +50,10 @@ export async function initiateConnection(params: {
 
   if (intentError || !receiverIntent || receiverIntent.user_id !== params.receiverUserId) {
     return { ok: false as const, message: "Intent not found." };
+  }
+
+  if (await hasBlockingMatchBetween(supabase, user.id, params.receiverUserId)) {
+    return { ok: false as const, message: DUPLICATE_MATCH_MESSAGE };
   }
 
   const { data: senderIntent } = await supabase
@@ -298,4 +303,48 @@ export async function listMatchMessages(matchId: string) {
 
   if (error) return { ok: false as const, message: error.message, messages: [] as MessageRow[] };
   return { ok: true as const, messages: (data ?? []) as MessageRow[] };
+}
+
+/** Peer user IDs that already share a Pending / Pending_System / Accepted match with the current user. */
+export async function getBlockingPeerIdsForCurrentUser(): Promise<{ peerIds: string[] } | { error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data, error } = await supabase
+    .from("matches")
+    .select("sender_id, receiver_id")
+    .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+    .in("status", [...BLOCKING_MATCH_STATUSES]);
+
+  if (error) return { error: error.message };
+
+  const peers = new Set<string>();
+  for (const row of data ?? []) {
+    peers.add(row.sender_id === user.id ? row.receiver_id : row.sender_id);
+  }
+  return { peerIds: [...peers] };
+}
+
+/** Receiver intent IDs for outbound Pending Square requests from the current user. */
+export async function getSquarePendingIntentIdsForCurrentUser(): Promise<{ intentIds: string[] } | { error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { intentIds: [] };
+
+  const { data, error } = await supabase
+    .from("matches")
+    .select("intent_request_id")
+    .eq("sender_id", user.id)
+    .eq("status", "Pending")
+    .not("intent_request_id", "is", null);
+
+  if (error) return { error: error.message };
+
+  const ids = [...new Set((data ?? []).map((r) => r.intent_request_id).filter(Boolean))] as string[];
+  return { intentIds: ids };
 }

@@ -313,3 +313,102 @@ export async function computeHybridSuggestions(intentId: string): Promise<
 
   return { ok: true, suggestions };
 }
+
+export async function createConsoleIntent(naturalLanguageInput: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return { ok: false as const, message: "Not authenticated" };
+  }
+
+  const trimmed = naturalLanguageInput.trim();
+  if (trimmed.length < 12) {
+    return { ok: false as const, message: "Intent is too short." };
+  }
+
+  let parsed: Awaited<ReturnType<typeof parseIntentWithMini>>;
+  let embedding: number[];
+
+  try {
+    parsed = await parseIntentWithMini(trimmed);
+    embedding = await embedTextSmall(trimmed);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "AI pipeline failed";
+    return { ok: false as const, message: msg };
+  }
+
+  const persona = parsed.extracted_persona as Record<string, unknown>;
+  let location_filter =
+    parsed.location_filter?.trim() ||
+    (typeof persona.location === "string" ? persona.location.trim() : null);
+
+  if (!location_filter) {
+    const { data: profile } = await supabase.from("profiles").select("location").eq("user_id", user.id).maybeSingle();
+    location_filter = profile?.location?.trim() ?? null;
+  }
+
+  const { error } = await supabase.from("intent_requests").insert({
+    user_id: user.id,
+    natural_language_input: trimmed,
+    extracted_persona: parsed.extracted_persona,
+    location_filter,
+    embedding: vectorLiteral(embedding),
+    status: "active",
+    is_marketplace_public: false,
+  });
+
+  if (error) return { ok: false as const, message: error.message };
+
+  revalidatePath("/console");
+  return { ok: true as const };
+}
+
+export async function updateConsoleIntent(intentId: string, naturalLanguageInput: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, message: "Not authenticated" };
+
+  const trimmed = naturalLanguageInput.trim();
+  if (trimmed.length < 12) {
+    return { ok: false as const, message: "Intent is too short." };
+  }
+
+  let parsed: Awaited<ReturnType<typeof parseIntentWithMini>>;
+  let embedding: number[];
+
+  try {
+    parsed = await parseIntentWithMini(trimmed);
+    embedding = await embedTextSmall(trimmed);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "AI pipeline failed";
+    return { ok: false as const, message: msg };
+  }
+
+  const persona = parsed.extracted_persona as Record<string, unknown>;
+  const location_filter =
+    parsed.location_filter?.trim() ||
+    (typeof persona.location === "string" ? persona.location.trim() : null);
+
+  const { error } = await supabase
+    .from("intent_requests")
+    .update({
+      natural_language_input: trimmed,
+      extracted_persona: parsed.extracted_persona,
+      location_filter,
+      embedding: vectorLiteral(embedding),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", intentId)
+    .eq("user_id", user.id);
+
+  if (error) return { ok: false as const, message: error.message };
+
+  revalidatePath("/console");
+  return { ok: true as const };
+}

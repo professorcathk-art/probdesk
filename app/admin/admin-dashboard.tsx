@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { adminForceSystemMatch, adminListDirectory, type AdminIntentRow } from "@/actions/admin";
+import {
+  adminForceSystemMatch,
+  adminListDirectory,
+  adminListMatchTracker,
+  type AdminIntentRow,
+  type AdminMatchTrackerRow,
+} from "@/actions/admin";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,35 +19,30 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [intents, setIntents] = useState<AdminIntentRow[]>([]);
   const [userCount, setUserCount] = useState(0);
+  const [tracker, setTracker] = useState<AdminMatchTrackerRow[]>([]);
   const [selA, setSelA] = useState<string>("");
   const [selB, setSelB] = useState<string>("");
   const [busy, setBusy] = useState(false);
 
-  async function load() {
-    setLoading(true);
-    setError(null);
-    const res = await adminListDirectory();
-    setLoading(false);
-    if (!res.ok) {
-      setError(res.message);
-      return;
-    }
-    setIntents(res.intents);
-    setUserCount(res.users.length);
-  }
-
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const res = await adminListDirectory();
+      const [dir, trk] = await Promise.all([adminListDirectory(), adminListMatchTracker()]);
       if (cancelled) return;
       setLoading(false);
-      if (!res.ok) {
-        setError(res.message);
+      if (!dir.ok) {
+        setError(dir.message);
         return;
       }
-      setIntents(res.intents);
-      setUserCount(res.users.length);
+      if (!trk.ok) {
+        setError(trk.message);
+        setIntents(dir.intents);
+        setUserCount(dir.users.length);
+        return;
+      }
+      setIntents(dir.intents);
+      setUserCount(dir.users.length);
+      setTracker(trk.matches);
       setError(null);
     })();
     return () => {
@@ -61,7 +62,8 @@ export default function AdminDashboard() {
     }
     setSelA("");
     setSelB("");
-    await load();
+    const trk = await adminListMatchTracker();
+    if (trk.ok) setTracker(trk.matches);
   }
 
   return (
@@ -134,16 +136,78 @@ export default function AdminDashboard() {
           <h2 className="text-lg font-semibold text-white">
             Active intents ({intents.length}) · Users ({userCount})
           </h2>
+          <p className="mt-1 text-xs text-slate-500">Profile context helps you judge fit before forcing a system match.</p>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {intents.map((i) => (
               <div key={i.id} className="rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm">
                 <p className="font-mono text-[11px] text-slate-500">{i.id}</p>
                 <p className="mt-2 text-slate-200">{i.natural_language_input}</p>
+                <div className="mt-3 space-y-1 rounded-lg border border-white/5 bg-black/20 px-3 py-2 text-xs text-slate-400">
+                  <p>
+                    <span className="text-slate-500">Profile · </span>
+                    {i.profile_display_name ?? "—"}
+                  </p>
+                  <p>
+                    <span className="text-slate-500">Location · </span>
+                    {i.profile_location ?? i.location_filter ?? "—"}
+                  </p>
+                  <p>
+                    <span className="text-slate-500">Industry · </span>
+                    {i.profile_industry ?? "—"}
+                  </p>
+                  <p>
+                    <span className="text-slate-500">Availability · </span>
+                    {i.profile_available_time ?? "—"}
+                  </p>
+                </div>
                 <p className="mt-2 text-xs text-slate-500">
-                  User {i.user_id} · {i.location_filter ?? "no location"} · Square: {i.is_marketplace_public ? "yes" : "no"}
+                  User {i.user_id} · Intent location {i.location_filter ?? "none"} · Square: {i.is_marketplace_public ? "yes" : "no"}
                 </p>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold text-white">Match status tracker</h2>
+          <p className="text-xs text-slate-500">Follow manual introductions and outcomes across the fleet.</p>
+          <div className="overflow-x-auto rounded-xl border border-white/10">
+            <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+              <thead className="border-b border-white/10 bg-black/30 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-3 py-2 font-medium">User A</th>
+                  <th className="px-3 py-2 font-medium">User B</th>
+                  <th className="px-3 py-2 font-medium">Type</th>
+                  <th className="px-3 py-2 font-medium">Status</th>
+                  <th className="px-3 py-2 font-medium">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tracker.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
+                      No matches yet.
+                    </td>
+                  </tr>
+                ) : (
+                  tracker.map((m) => (
+                    <tr key={m.id} className="border-b border-white/5 text-slate-300">
+                      <td className="max-w-[200px] truncate px-3 py-2 align-top text-xs">
+                        {m.sender_email ?? m.sender_id}
+                      </td>
+                      <td className="max-w-[200px] truncate px-3 py-2 align-top text-xs">
+                        {m.receiver_email ?? m.receiver_id}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 align-top text-xs">{m.match_type}</td>
+                      <td className="whitespace-nowrap px-3 py-2 align-top text-xs font-medium text-slate-200">{m.status}</td>
+                      <td className="whitespace-nowrap px-3 py-2 align-top text-xs text-slate-500">
+                        {new Date(m.created_at).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </section>
       </main>

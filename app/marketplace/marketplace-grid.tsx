@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { MarketplaceListing } from "@/actions/marketplace";
 import { ConnectModal } from "@/components/connect-modal";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,12 @@ import { Badge } from "@/components/ui/badge";
 type Props = {
   listings: MarketplaceListing[];
   currentUserId: string | null;
+  pendingIntentIds: string[];
 };
 
-export function MarketplaceGrid({ listings, currentUserId }: Props) {
+export function MarketplaceGrid({ listings, currentUserId, pendingIntentIds }: Props) {
   const router = useRouter();
+  const pending = useMemo(() => new Set(pendingIntentIds), [pendingIntentIds]);
   const [connectOpen, setConnectOpen] = useState(false);
   const [ctx, setCtx] = useState<{ receiverUserId: string; receiverIntentId: string } | null>(null);
 
@@ -40,8 +42,8 @@ export function MarketplaceGrid({ listings, currentUserId }: Props) {
             <CardContent className="space-y-4">
               <p className="text-sm leading-relaxed text-slate-200">{item.natural_language_input}</p>
               <Button
-                className="w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
-                disabled={currentUserId === item.user_id}
+                className="w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 disabled:opacity-60"
+                disabled={currentUserId === item.user_id || pending.has(item.id)}
                 onClick={() => {
                   if (!currentUserId) {
                     router.push("/login");
@@ -51,7 +53,7 @@ export function MarketplaceGrid({ listings, currentUserId }: Props) {
                   setConnectOpen(true);
                 }}
               >
-                Connect
+                {pending.has(item.id) ? "Pending" : "Connect"}
               </Button>
             </CardContent>
           </Card>

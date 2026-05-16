@@ -263,3 +263,16 @@ grant select on public.intent_requests to anon;
 grant select, insert, update on public.matches to authenticated;
 grant select, insert on public.messages to authenticated;
 grant execute on function public.match_intents(vector, text, float, int, uuid) to authenticated;
+
+-- -----------------------------------------------------------------------------
+-- Storage (avatars) — see migrations/045_phase3_avatars_storage.sql for policies
+-- -----------------------------------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'avatars',
+  'avatars',
+  true,
+  5242880,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do nothing;

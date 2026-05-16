@@ -146,3 +146,46 @@
     box-shadow: 0 0 18px rgba(59, 130, 246, 0.35);
   }
 }
+
+/* Landing page — subtle drifting starfield (pure CSS) */
+@keyframes landing-starfield-drift-a {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-48px, -220px, 0);
+  }
+}
+
+@keyframes landing-starfield-drift-b {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(64px, -280px, 0);
+  }
+}
+
+.landing-star-layer-a {
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(255, 255, 255, 0.42), transparent),
+    radial-gradient(1px 1px at 62% 42%, rgba(191, 219, 254, 0.35), transparent),
+    radial-gradient(1px 1px at 88% 71%, rgba(255, 255, 255, 0.28), transparent),
+    radial-gradient(1px 1px at 34% 83%, rgba(165, 243, 252, 0.22), transparent),
+    radial-gradient(1.5px 1.5px at 71% 12%, rgba(255, 255, 255, 0.38), transparent);
+  background-size: 420px 420px;
+  opacity: 0.55;
+  animation: landing-starfield-drift-a 95s linear infinite;
+}
+
+.landing-star-layer-b {
+  background-image:
+    radial-gradient(1px 1px at 22% 56%, rgba(255, 255, 255, 0.32), transparent),
+    radial-gradient(1.5px 1.5px at 48% 28%, rgba(224, 231, 255, 0.35), transparent),
+    radial-gradient(1px 1px at 76% 64%, rgba(255, 255, 255, 0.22), transparent),
+    radial-gradient(1px 1px at 8% 92%, rgba(186, 230, 253, 0.26), transparent),
+    radial-gradient(1px 1px at 91% 38%, rgba(255, 255, 255, 0.24), transparent);
+  background-size: 560px 560px;
+  opacity: 0.38;
+  animation: landing-starfield-drift-b 140s linear infinite reverse;
+}
