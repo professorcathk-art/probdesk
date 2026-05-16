@@ -30,7 +30,8 @@ create table if not exists public.profiles (
   bio text,
   updated_at timestamptz not null default now(),
   daily_credits integer not null default 3,
-  last_credit_reset timestamptz not null default now()
+  last_credit_reset timestamptz not null default now(),
+  match_quality_alert_sent boolean not null default false
 );
 
 create table if not exists public.intent_requests (
