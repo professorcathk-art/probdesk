@@ -23,6 +23,23 @@ export const metadata: Metadata = {
   description:
     "Thoughtful human matching with Smart Matchmaking, Explore, and mutual acceptance before identities unlock.",
   metadataBase: getMetadataBase(),
+  icons: {
+    icon: [{ url: "/logo.png", type: "image/png", sizes: "any" }],
+    apple: [{ url: "/logo.png", type: "image/png", sizes: "180x180" }],
+  },
+  openGraph: {
+    title: "Probdesk — Matching built on what you're looking for",
+    description:
+      "Thoughtful human matching with Smart Matchmaking, Explore, and mutual acceptance before identities unlock.",
+    images: [{ url: "/logo.png", alt: "Probdesk" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Probdesk — Matching built on what you're looking for",
+    description:
+      "Thoughtful human matching with Smart Matchmaking, Explore, and mutual acceptance before identities unlock.",
+    images: ["/logo.png"],
+  },
 };
 
 export default async function RootLayout({
