@@ -15,8 +15,10 @@ import {
 import type { MatchRow } from "@/actions/matches";
 import { respondToMatch } from "@/actions/matches";
 import { ConnectModal } from "@/components/connect-modal";
+import { CreditsLimitModal } from "@/components/credits-limit-modal";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { IntentShareButton } from "@/components/intent-share-button";
+import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
 import { useLanguage } from "@/components/language-provider";
 import { MergedMatchChatPanel } from "@/components/match-chat-panel";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +38,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useConnectionCredits } from "@/hooks/use-connection-credits";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -134,6 +137,10 @@ export function ConsoleClient({
   const router = useRouter();
   const { strings } = useLanguage();
   const t = strings.console;
+  const cr = strings.credits;
+
+  const { refresh: refreshCredits, outOfCredits } = useConnectionCredits(userId);
+  const [creditsTeaserOpen, setCreditsTeaserOpen] = useState(false);
 
   const blockedPeers = useMemo(() => new Set(blockedPeerIds), [blockedPeerIds]);
 
@@ -240,6 +247,10 @@ export function ConsoleClient({
   }
 
   function openConnect(card: SuggestionCard) {
+    if (outOfCredits) {
+      setCreditsTeaserOpen(true);
+      return;
+    }
     setConnectCtx({
       receiverUserId: card.owner_user_id,
       receiverIntentId: card.intent_id,
@@ -431,7 +442,7 @@ export function ConsoleClient({
                                   className="w-[min(280px,85vw)] max-w-[min(280px,85vw)] shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-xl"
                                 >
                                   <div className="flex min-w-0 items-center gap-3">
-                                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/10 bg-gradient-to-br from-sky-500/40 to-indigo-600/30 blur-[3px]" />
+                                    <LockedAvatarPreview />
                                     <div className="min-w-0">
                                       <p className="text-xs text-slate-500">{t.compatibility}</p>
                                       <p className="text-lg font-semibold text-sky-200">{s.match_score}</p>
@@ -441,11 +452,14 @@ export function ConsoleClient({
                                   <p className="mt-3 break-words text-xs leading-relaxed text-slate-400">{s.compatibility_reason}</p>
                                   <Button
                                     size="sm"
-                                    className="galaxy-btn-glow mt-4 w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
+                                    className={cn(
+                                      "galaxy-btn-glow mt-4 w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25",
+                                      !blocked && outOfCredits && "opacity-50 hover:bg-sky-500/15",
+                                    )}
                                     disabled={blocked}
                                     onClick={() => !blocked && openConnect(s)}
                                   >
-                                    {blocked ? t.alreadyPending : t.requestConnection}
+                                    {blocked ? t.alreadyPending : outOfCredits ? cr.dailyLimitReached : t.requestConnection}
                                   </Button>
                                 </div>
                               );
@@ -766,7 +780,7 @@ export function ConsoleClient({
                   className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-xl"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/10 bg-gradient-to-br from-sky-500/40 to-indigo-600/30 blur-[3px]" />
+                    <LockedAvatarPreview />
                     <div className="min-w-0">
                       <p className="text-xs text-slate-500">{t.compatibility}</p>
                       <p className="text-lg font-semibold text-sky-200">{s.match_score}</p>
@@ -776,11 +790,14 @@ export function ConsoleClient({
                   <p className="mt-3 break-words text-xs leading-relaxed text-slate-400">{s.compatibility_reason}</p>
                   <Button
                     size="sm"
-                    className="galaxy-btn-glow mt-4 w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
+                    className={cn(
+                      "galaxy-btn-glow mt-4 w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25",
+                      !blocked && outOfCredits && "opacity-50 hover:bg-sky-500/15",
+                    )}
                     disabled={blocked}
                     onClick={() => !blocked && openConnectAndDismissFresh(s)}
                   >
-                    {blocked ? t.alreadyPending : t.requestConnection}
+                    {blocked ? t.alreadyPending : outOfCredits ? cr.dailyLimitReached : t.requestConnection}
                   </Button>
                 </div>
               );
@@ -794,6 +811,8 @@ export function ConsoleClient({
         </DialogContent>
       </Dialog>
 
+      <CreditsLimitModal open={creditsTeaserOpen} onOpenChange={setCreditsTeaserOpen} />
+
       {connectCtx ? (
         <ConnectModal
           open={connectOpen}
@@ -804,6 +823,7 @@ export function ConsoleClient({
           receiverUserId={connectCtx.receiverUserId}
           receiverIntentId={connectCtx.receiverIntentId}
           headline={connectCtx.headline}
+          onInviteSent={() => void refreshCredits()}
         />
       ) : null}
     </div>

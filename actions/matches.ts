@@ -28,11 +28,43 @@ export type MessageRow = {
   created_at: string;
 };
 
+type CreditRpcResult = {
+  ok?: boolean;
+  credits_remaining?: number;
+  error?: string;
+};
+
+export type InitiateConnectionResult =
+  | { ok: true }
+  | { ok: false; message: string }
+  | { ok: false; error: "OUT_OF_CREDITS" };
+
+export async function getConnectionCreditsRemaining(): Promise<{ credits: number } | { error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data, error } = await supabase.rpc("get_connection_credits_remaining", {
+    p_user_id: user.id,
+  });
+
+  if (error) return { error: error.message };
+
+  const row = data as CreditRpcResult | null;
+  if (!row?.ok || typeof row.credits_remaining !== "number") {
+    return { error: row?.error ?? "Could not load credits." };
+  }
+
+  return { credits: row.credits_remaining };
+}
+
 export async function initiateConnection(params: {
   receiverUserId: string;
   receiverIntentId: string;
   introductory_context: string;
-}) {
+}): Promise<InitiateConnectionResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -109,6 +141,25 @@ export async function initiateConnection(params: {
     /* fallback */
   }
 
+  const { data: creditData, error: creditRpcError } = await supabase.rpc("consume_connection_credit", {
+    p_user_id: user.id,
+  });
+
+  if (creditRpcError) {
+    return { ok: false as const, message: creditRpcError.message };
+  }
+
+  const creditRow = creditData as CreditRpcResult | null;
+  if (!creditRow?.ok) {
+    if (creditRow?.error === "OUT_OF_CREDITS") {
+      return { ok: false as const, error: "OUT_OF_CREDITS" };
+    }
+    return {
+      ok: false as const,
+      message: creditRow?.error ?? "Could not use an invite credit.",
+    };
+  }
+
   const { error } = await supabase.from("matches").insert({
     sender_id: user.id,
     receiver_id: params.receiverUserId,
@@ -122,9 +173,13 @@ export async function initiateConnection(params: {
     system_ack_receiver: false,
   });
 
-  if (error) return { ok: false as const, message: error.message };
+  if (error) {
+    await supabase.rpc("refund_connection_credit", { p_user_id: user.id });
+    return { ok: false as const, message: error.message };
+  }
   revalidatePath("/console");
   revalidatePath("/marketplace");
+  revalidatePath("/square");
   return { ok: true as const };
 }
 

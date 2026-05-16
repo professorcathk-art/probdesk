@@ -28,7 +28,9 @@ create table if not exists public.profiles (
   display_name text,
   avatar_url text,
   bio text,
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  daily_credits integer not null default 3,
+  last_credit_reset timestamptz not null default now()
 );
 
 create table if not exists public.intent_requests (

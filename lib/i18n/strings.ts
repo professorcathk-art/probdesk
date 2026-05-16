@@ -206,6 +206,23 @@ export const STRINGS = {
       signInRequired: "Sign in required.",
       uploadFailedErr: "Upload failed.",
     },
+    credits: {
+      dailyLimitReached: "Daily Limit Reached",
+      qualityTitle: "Quality over Quantity",
+      qualityBody:
+        "You have used your 3 daily invites. To maintain a high-trust network, we limit daily requests. Come back tomorrow for more, or get ready for Probdesk Premium.",
+      gotIt: "Got it",
+    },
+    connectModal: {
+      title: "Send a context message",
+      descriptionBeforeHeadline: "Explain why you fit",
+      descriptionAfterHeadline: ". This stays double-blind until mutual acceptance.",
+      placeholder:
+        "Signal credibility, constraints, and what you bring — concise and respectful.",
+      cancel: "Cancel",
+      sendBusy: "Sending…",
+      confirmSend: "Send invite",
+    },
     common: {
       copied: "Copied link",
       share: "Share",
@@ -418,6 +435,22 @@ export const STRINGS = {
       maxSizeErr: "檔案請小於 5 MB，或先壓縮圖片。",
       signInRequired: "請先登入。",
       uploadFailedErr: "上傳失敗。",
+    },
+    credits: {
+      dailyLimitReached: "今日額度已用盡",
+      qualityTitle: "重質不重量",
+      qualityBody:
+        "你已用盡今日的 3 次邀請額度。為了維持平台的高質量連結，我們限制每日發送數量。請明天再來，或期待即將推出的 Premium 專屬方案。",
+      gotIt: "了解",
+    },
+    connectModal: {
+      title: "傳送開場訊息",
+      descriptionBeforeHeadline: "說明你為何適合",
+      descriptionAfterHeadline: "。在雙方同意前，身分仍為雙向匿名。",
+      placeholder: "簡潔誠懇地說明你的優勢、限制與你能提供的價值。",
+      cancel: "取消",
+      sendBusy: "傳送中…",
+      confirmSend: "發送邀請",
     },
     common: {
       copied: "已複製連結",

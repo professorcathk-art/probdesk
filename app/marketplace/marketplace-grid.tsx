@@ -4,11 +4,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MarketplaceListing } from "@/actions/marketplace";
 import { ConnectModal } from "@/components/connect-modal";
+import { CreditsLimitModal } from "@/components/credits-limit-modal";
 import { IntentShareButton } from "@/components/intent-share-button";
+import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
 import { useLanguage } from "@/components/language-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useConnectionCredits } from "@/hooks/use-connection-credits";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -22,10 +25,14 @@ export function MarketplaceGrid({ listings, currentUserId, pendingIntentIds, hig
   const router = useRouter();
   const { strings } = useLanguage();
   const mp = strings.marketplace;
+  const cr = strings.credits;
   const pending = useMemo(() => new Set(pendingIntentIds), [pendingIntentIds]);
   const [connectOpen, setConnectOpen] = useState(false);
   const [ctx, setCtx] = useState<{ receiverUserId: string; receiverIntentId: string } | null>(null);
+  const [creditsTeaserOpen, setCreditsTeaserOpen] = useState(false);
   const highlightedRef = useRef<HTMLDivElement | null>(null);
+
+  const { refresh: refreshCredits, outOfCredits } = useConnectionCredits(currentUserId);
 
   useEffect(() => {
     if (!highlightIntentId || listings.every((l) => l.id !== highlightIntentId)) return;
@@ -56,7 +63,7 @@ export function MarketplaceGrid({ listings, currentUserId, pendingIntentIds, hig
               <CardHeader className="gap-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full border border-white/10 bg-gradient-to-br from-slate-200/25 to-slate-600/20 blur-[4px]" />
+                    <LockedAvatarPreview />
                     <div>
                       <CardTitle className="text-base text-slate-200">{mp.anonymous}</CardTitle>
                       <CardDescription className="text-slate-500">{mp.anonymousHint}</CardDescription>
@@ -73,18 +80,30 @@ export function MarketplaceGrid({ listings, currentUserId, pendingIntentIds, hig
               <CardContent className="space-y-4">
                 <p className="text-sm leading-relaxed text-slate-200">{item.natural_language_input}</p>
                 <Button
-                  className="w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 disabled:opacity-60"
+                  className={cn(
+                    "w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 disabled:opacity-60",
+                    currentUserId &&
+                      currentUserId !== item.user_id &&
+                      !pending.has(item.id) &&
+                      outOfCredits &&
+                      "opacity-50 hover:bg-sky-500/15",
+                  )}
                   disabled={currentUserId === item.user_id || pending.has(item.id)}
                   onClick={() => {
                     if (!currentUserId) {
                       router.push("/login");
                       return;
                     }
+                    if (currentUserId === item.user_id || pending.has(item.id)) return;
+                    if (outOfCredits) {
+                      setCreditsTeaserOpen(true);
+                      return;
+                    }
                     setCtx({ receiverUserId: item.user_id, receiverIntentId: item.id });
                     setConnectOpen(true);
                   }}
                 >
-                  {pending.has(item.id) ? mp.pending : mp.connect}
+                  {pending.has(item.id) ? mp.pending : outOfCredits ? cr.dailyLimitReached : mp.connect}
                 </Button>
               </CardContent>
             </Card>
@@ -96,6 +115,8 @@ export function MarketplaceGrid({ listings, currentUserId, pendingIntentIds, hig
         ) : null}
       </div>
 
+      <CreditsLimitModal open={creditsTeaserOpen} onOpenChange={setCreditsTeaserOpen} />
+
       {ctx ? (
         <ConnectModal
           open={connectOpen}
@@ -106,6 +127,7 @@ export function MarketplaceGrid({ listings, currentUserId, pendingIntentIds, hig
           receiverUserId={ctx.receiverUserId}
           receiverIntentId={ctx.receiverIntentId}
           headline="this listing"
+          onInviteSent={() => void refreshCredits()}
         />
       ) : null}
     </>

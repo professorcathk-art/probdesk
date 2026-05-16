@@ -2,6 +2,8 @@
 
 import type { MarketplaceListing } from "@/actions/marketplace";
 import { ConnectModal } from "@/components/connect-modal";
+import { CreditsLimitModal } from "@/components/credits-limit-modal";
+import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
 import { useLanguage } from "@/components/language-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useConnectionCredits } from "@/hooks/use-connection-credits";
 
 type Props = {
   listings: MarketplaceListing[];
@@ -41,13 +44,17 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
   const { strings } = useLanguage();
   const L = strings.landing;
   const mp = strings.marketplace;
+  const cr = strings.credits;
 
   const pending = useMemo(() => new Set(pendingIntentIds), [pendingIntentIds]);
   const seq = useMemo(() => marqueeSequence(listings), [listings]);
 
+  const { refresh: refreshCredits, outOfCredits } = useConnectionCredits(currentUserId);
+
   const [preview, setPreview] = useState<MarketplaceListing | null>(null);
   const [connectOpen, setConnectOpen] = useState(false);
   const [connectCtx, setConnectCtx] = useState<{ receiverUserId: string; receiverIntentId: string } | null>(null);
+  const [creditsTeaserOpen, setCreditsTeaserOpen] = useState(false);
 
   const marqueePaused = preview !== null || connectOpen;
 
@@ -64,7 +71,7 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 shrink-0 rounded-full border border-white/10 bg-gradient-to-br from-slate-200/25 to-slate-600/20 blur-[3px]" />
+            <LockedAvatarPreview size="sm" />
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-300/85">{L.marqueeCardLabel}</p>
               <p className="mt-1 text-xs text-slate-500">{mp.anonymous}</p>
@@ -132,7 +139,15 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
           <DialogFooter className="gap-2 sm:flex-col sm:space-x-0">
             <Button
               type="button"
-              className="w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 disabled:opacity-60"
+              className={cn(
+                "w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 disabled:opacity-60",
+                preview &&
+                  currentUserId &&
+                  preview.user_id !== currentUserId &&
+                  !pending.has(preview.id) &&
+                  outOfCredits &&
+                  "opacity-50 hover:bg-sky-500/15",
+              )}
               disabled={
                 !preview ||
                 (currentUserId !== null && preview.user_id === currentUserId) ||
@@ -142,6 +157,11 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
                 if (!preview) return;
                 if (!currentUserId) {
                   router.push("/login");
+                  return;
+                }
+                if (preview.user_id === currentUserId || pending.has(preview.id)) return;
+                if (outOfCredits) {
+                  setCreditsTeaserOpen(true);
                   return;
                 }
                 const ctx = { receiverUserId: preview.user_id, receiverIntentId: preview.id };
@@ -156,7 +176,9 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
                   ? L.marqueeOwnListing
                   : pending.has(preview.id)
                     ? mp.pending
-                    : mp.connect}
+                    : outOfCredits
+                      ? cr.dailyLimitReached
+                      : mp.connect}
             </Button>
             <Button type="button" variant="ghost" className="w-full text-slate-300" onClick={() => setPreview(null)}>
               {L.previewClose}
@@ -164,6 +186,8 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CreditsLimitModal open={creditsTeaserOpen} onOpenChange={setCreditsTeaserOpen} />
 
       {connectCtx ? (
         <ConnectModal
@@ -178,6 +202,7 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
           receiverUserId={connectCtx.receiverUserId}
           receiverIntentId={connectCtx.receiverIntentId}
           headline="this listing"
+          onInviteSent={() => void refreshCredits()}
         />
       ) : null}
     </>
