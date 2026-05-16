@@ -30,11 +30,19 @@ create table if not exists public.profiles (
   bio text,
   preferred_contact_channel text,
   preferred_contact_detail text,
+  gender text,
   updated_at timestamptz not null default now(),
   daily_credits integer not null default 3,
   last_credit_reset timestamptz not null default now(),
   match_quality_alert_sent boolean not null default false
 );
+
+alter table public.profiles drop constraint if exists profiles_gender_chk;
+alter table public.profiles
+  add constraint profiles_gender_chk check (
+    gender is null
+    or gender in ('woman', 'man', 'non_binary', 'prefer_not_say', 'other')
+  );
 
 create table if not exists public.intent_requests (
   id uuid primary key default uuid_generate_v4(),

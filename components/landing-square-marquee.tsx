@@ -6,7 +6,7 @@ import { CreditsLimitModal } from "@/components/credits-limit-modal";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
 import { useLanguage } from "@/components/language-provider";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -92,7 +92,10 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
         <p className="text-sm leading-relaxed text-slate-400">{L.marqueeEmpty}</p>
         <Link
           href="/square"
-          className="mt-5 inline-flex text-sm font-medium text-sky-300/95 underline-offset-4 hover:text-sky-200 hover:underline"
+          className={cn(
+            buttonVariants({ variant: "default", size: "lg" }),
+            "galaxy-btn-glow mt-6 inline-flex border border-sky-400/45 bg-sky-500/20 px-6 text-sm font-semibold text-sky-50 shadow-[0_0_28px_rgba(56,189,248,0.38)] hover:bg-sky-500/35 sm:text-base",
+          )}
         >
           {L.browseSquare}
         </Link>

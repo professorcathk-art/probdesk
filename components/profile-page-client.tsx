@@ -12,22 +12,54 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { PROFILE_GENDER_VALUES, type ProfileGenderValue } from "@/lib/profile-basics";
+import { cn } from "@/lib/utils";
 
 type Props = {
   profileAvatarUrl: string | null;
   profileIdentity: ProfileIdentity;
 };
 
+function genderLabel(cx: {
+  genderWoman: string;
+  genderMan: string;
+  genderNonBinary: string;
+  genderPreferNotSay: string;
+  genderOther: string;
+}, value: ProfileGenderValue): string {
+  switch (value) {
+    case "woman":
+      return cx.genderWoman;
+    case "man":
+      return cx.genderMan;
+    case "non_binary":
+      return cx.genderNonBinary;
+    case "prefer_not_say":
+      return cx.genderPreferNotSay;
+    case "other":
+      return cx.genderOther;
+    default: {
+      const _exhaustive: never = value;
+      return _exhaustive;
+    }
+  }
+}
+
 export function ProfilePageClient({ profileAvatarUrl, profileIdentity }: Props) {
   const router = useRouter();
   const { strings } = useLanguage();
   const p = strings.profilePage;
   const t = strings.console;
+  const ob = strings.onboarding;
 
   const [pfName, setPfName] = useState(profileIdentity.display_name ?? "");
   const [pfBio, setPfBio] = useState(profileIdentity.bio ?? "");
   const [pfLoc, setPfLoc] = useState(profileIdentity.location ?? "");
   const [pfInd, setPfInd] = useState(profileIdentity.industry ?? "");
+  const [pfAvail, setPfAvail] = useState(profileIdentity.available_time ?? "");
+  const [pfGender, setPfGender] = useState(profileIdentity.gender ?? "");
+  const [pfContactCh, setPfContactCh] = useState(profileIdentity.preferred_contact_channel ?? "");
+  const [pfContactDet, setPfContactDet] = useState(profileIdentity.preferred_contact_detail ?? "");
   const [pfBusy, setPfBusy] = useState(false);
   const [pfNote, setPfNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +70,20 @@ export function ProfilePageClient({ profileAvatarUrl, profileIdentity }: Props) 
     setPfBio(profileIdentity.bio ?? "");
     setPfLoc(profileIdentity.location ?? "");
     setPfInd(profileIdentity.industry ?? "");
-  }, [profileIdentity.display_name, profileIdentity.bio, profileIdentity.location, profileIdentity.industry]);
+    setPfAvail(profileIdentity.available_time ?? "");
+    setPfGender(profileIdentity.gender ?? "");
+    setPfContactCh(profileIdentity.preferred_contact_channel ?? "");
+    setPfContactDet(profileIdentity.preferred_contact_detail ?? "");
+  }, [
+    profileIdentity.display_name,
+    profileIdentity.bio,
+    profileIdentity.location,
+    profileIdentity.industry,
+    profileIdentity.available_time,
+    profileIdentity.gender,
+    profileIdentity.preferred_contact_channel,
+    profileIdentity.preferred_contact_detail,
+  ]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   async function saveProfile() {
@@ -50,6 +95,10 @@ export function ProfilePageClient({ profileAvatarUrl, profileIdentity }: Props) 
       bio: pfBio,
       location: pfLoc,
       industry: pfInd,
+      available_time: pfAvail,
+      gender: pfGender,
+      preferred_contact_channel: pfContactCh,
+      preferred_contact_detail: pfContactDet,
     });
     setPfBusy(false);
     if (!res.ok) {
@@ -126,6 +175,76 @@ export function ProfilePageClient({ profileAvatarUrl, profileIdentity }: Props) 
                 className="border-white/10 bg-white/[0.03] text-slate-50"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="pf-avail" className="text-slate-300">
+                {t.profileAvailability}
+              </Label>
+              <Input
+                id="pf-avail"
+                value={pfAvail}
+                onChange={(e) => setPfAvail(e.target.value)}
+                className="border-white/10 bg-white/[0.03] text-slate-50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pf-gender" className="text-slate-300">
+                {t.profileGender}
+              </Label>
+              <select
+                id="pf-gender"
+                value={pfGender}
+                onChange={(e) => setPfGender(e.target.value)}
+                className={cn(
+                  "h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-slate-50 outline-none focus-visible:border-sky-400/40 focus-visible:ring-2 focus-visible:ring-sky-500/30",
+                )}
+              >
+                <option value="">{t.genderUnset}</option>
+                {PROFILE_GENDER_VALUES.map((v) => (
+                  <option key={v} value={v}>
+                    {genderLabel(t, v)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-3 rounded-xl border border-white/10 bg-black/25 p-4">
+              <p className="text-sm font-medium text-white">{ob.contactSectionTitle}</p>
+              <p className="text-xs leading-relaxed text-slate-500">{ob.contactPrivacyNote}</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="pf-contact-ch" className="text-slate-200">
+                    {ob.contactChannelLabel}
+                  </Label>
+                  <select
+                    id="pf-contact-ch"
+                    value={pfContactCh}
+                    onChange={(e) => setPfContactCh(e.target.value)}
+                    className={cn(
+                      "h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-slate-50 outline-none focus-visible:border-sky-400/40 focus-visible:ring-2 focus-visible:ring-sky-500/30",
+                    )}
+                  >
+                    <option value="">{ob.contactChannelUnset}</option>
+                    <option value="whatsapp">{ob.contactWhatsApp}</option>
+                    <option value="line">{ob.contactLine}</option>
+                    <option value="wechat">{ob.contactWeChat}</option>
+                  </select>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="pf-contact-det" className="text-slate-200">
+                    {ob.contactDetailLabel}
+                  </Label>
+                  <Input
+                    id="pf-contact-det"
+                    value={pfContactDet}
+                    onChange={(e) => setPfContactDet(e.target.value)}
+                    placeholder={ob.contactDetailPlaceholder}
+                    className="border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500"
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+            </div>
+
             <Button
               type="button"
               disabled={pfBusy}

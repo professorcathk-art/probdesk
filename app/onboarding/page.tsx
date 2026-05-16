@@ -17,12 +17,42 @@ import {
   readLandingIntentDraftBackup,
 } from "@/lib/intent-draft";
 import { cn } from "@/lib/utils";
+import { PROFILE_GENDER_VALUES, type ProfileGenderValue } from "@/lib/profile-basics";
 import { useSessionStore } from "@/stores/session-store";
+
+function onboardingGenderLabel(
+  cx: {
+    genderWoman: string;
+    genderMan: string;
+    genderNonBinary: string;
+    genderPreferNotSay: string;
+    genderOther: string;
+  },
+  value: ProfileGenderValue,
+): string {
+  switch (value) {
+    case "woman":
+      return cx.genderWoman;
+    case "man":
+      return cx.genderMan;
+    case "non_binary":
+      return cx.genderNonBinary;
+    case "prefer_not_say":
+      return cx.genderPreferNotSay;
+    case "other":
+      return cx.genderOther;
+    default: {
+      const _exhaustive: never = value;
+      return _exhaustive;
+    }
+  }
+}
 
 export default function OnboardingPage() {
   const router = useRouter();
   const { strings } = useLanguage();
   const ob = strings.onboarding;
+  const cx = strings.console;
   const landingIntentText = useSessionStore((s) => s.landingIntentText);
   const clearLandingIntent = useSessionStore((s) => s.clearLandingIntent);
   const setLandingIntentText = useSessionStore((s) => s.setLandingIntentText);
@@ -41,6 +71,7 @@ export default function OnboardingPage() {
     available_time: "",
     location: "",
     bio: "",
+    gender: "",
     preferred_contact_channel: "" as "" | "whatsapp" | "line" | "wechat",
     preferred_contact_detail: "",
   });
@@ -221,6 +252,23 @@ export default function OnboardingPage() {
                   onChange={(e) => setProfile({ ...profile, available_time: e.target.value })}
                   className="border-white/10 bg-white/[0.03] text-slate-50"
                 />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label className="text-slate-200">{ob.genderLabel}</Label>
+                <select
+                  value={profile.gender}
+                  onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
+                  className={cn(
+                    "h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-slate-50 outline-none focus-visible:border-sky-400/40 focus-visible:ring-2 focus-visible:ring-sky-500/30",
+                  )}
+                >
+                  <option value="">{cx.genderUnset}</option>
+                  {PROFILE_GENDER_VALUES.map((v) => (
+                    <option key={v} value={v}>
+                      {onboardingGenderLabel(cx, v)}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label className="text-slate-200">Bio</Label>

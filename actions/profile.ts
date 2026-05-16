@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { parseProfileGender } from "@/lib/profile-basics";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -68,6 +69,10 @@ export type ProfileIdentity = {
   bio: string | null;
   location: string | null;
   industry: string | null;
+  available_time: string | null;
+  gender: string | null;
+  preferred_contact_channel: string | null;
+  preferred_contact_detail: string | null;
 };
 
 export async function getMyProfileIdentity(): Promise<ProfileIdentity | { error: string }> {
@@ -79,7 +84,9 @@ export async function getMyProfileIdentity(): Promise<ProfileIdentity | { error:
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("display_name, bio, location, industry")
+    .select(
+      "display_name, bio, location, industry, available_time, gender, preferred_contact_channel, preferred_contact_detail",
+    )
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -89,6 +96,10 @@ export async function getMyProfileIdentity(): Promise<ProfileIdentity | { error:
     bio: data?.bio ?? null,
     location: data?.location ?? null,
     industry: data?.industry ?? null,
+    available_time: data?.available_time ?? null,
+    gender: data?.gender ?? null,
+    preferred_contact_channel: data?.preferred_contact_channel ?? null,
+    preferred_contact_detail: data?.preferred_contact_detail ?? null,
   };
 }
 
@@ -97,12 +108,34 @@ export async function updateMyProfileIdentity(fields: {
   bio: string;
   location: string;
   industry: string;
+  available_time: string;
+  gender: string;
+  preferred_contact_channel?: string;
+  preferred_contact_detail?: string;
 }) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, message: "Not authenticated" };
+
+  const chRaw = fields.preferred_contact_channel?.trim() ?? "";
+  const detRaw = fields.preferred_contact_detail?.trim() ?? "";
+  const hasPair = chRaw.length > 0 && detRaw.length > 0;
+  const hasPartial = (chRaw.length > 0) !== (detRaw.length > 0);
+  if (hasPartial) {
+    return { ok: false as const, message: "Choose both a contact method and your handle, or leave both empty." };
+  }
+  const allowed = new Set(["whatsapp", "line", "wechat"]);
+  if (chRaw && !allowed.has(chRaw)) {
+    return { ok: false as const, message: "Invalid contact method." };
+  }
+
+  const genderRaw = fields.gender?.trim() ?? "";
+  const genderResolved = genderRaw ? parseProfileGender(genderRaw) : null;
+  if (genderRaw && !genderResolved) {
+    return { ok: false as const, message: "Invalid gender selection." };
+  }
 
   const { error } = await supabase
     .from("profiles")
@@ -113,6 +146,10 @@ export async function updateMyProfileIdentity(fields: {
         bio: fields.bio.trim() || null,
         location: fields.location.trim() || null,
         industry: fields.industry.trim() || null,
+        available_time: fields.available_time.trim() || null,
+        gender: genderResolved,
+        preferred_contact_channel: hasPair ? chRaw : null,
+        preferred_contact_detail: hasPair ? detRaw : null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" },

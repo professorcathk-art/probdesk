@@ -18,7 +18,7 @@ export default async function ProfilePage() {
   const profileAvatarUrl = "error" in avatarRes ? null : avatarRes.avatar_url;
   const profileIdentity =
     "error" in profileRes
-      ? { display_name: null, bio: null, location: null, industry: null }
+      ? { display_name: null, bio: null, location: null, industry: null, available_time: null, gender: null, preferred_contact_channel: null, preferred_contact_detail: null }
       : profileRes;
 
   return <ProfilePageClient profileAvatarUrl={profileAvatarUrl} profileIdentity={profileIdentity} />;

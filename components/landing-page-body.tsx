@@ -56,7 +56,13 @@ export function LandingPageBody({ user, onboardingStatus, squareListings, square
             >
               {onboardingStatus === "complete" ? L.openConsole : L.continueOnboarding}
             </Link>
-            <Link href="/square" className={cn(buttonVariants({ variant: "ghost" }), "text-slate-300 hover:bg-white/5")}>
+            <Link
+              href="/square"
+              className={cn(
+                buttonVariants({ variant: "default", size: "lg" }),
+                "galaxy-btn-glow border border-sky-400/45 bg-sky-500/20 px-5 text-sm font-semibold text-sky-50 shadow-[0_0_26px_rgba(56,189,248,0.35)] hover:bg-sky-500/35 sm:min-h-10 sm:text-base",
+              )}
+            >
               {L.browseSquare}
             </Link>
           </div>
@@ -66,7 +72,13 @@ export function LandingPageBody({ user, onboardingStatus, squareListings, square
       <section className="space-y-4 overflow-hidden">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <h2 className="text-lg font-semibold tracking-tight text-white">{L.marqueeTitle}</h2>
-          <Link href="/square" className="text-xs font-medium text-sky-300/90 underline-offset-4 hover:underline">
+          <Link
+            href="/square"
+            className={cn(
+              buttonVariants({ variant: "default", size: "lg" }),
+              "galaxy-btn-glow shrink-0 border border-sky-400/45 bg-sky-500/20 px-5 text-sm font-semibold text-sky-50 shadow-[0_0_28px_rgba(56,189,248,0.38)] hover:bg-sky-500/35 sm:w-fit sm:min-h-11 sm:text-base",
+            )}
+          >
             {L.browseSquare}
           </Link>
         </div>

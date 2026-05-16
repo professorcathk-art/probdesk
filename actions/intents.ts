@@ -8,6 +8,7 @@ import {
   parseIntentWithMini,
   vibeCheckWith4o,
 } from "@/lib/aiml";
+import { validateProfileBasicsForPublish } from "@/lib/profile-basics";
 
 function vectorLiteral(vec: number[]): string {
   return `[${vec.join(",")}]`;
@@ -103,6 +104,7 @@ export async function completeOnboarding(params: {
     available_time?: string;
     location?: string;
     bio?: string;
+    gender?: string;
     preferred_contact_channel?: "whatsapp" | "line" | "wechat" | "" | null;
     preferred_contact_detail?: string;
   };
@@ -115,6 +117,18 @@ export async function completeOnboarding(params: {
 
   if (userError || !user) {
     return { ok: false as const, message: "Not authenticated" };
+  }
+
+  const basics = validateProfileBasicsForPublish({
+    display_name: params.profile.display_name,
+    bio: params.profile.bio,
+    location: params.profile.location,
+    industry: params.profile.industry,
+    available_time: params.profile.available_time,
+    gender: params.profile.gender,
+  });
+  if (!basics.ok) {
+    return { ok: false as const, message: basics.message };
   }
 
   const chRaw = params.profile.preferred_contact_channel?.trim() ?? "";
@@ -142,6 +156,8 @@ export async function completeOnboarding(params: {
     return { ok: false as const, message: intentError.message };
   }
 
+  const genderTrim = params.profile.gender?.trim() ?? "";
+
   const { error: profileError } = await supabase.from("profiles").upsert(
     {
       user_id: user.id,
@@ -150,6 +166,7 @@ export async function completeOnboarding(params: {
       available_time: params.profile.available_time ?? null,
       location: params.profile.location ?? null,
       bio: params.profile.bio ?? null,
+      gender: genderTrim || null,
       preferred_contact_channel: hasPair ? chRaw : null,
       preferred_contact_detail: hasPair ? detRaw : null,
       updated_at: new Date().toISOString(),
@@ -208,6 +225,17 @@ export async function setIntentMarketplacePublic(intentId: string, isPublic: boo
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, message: "Not authenticated" };
 
+  if (isPublic) {
+    const { data: prof, error: profErr } = await supabase
+      .from("profiles")
+      .select("display_name, bio, location, industry, available_time, gender")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (profErr) return { ok: false as const, message: profErr.message };
+    const gate = validateProfileBasicsForPublish(prof ?? {});
+    if (!gate.ok) return { ok: false as const, message: gate.message };
+  }
+
   const { error } = await supabase
     .from("intent_requests")
     .update({ is_marketplace_public: isPublic, updated_at: new Date().toISOString() })
@@ -217,6 +245,7 @@ export async function setIntentMarketplacePublic(intentId: string, isPublic: boo
   if (error) return { ok: false as const, message: error.message };
   revalidatePath("/console");
   revalidatePath("/marketplace");
+  revalidatePath("/square");
   return { ok: true as const };
 }
 
@@ -347,6 +376,26 @@ export async function createConsoleIntent(naturalLanguageInput: string, location
 
   if (userError || !user) {
     return { ok: false as const, message: "Not authenticated" };
+  }
+
+  const { count: existingCount, error: countErr } = await supabase
+    .from("intent_requests")
+    .select("*", { head: true, count: "exact" })
+    .eq("user_id", user.id);
+
+  if (countErr) {
+    return { ok: false as const, message: countErr.message };
+  }
+
+  if ((existingCount ?? 0) === 0) {
+    const { data: prof, error: profErr } = await supabase
+      .from("profiles")
+      .select("display_name, bio, location, industry, available_time, gender")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (profErr) return { ok: false as const, message: profErr.message };
+    const gate = validateProfileBasicsForPublish(prof ?? {});
+    if (!gate.ok) return { ok: false as const, message: gate.message };
   }
 
   const trimmed = naturalLanguageInput.trim();
