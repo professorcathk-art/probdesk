@@ -1,4 +1,4 @@
--- Probdesk.com — Supabase setup: pgvector, tables, RLS, match_intents RPC
+-- Vennode (vennode.com) — Supabase setup: pgvector, tables, RLS, match_intents RPC
 -- Run in Supabase SQL Editor or via migration tooling.
 
 -- -----------------------------------------------------------------------------

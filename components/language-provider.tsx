@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { Lang, Strings } from "@/lib/i18n/strings";
 import { STRINGS } from "@/lib/i18n/strings";
 
-const STORAGE_KEY = "probdesk-lang";
+const STORAGE_KEY = "vennode-lang";
 
 type LanguageContextValue = {
   lang: Lang;

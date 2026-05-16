@@ -17,6 +17,6 @@ export const useSessionStore = create<SessionSlice>()(
       setLandingIntentText: (text) => set({ landingIntentText: text }),
       clearLandingIntent: () => set({ landingIntentText: null }),
     }),
-    { name: "probdesk-session" },
+    { name: "vennode-session" },
   ),
 );

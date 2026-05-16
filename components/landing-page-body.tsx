@@ -97,8 +97,8 @@ export function LandingPageBody({ user, onboardingStatus, squareListings, square
 
       <section className="space-y-6">
         <div className="space-y-2">
-          <h2 className="text-2xl font-semibold tracking-tight text-white">{L.aboutProbdeskTitle}</h2>
-          <p className="max-w-2xl text-sm leading-relaxed text-slate-400">{L.aboutProbdeskSubtitle}</p>
+          <h2 className="text-2xl font-semibold tracking-tight text-white">{L.aboutVennodeTitle}</h2>
+          <p className="max-w-2xl text-sm leading-relaxed text-slate-400">{L.aboutVennodeSubtitle}</p>
         </div>
         <div className="grid gap-6 md:grid-cols-3">
           {aboutCards.map((item) => (

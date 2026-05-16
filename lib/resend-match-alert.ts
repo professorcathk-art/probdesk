@@ -14,7 +14,7 @@ export async function sendHighMatchAlertEmail(params: {
   const resend = new Resend(key);
   const link = `${params.origin.replace(/\/+$/, "")}/console`;
 
-  const subject = `Probdesk: Strong new match potential (${params.bestScore}/100)`;
+  const subject = `Vennode: Strong new match potential (${params.bestScore}/100)`;
 
   const text = [
     `We found at least one highly compatible introduction opportunity for you (score ${params.bestScore}/100).`,
@@ -22,7 +22,7 @@ export async function sendHighMatchAlertEmail(params: {
     `Open Manage to review suggestions and send an invite:`,
     link,
     "",
-    "You’re receiving this because you enabled discovery on Probdesk. This is a one-time heads-up — we won’t send this notice again.",
+    "You’re receiving this because you enabled discovery on Vennode. This is a one-time heads-up — we won’t send this notice again.",
   ].join("\n");
 
   const html = `

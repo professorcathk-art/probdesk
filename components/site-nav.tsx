@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserRound } from "lucide-react";
@@ -33,10 +34,17 @@ export function SiteNav({
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-sky-400 shadow-[0_0_18px_rgba(56,189,248,0.85)]" />
-          <span className="text-sm font-semibold tracking-[0.22em] text-slate-100">PROBDESK</span>
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
+        <Link href="/" className="flex min-h-11 min-w-0 items-center gap-2.5 sm:min-h-10">
+          <Image
+            src="/logo.png"
+            alt="Vennode"
+            width={32}
+            height={32}
+            className="h-8 w-8 shrink-0 rounded-md object-contain"
+            priority
+          />
+          <span className="text-sm font-semibold tracking-[0.22em] text-slate-100">VENNODE</span>
         </Link>
         <nav className="flex flex-wrap items-center justify-end gap-2">
           <div
@@ -48,7 +56,7 @@ export function SiteNav({
               type="button"
               onClick={() => setLang("en")}
               className={cn(
-                "rounded-full px-2.5 py-1 transition-colors",
+                "min-h-9 min-w-[2.75rem] rounded-full px-3 py-2 transition-colors sm:min-h-0 sm:px-2.5 sm:py-1",
                 lang === "en" ? "bg-white/15 text-white shadow-sm" : "text-slate-400 hover:text-slate-200",
               )}
             >
@@ -58,7 +66,7 @@ export function SiteNav({
               type="button"
               onClick={() => setLang("zh")}
               className={cn(
-                "rounded-full px-2.5 py-1 transition-colors",
+                "min-h-9 min-w-[2.75rem] rounded-full px-3 py-2 transition-colors sm:min-h-0 sm:px-2.5 sm:py-1",
                 lang === "zh" ? "bg-white/15 text-white shadow-sm" : "text-slate-400 hover:text-slate-200",
               )}
             >
@@ -67,7 +75,10 @@ export function SiteNav({
           </div>
           <Link
             href="/square"
-            className={cn(buttonVariants({ variant: "ghost" }), "text-slate-200 hover:bg-white/5 hover:text-white")}
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "min-h-11 px-3 text-slate-200 hover:bg-white/5 hover:text-white sm:min-h-8 sm:px-2.5",
+            )}
           >
             {strings.nav.explore}
           </Link>
@@ -75,8 +86,8 @@ export function SiteNav({
             <Link
               href="/login"
               className={cn(
-                buttonVariants({ variant: "default" }),
-                "galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25",
+                buttonVariants({ variant: "default", size: "lg" }),
+                "galaxy-btn-glow min-h-11 border border-sky-400/35 bg-sky-500/15 px-4 text-sky-50 hover:bg-sky-500/25 sm:min-h-8 sm:px-2.5",
               )}
             >
               {strings.nav.enter}
@@ -86,7 +97,7 @@ export function SiteNav({
               <DropdownMenuTrigger
                 aria-label={strings.nav.accountMenu}
                 className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/[0.04] text-slate-300 transition-colors hover:border-white/25 hover:bg-white/[0.07]",
+                  "flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/[0.04] text-slate-300 transition-colors hover:border-white/25 hover:bg-white/[0.07] sm:h-9 sm:w-9",
                 )}
               >
                 {avatarUrl ? (

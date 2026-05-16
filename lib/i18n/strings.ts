@@ -19,7 +19,7 @@ export const STRINGS = {
       kicker: "Matching built on what you're looking for",
       headline: "Say who you are. Say who you're looking for. We'll help you meet the right people.",
       subhead:
-        "Probdesk uses Smart Matchmaking with mutual acceptance — stay with curated introductions, or list on Explore for inbound requests. Identities stay protected until both sides agree.",
+        "Vennode uses Smart Matchmaking with mutual acceptance — stay with curated introductions, or list on Explore for inbound requests. Identities stay protected until both sides agree.",
       openConsole: "Open Manage",
       continueOnboarding: "Continue onboarding",
       browseSquare: "Browse Explore",
@@ -30,8 +30,8 @@ export const STRINGS = {
       marqueePreviewTitle: "Explore listing",
       marqueeOwnListing: "This is your listing",
       previewClose: "Close",
-      aboutProbdeskTitle: "About Probdesk",
-      aboutProbdeskSubtitle: "How we protect what you're looking for while helping you meet the right people.",
+      aboutVennodeTitle: "About Vennode",
+      aboutVennodeSubtitle: "How we protect what you're looking for while helping you meet the right people.",
       useCasesTitle: "Start with what matters",
       useCasesSubtitle:
         "Partners, friends, backers, mentors — say clearly what you want and meet people who mean it.",
@@ -108,7 +108,7 @@ export const STRINGS = {
       freshMatchesGotIt: "Got it",
       matchQueueTitle: "Your Match Queue (Identities protected)",
       matchQueueDesc:
-        'After you tap Find people who fit, Probdesk finds nearby people whose requests align with yours. Photos stay protected until someone sends an invite.',
+        'After you tap Find people who fit, Vennode finds nearby people whose requests align with yours. Photos stay protected until someone sends an invite.',
       matchQueueEmpty:
         'Tap Find people who fit above to load potential matches ranked for this request.',
       compatibility: "Compatibility",
@@ -210,7 +210,7 @@ export const STRINGS = {
       dailyLimitReached: "Daily Limit Reached",
       qualityTitle: "Quality over Quantity",
       qualityBody:
-        "You have used your 3 daily invites. To maintain a high-trust network, we limit daily requests. Come back tomorrow for more, or get ready for Probdesk Premium.",
+        "You have used your 3 daily invites. To maintain a high-trust network, we limit daily requests. Come back tomorrow for more, or get ready for Vennode Premium.",
       gotIt: "Got it",
     },
     connectModal: {
@@ -236,6 +236,32 @@ export const STRINGS = {
       sub:
         "We read what you're looking for once, ask a few sharpening questions, then turn on Smart Matchmaking when you're ready.",
     },
+    footer: {
+      privacy: "Privacy Policy",
+      policy: "Terms & site policy",
+      home: "Home",
+      contact: "Contact",
+      copyright: "© 2026 Vennode",
+    },
+    contactPage: {
+      title: "Contact support",
+      intro:
+        "Questions about matching, your account, billing, or safety? Use this form to reach our team — we read every message and reply by email when needed.",
+      replyHint: "We’ll respond to the email address you enter below.",
+      emailLabel: "Your email",
+      emailPlaceholder: "you@example.com",
+      nameLabel: "Name (optional)",
+      namePlaceholder: "How we should address you",
+      subjectLabel: "Subject",
+      subjectPlaceholder: "Short summary",
+      messageLabel: "Message",
+      messagePlaceholder: "Describe your question or feedback (at least a few sentences helps us help you).",
+      submit: "Send message",
+      sending: "Sending…",
+      success: "Thanks — your message was sent. If a reply is needed, you’ll hear from us by email.",
+      errorGeneric: "Something went wrong. Please try again in a moment.",
+      errorValidation: "Please enter a valid email, subject, and a message of at least 20 characters.",
+    },
   },
   zh: {
     nav: {
@@ -251,7 +277,7 @@ export const STRINGS = {
       kicker: "從你想找的人開始",
       headline: "說清楚你是誰、想找誰。我們幫你遇上對的人。",
       subhead:
-        "Probdesk 透過智慧配對與雙向同意運作——你可留在精選介紹流程，或在探索廣場公開徵求；雙方同意前，身分都受到保護。",
+        "Vennode 透過智慧配對與雙向同意運作——你可留在精選介紹流程，或在探索廣場公開徵求；雙方同意前，身分都受到保護。",
       openConsole: "開啟管理中心",
       continueOnboarding: "繼續設定",
       browseSquare: "瀏覽探索廣場",
@@ -262,8 +288,8 @@ export const STRINGS = {
       marqueePreviewTitle: "探索廣場徵求",
       marqueeOwnListing: "這是你在探索廣場上的徵求",
       previewClose: "關閉",
-      aboutProbdeskTitle: "關於 Probdesk",
-      aboutProbdeskSubtitle: "我們如何在保護你的徵求與隱私的前提下，幫你遇見對的人。",
+      aboutVennodeTitle: "關於 Vennode",
+      aboutVennodeSubtitle: "我們如何在保護你的徵求與隱私的前提下，幫你遇見對的人。",
       useCasesTitle: "從真正在乎的事開始",
       useCasesSubtitle:
         "伴侶、朋友、投資人、導師——說清楚你想找什麼，認識同樣認真的人。",
@@ -340,7 +366,7 @@ export const STRINGS = {
       freshMatchesGotIt: "知道了",
       matchQueueTitle: "你的配對佇列（身分受保護）",
       matchQueueDesc:
-        "按下「尋找契合對象」後，Probdesk 會在附近尋找徵求相近的人。在送出邀請前，大頭貼與身分會保持保護。",
+        "按下「尋找契合對象」後，Vennode 會在附近尋找徵求相近的人。在送出邀請前，大頭貼與身分會保持保護。",
       matchQueueEmpty: "請先按上方的「尋找契合對象」，為這則徵求載入潛在對象。",
       compatibility: "契合度",
       alreadyPending: "已送出或已連結",
@@ -464,6 +490,32 @@ export const STRINGS = {
     onboarding: {
       sub:
         "我們會先讀取你的徵求、問幾個釐清問題，然後在你準備好時開啟智慧配對。",
+    },
+    footer: {
+      privacy: "隱私權政策",
+      policy: "條款與網站政策",
+      home: "首頁",
+      contact: "聯絡我們",
+      copyright: "© 2026 Vennode",
+    },
+    contactPage: {
+      title: "聯絡支援",
+      intro:
+        "有配對、帳戶、付款或安全方面的問題？請透過此表單聯絡團隊——我們會閱讀每一則訊息，並在需要時以電子郵件回覆。",
+      replyHint: "我們會寄回覆到你下方填寫的信箱。",
+      emailLabel: "你的電子郵件",
+      emailPlaceholder: "you@example.com",
+      nameLabel: "姓名（選填）",
+      namePlaceholder: "希望我們如何稱呼你",
+      subjectLabel: "主旨",
+      subjectPlaceholder: "簡短說明",
+      messageLabel: "訊息內容",
+      messagePlaceholder: "請描述你的問題或建議（至少約 20 個字，方便我們協助）。",
+      submit: "送出訊息",
+      sending: "傳送中…",
+      success: "已送出——謝謝你聯絡我們。如需進一步說明，我們會透過電子郵件回覆。",
+      errorGeneric: "發生錯誤，請稍後再試一次。",
+      errorValidation: "請填寫有效的電子郵件、主旨，以及至少 20 個字的訊息內容。",
     },
   },
 } as const;

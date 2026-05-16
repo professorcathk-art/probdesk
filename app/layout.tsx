@@ -19,7 +19,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Probdesk — Matching built on what you're looking for",
+  title: "Vennode — Matching built on what you're looking for",
   description:
     "Thoughtful human matching with Smart Matchmaking, Explore, and mutual acceptance before identities unlock.",
   metadataBase: getMetadataBase(),
@@ -28,14 +28,14 @@ export const metadata: Metadata = {
     apple: [{ url: "/logo.png", type: "image/png", sizes: "180x180" }],
   },
   openGraph: {
-    title: "Probdesk — Matching built on what you're looking for",
+    title: "Vennode — Matching built on what you're looking for",
     description:
       "Thoughtful human matching with Smart Matchmaking, Explore, and mutual acceptance before identities unlock.",
-    images: [{ url: "/logo.png", alt: "Probdesk" }],
+    images: [{ url: "/logo.png", alt: "Vennode" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Probdesk — Matching built on what you're looking for",
+    title: "Vennode — Matching built on what you're looking for",
     description:
       "Thoughtful human matching with Smart Matchmaking, Explore, and mutual acceptance before identities unlock.",
     images: ["/logo.png"],

@@ -5,7 +5,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * Shallow check (no external call): whether AIML is configured.
- * Live probe: send headers `x-probdesk-ai-probe: 1` and `x-probdesk-health-secret: <HEALTH_CHECK_SECRET>`.
+ * Live probe: `x-vennode-ai-probe: 1` and `x-vennode-health-secret: <HEALTH_CHECK_SECRET>`
+ * (legacy `x-probdesk-*` headers still accepted).
  */
 export async function GET(req: Request) {
   const configured = Boolean(process.env.AIML_API_KEY?.trim());
@@ -20,7 +21,8 @@ export async function GET(req: Request) {
     apiBase: base.replace(/\/v1$/i, ""),
   };
 
-  const wantsProbe = req.headers.get("x-probdesk-ai-probe") === "1";
+  const wantsProbe =
+    req.headers.get("x-vennode-ai-probe") === "1" || req.headers.get("x-probdesk-ai-probe") === "1";
   if (!wantsProbe) {
     return NextResponse.json(shallow);
   }
@@ -37,7 +39,8 @@ export async function GET(req: Request) {
     );
   }
 
-  const secret = req.headers.get("x-probdesk-health-secret");
+  const secret =
+    req.headers.get("x-vennode-health-secret") ?? req.headers.get("x-probdesk-health-secret");
   if (secret !== expected) {
     return NextResponse.json({ ok: false, error: "Unauthorized probe" }, { status: 401 });
   }

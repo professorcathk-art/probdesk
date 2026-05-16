@@ -202,7 +202,7 @@ export async function adminForceSystemMatch(params: { intentAId: string; intentB
       counterparty_intent_id: intentAId,
       status: "Pending_System",
       introductory_context:
-        "Curated introduction — Probdesk matched your intents. Review both statements and accept if you want to connect.",
+        "Curated introduction — Vennode matched your intents. Review both statements and accept if you want to connect.",
       compatibility_reason: "Manual system match (admin cold-start).",
       ai_context_sender: {
         headline: "System-curated pairing",
