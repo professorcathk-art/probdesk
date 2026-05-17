@@ -170,15 +170,18 @@ create trigger on_auth_user_created
   for each row execute function public.handle_new_auth_user();
 
 -- -----------------------------------------------------------------------------
--- RPC: semantic match by embedding + exact location + similarity threshold
--- Cosine distance (<=>): lower is more similar. threshold is max distance (e.g. 0.35).
+-- RPC: semantic match by embedding + optional exact location + cosine distance cap
+-- Cosine distance (<=>): lower is more similar. p_threshold is MAX distance allowed.
+-- similarity column = 1 - distance (higher is closer). Example: distance 0.55 → similarity 0.45.
+-- p_require_location_match: SQL default true for direct RPC callers; the app tries semantic-wide tiers first (false), then same-city fallback (true).
 -- -----------------------------------------------------------------------------
 create or replace function public.match_intents(
   target_embedding vector(1536),
   p_location text,
   p_threshold float default 0.5,
   p_limit int default 20,
-  p_exclude_user_id uuid default null
+  p_exclude_user_id uuid default null,
+  p_require_location_match boolean default true
 )
 returns table (
   intent_id uuid,
@@ -204,7 +207,10 @@ as $$
   where ir.status = 'active'
     and ir.embedding is not null
     and ir.location_filter is not null
-    and lower(trim(ir.location_filter)) = lower(trim(p_location))
+    and (
+      not coalesce(p_require_location_match, true)
+      or lower(trim(ir.location_filter)) = lower(trim(p_location))
+    )
     and (p_exclude_user_id is null or ir.user_id <> p_exclude_user_id)
     and (ir.embedding <=> target_embedding) <= p_threshold
   order by ir.embedding <=> target_embedding asc
@@ -382,7 +388,7 @@ grant select on public.intent_requests to anon;
 grant select, insert, update on public.matches to authenticated;
 grant select, insert on public.messages to authenticated;
 grant select, insert, update on public.match_message_reads to authenticated;
-grant execute on function public.match_intents(vector, text, float, int, uuid) to authenticated;
+grant execute on function public.match_intents(vector(1536), text, float, int, uuid, boolean) to authenticated;
 
 -- -----------------------------------------------------------------------------
 -- Storage (avatars) — see migrations/045_phase3_avatars_storage.sql for policies

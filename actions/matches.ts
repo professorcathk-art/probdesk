@@ -108,7 +108,7 @@ export async function initiateConnection(params: {
 
   const { data: receiverIntent, error: intentError } = await supabase
     .from("intent_requests")
-    .select("id, user_id, natural_language_input, is_demo_listing")
+    .select("id, user_id, natural_language_input, is_demo_listing, must_haves, location_filter")
     .eq("id", params.receiverIntentId)
     .single();
 
@@ -154,20 +154,25 @@ export async function initiateConnection(params: {
 
   let senderIntentText: string | null = null;
   let anchorIntentIdForLog: string | null = null;
+  let senderMustHaves: string | null = null;
+  let senderLocationPreference: string | null = null;
+
   if (ctxIntent) {
     const { data: ctxRow } = await supabase
       .from("intent_requests")
-      .select("id, natural_language_input")
+      .select("id, natural_language_input, must_haves, location_filter")
       .eq("id", ctxIntent)
       .eq("user_id", user.id)
       .maybeSingle();
     anchorIntentIdForLog = ctxRow?.id ?? null;
     senderIntentText = ctxRow?.natural_language_input?.trim() ?? null;
+    senderMustHaves = ctxRow?.must_haves ?? null;
+    senderLocationPreference = ctxRow?.location_filter ?? null;
   }
   if (!senderIntentText) {
     const { data: latestSenderIntent } = await supabase
       .from("intent_requests")
-      .select("id, natural_language_input")
+      .select("id, natural_language_input, must_haves, location_filter")
       .eq("user_id", user.id)
       .eq("status", "active")
       .order("created_at", { ascending: false })
@@ -175,6 +180,8 @@ export async function initiateConnection(params: {
       .maybeSingle();
     anchorIntentIdForLog = latestSenderIntent?.id ?? anchorIntentIdForLog;
     senderIntentText = latestSenderIntent?.natural_language_input?.trim() ?? null;
+    senderMustHaves = latestSenderIntent?.must_haves ?? senderMustHaves;
+    senderLocationPreference = latestSenderIntent?.location_filter ?? senderLocationPreference;
   }
 
   const FALLBACK_SCORE_REASON_LOW_SIGNAL =
@@ -219,6 +226,10 @@ export async function initiateConnection(params: {
         candidateIntent: receiverIntent.natural_language_input ?? "",
         senderProfileSnippet: senderSnippet || undefined,
         candidateProfileSnippet: candidateSnippet || undefined,
+        senderMustHaves,
+        candidateMustHaves: receiverIntent.must_haves ?? null,
+        senderLocationPreference,
+        candidateLocation: receiverIntent.location_filter ?? null,
       });
       match_score = vibe.match_score;
       compatibility_reason = vibe.compatibility_reason;

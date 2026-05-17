@@ -406,40 +406,49 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not authenticated" };
 
-  const { data: intent, error } = await supabase
+  const { data: intentRow, error } = await supabase
     .from("intent_requests")
-    .select("id, natural_language_input, location_filter, embedding")
+    .select("id, natural_language_input, location_filter, embedding, must_haves")
     .eq("id", intentId)
     .eq("user_id", user.id)
     .single();
 
-  if (error || !intent) {
+  if (error || !intentRow) {
     return { ok: false, message: error?.message ?? "Request not found" };
   }
 
-  if (!intent.location_filter) {
-    return { ok: false, message: "Add a location to your intent or profile so we can discover matches nearby." };
+  let locationForRpc = intentRow.location_filter?.trim() ?? "";
+  if (!locationForRpc) {
+    const { data: profLoc } = await supabase.from("profiles").select("location").eq("user_id", user.id).maybeSingle();
+    locationForRpc = profLoc?.location?.trim() ?? "";
   }
+  if (!locationForRpc) {
+    return {
+      ok: false,
+      message:
+        "Add a location on your intent or profile (soft context only). Discovery is driven mainly by your statement and expectations.",
+    };
+  }
+
+  const intent = { ...intentRow, location_filter: locationForRpc };
 
   if (!intent.embedding) {
     return { ok: false, message: "This intent could not be processed — please create a new one." };
   }
 
-  const RPC_THRESHOLD = 0.55;
+  /**
+   * Semantic-first: embeddings already blend main text + must-haves (`intentEmbeddingSource`).
+   * pgvector cosine distance (`<=>`): lower = closer. `p_threshold` is MAX distance allowed.
+   * Location is not used as a hard filter by default (`requireLocationMatch: false`).
+   */
+  const MATCH_TIERS = [
+    { key: "semantic_primary", maxDistance: 0.55, requireLocationMatch: false },
+    { key: "semantic_relaxed", maxDistance: 0.66, requireLocationMatch: false },
+    { key: "semantic_wide", maxDistance: 0.76, requireLocationMatch: false },
+    { key: "same_city_boost_fallback", maxDistance: 0.72, requireLocationMatch: true },
+  ] as const;
 
-  const { data: rpcRows, error: rpcError } = await supabase.rpc("match_intents", {
-    target_embedding: intent.embedding as unknown as string,
-    p_location: intent.location_filter,
-    p_threshold: RPC_THRESHOLD,
-    p_limit: 24,
-    p_exclude_user_id: user.id,
-  });
-
-  if (rpcError) {
-    return { ok: false, message: rpcError.message };
-  }
-
-  const rows = (rpcRows ?? []) as {
+  type RpcRow = {
     intent_id: string;
     owner_user_id: string;
     natural_language_input: string;
@@ -447,9 +456,49 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     location_filter: string | null;
     distance: number;
     similarity: number;
-  }[];
+  };
+
+  let rows: RpcRow[] = [];
+  let matchTier: (typeof MATCH_TIERS)[number]["key"] = MATCH_TIERS[0].key;
+  let appliedMaxDistance = MATCH_TIERS[0].maxDistance as number;
+  let appliedRequireLocation = MATCH_TIERS[0].requireLocationMatch as boolean;
+  let rpcError: { message: string } | null = null;
+
+  for (const tier of MATCH_TIERS) {
+    const { data, error } = await supabase.rpc("match_intents", {
+      target_embedding: intent.embedding as unknown as string,
+      p_location: intent.location_filter,
+      p_threshold: tier.maxDistance,
+      p_limit: 24,
+      p_exclude_user_id: user.id,
+      p_require_location_match: tier.requireLocationMatch,
+    });
+    if (error) {
+      rpcError = error;
+      break;
+    }
+    const next = (data ?? []) as RpcRow[];
+    if (next.length > 0) {
+      rows = next;
+      matchTier = tier.key;
+      appliedMaxDistance = tier.maxDistance;
+      appliedRequireLocation = tier.requireLocationMatch;
+      break;
+    }
+  }
+
+  if (rpcError) {
+    return { ok: false, message: rpcError.message };
+  }
 
   const pool = rows.slice(0, 6);
+
+  const poolIntentIds = pool.map((r) => r.intent_id);
+  const { data: poolMustRows } =
+    poolIntentIds.length > 0
+      ? await supabase.from("intent_requests").select("id, must_haves").in("id", poolIntentIds)
+      : { data: [] as { id: string; must_haves: string | null }[] };
+  const mustByIntentId = new Map((poolMustRows ?? []).map((r) => [r.id as string, r.must_haves as string | null]));
 
   const { data: senderProf } = await supabase
     .from("profiles")
@@ -490,6 +539,10 @@ export async function computeHybridSuggestions(intentId: string): Promise<
           candidateIntent: row.natural_language_input,
           senderProfileSnippet: senderSnippet || undefined,
           candidateProfileSnippet: candidateSnippet || undefined,
+          senderMustHaves: intent.must_haves,
+          candidateMustHaves: mustByIntentId.get(row.intent_id) ?? null,
+          senderLocationPreference: intent.location_filter,
+          candidateLocation: row.location_filter,
         });
         return {
           row,
@@ -518,13 +571,13 @@ export async function computeHybridSuggestions(intentId: string): Promise<
         candidate_intent_id: row.intent_id,
         candidate_user_id: row.owner_user_id,
         similarity: row.similarity,
-        rpc_threshold: RPC_THRESHOLD,
+        rpc_threshold: appliedMaxDistance,
         rank_after_sort: index + 1,
         selected_top: index < 3,
         match_score,
         compatibility_reason,
         excluded_reason: index >= 3 ? "not_in_top_3_after_sort" : null,
-        meta: { pool_size: pool.length },
+        meta: { pool_size: pool.length, match_tier: matchTier, require_location_match: appliedRequireLocation },
       }),
     ),
   );

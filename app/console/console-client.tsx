@@ -97,6 +97,7 @@ export function ConsoleClient({
 
   const blockedPeers = useMemo(() => new Set(blockedPeerIds), [blockedPeerIds]);
 
+  const [busyIntent, setBusyIntent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [connectOpen, setConnectOpen] = useState(false);
@@ -217,6 +218,20 @@ export function ConsoleClient({
       return;
     }
     router.refresh();
+  }
+
+  /** Same pipeline & modal UI as post-create AI suggestions (`computeHybridSuggestions`). */
+  async function loadSuggestions(intentId: string) {
+    setBusyIntent(intentId);
+    setError(null);
+    const res = await computeHybridSuggestions(intentId);
+    setBusyIntent(null);
+    if (!res.ok) {
+      setError(res.message);
+      return;
+    }
+    setFreshMatchesIntentId(intentId);
+    setFreshMatchesModal(res.suggestions);
   }
 
   async function onRespond(matchId: string, decision: "Accepted" | "Rejected") {
@@ -428,6 +443,13 @@ export function ConsoleClient({
                             onClick={() => void togglePaused(intent.id, intent.status === "active" ? "paused" : "active")}
                           >
                             {intent.status === "active" ? t.pauseMatching : t.resumeMatching}
+                          </Button>
+                          <Button
+                            className="galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
+                            disabled={busyIntent === intent.id || intent.status !== "active"}
+                            onClick={() => void loadSuggestions(intent.id)}
+                          >
+                            {busyIntent === intent.id ? t.discovering : t.discoverMatches}
                           </Button>
                         </div>
                       </div>
@@ -704,7 +726,12 @@ export function ConsoleClient({
             <DialogDescription className="text-slate-400">{t.freshMatchesSubtitle}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-3">
-            {(freshMatchesModal ?? []).map((s) => {
+            {(freshMatchesModal ?? []).length === 0 ? (
+              <div className="col-span-full rounded-2xl border border-dashed border-white/10 px-6 py-10 text-center text-sm text-slate-400">
+                {t.intentDashboard.discoverCarouselEmpty}
+              </div>
+            ) : (
+              (freshMatchesModal ?? []).map((s) => {
               const blocked = blockedPeers.has(s.owner_user_id);
               return (
                 <div
@@ -732,7 +759,8 @@ export function ConsoleClient({
                   </Button>
                 </div>
               );
-            })}
+            })
+            )}
           </div>
           <DialogFooter>
             <Button

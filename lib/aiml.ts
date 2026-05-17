@@ -97,7 +97,24 @@ export async function vibeCheckWith4o(params: {
   candidateIntent: string;
   senderProfileSnippet?: string;
   candidateProfileSnippet?: string;
+  /** Expectations / constraints — weighted heavily vs geography */
+  senderMustHaves?: string | null;
+  candidateMustHaves?: string | null;
+  /** Listing regions — tie-breakers unless expectations demand geography */
+  senderLocationPreference?: string | null;
+  candidateLocation?: string | null;
 }): Promise<VibeResult> {
+  const reqLine = (label: string, text: string | null | undefined) => {
+    const t = text?.trim();
+    return `${label}:\n${t && t.length > 0 ? t : "(none stated)"}`;
+  };
+
+  const geoParts: string[] = [];
+  const sl = params.senderLocationPreference?.trim();
+  const cl = params.candidateLocation?.trim();
+  if (sl) geoParts.push(`Sender geographic note on their listing: ${sl}`);
+  if (cl) geoParts.push(`Candidate listing region: ${cl}`);
+
   const model = process.env.AIML_VIBE_MODEL ?? "gpt-4o";
   const res = await fetch(`${base()}/chat/completions`, {
     method: "POST",
@@ -125,6 +142,8 @@ export async function vibeCheckWith4o(params: {
           role: "system",
           content:
             "You evaluate whether someone REACHING OUT (sender intent text — what they say they want) meaningfully aligns with an Explore LISTING (candidate intent — what the listing owner published they want). " +
+            "Treat **requirements / expectations / must-haves** as primary signals: check mutual feasibility (does each side's constraints fit what the other offers?). " +
+            "Geography is secondary — use it as a tie-breaker or when expectations explicitly require overlap (e.g. must meet in person weekly); do NOT downgrade a strong topical fit solely because cities differ unless constraints conflict. " +
             "Use optional profile snippets for grounding only — penalize spam, nonsense repetition, empty fluff, or obvious mismatched domains (romantic vs hiring vs fundraising vs mentorship). " +
             "Scoring calibration: unrelated or contradictory topics or spam-like bios → 1–35; weak or speculative overlap → 36–55; moderate plausible overlap → 56–72; strong overlap → 73–88; exceptional mutual fit → 89–100. " +
             "Do NOT output scores above 55 unless there is substantive topical overlap between sender intent and listing intent. Be conservative. " +
@@ -133,7 +152,10 @@ export async function vibeCheckWith4o(params: {
         {
           role: "user",
           content:
-            `Sender intent:\n${params.senderIntent}\n\nCandidate intent:\n${params.candidateIntent}` +
+            `${reqLine("Sender intent", params.senderIntent)}\n\n${reqLine("Candidate intent / listing", params.candidateIntent)}\n\n${reqLine("Sender requirements / expectations", params.senderMustHaves)}\n\n${reqLine("Candidate requirements / expectations", params.candidateMustHaves)}` +
+            (geoParts.length > 0
+              ? `\n\nGeographic context (secondary):\n${geoParts.join("\n")}`
+              : "") +
             (params.senderProfileSnippet?.trim()
               ? `\n\nSender profile context:\n${params.senderProfileSnippet.trim()}`
               : "") +
