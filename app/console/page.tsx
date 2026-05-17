@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getBlockingPeerIdsForCurrentUser, listMatches } from "@/actions/matches";
 import { listMyIntents } from "@/actions/intents";
 import { getAuthContext } from "@/lib/auth-context";
+import { ensureProfileCoreCompleteForAppUse } from "@/lib/ensure-profile-core";
 import { ConsoleClient } from "./console-client";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,8 @@ export default async function ConsolePage({
   if (onboardingStatus !== "complete") {
     redirect("/onboarding");
   }
+
+  await ensureProfileCoreCompleteForAppUse();
 
   const sp = (await searchParams) ?? {};
   const peerRaw = typeof sp.peer === "string" ? sp.peer : undefined;

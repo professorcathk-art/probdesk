@@ -12,14 +12,40 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PROFILE_GENDER_VALUES, type ProfileGenderValue } from "@/lib/profile-basics";
+import { PROFILE_GENDER_VALUES, type ProfileCoreFieldKey, type ProfileGenderValue } from "@/lib/profile-basics";
 import { cn } from "@/lib/utils";
 
 type Props = {
   profileAvatarUrl: string | null;
   profileIdentity: ProfileIdentity;
   showProfileRequiredBanner?: boolean;
+  coreFieldIssues?: ProfileCoreFieldKey[];
 };
+
+function profileCoreIssueText(
+  labels: {
+    coreIssueDisplayName: string;
+    coreIssueBio: string;
+    coreIssueLocation: string;
+    coreIssueIndustry: string;
+  },
+  key: ProfileCoreFieldKey,
+): string {
+  switch (key) {
+    case "display_name":
+      return labels.coreIssueDisplayName;
+    case "bio":
+      return labels.coreIssueBio;
+    case "location":
+      return labels.coreIssueLocation;
+    case "industry":
+      return labels.coreIssueIndustry;
+    default: {
+      const _e: never = key;
+      return _e;
+    }
+  }
+}
 
 function genderLabel(cx: {
   genderWoman: string;
@@ -50,6 +76,7 @@ export function ProfilePageClient({
   profileAvatarUrl,
   profileIdentity,
   showProfileRequiredBanner = false,
+  coreFieldIssues = [],
 }: Props) {
   const router = useRouter();
   const { strings } = useLanguage();
@@ -111,6 +138,7 @@ export function ProfilePageClient({
       return;
     }
     setPfNote(t.profileSaved);
+    router.replace("/profile");
     await router.refresh();
   }
 
@@ -124,9 +152,16 @@ export function ProfilePageClient({
         </header>
 
         {showProfileRequiredBanner ? (
-          <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-amber-100">
-            {p.profileRequiredBanner}
-          </p>
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-amber-100">
+            <p>{p.profileRequiredBanner}</p>
+            {coreFieldIssues.length > 0 ? (
+              <ul className="mt-3 list-disc space-y-1 pl-5 text-amber-100/95">
+                {coreFieldIssues.map((key) => (
+                  <li key={key}>{profileCoreIssueText(p, key)}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         ) : null}
 
         {error ? (

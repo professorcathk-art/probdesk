@@ -222,6 +222,11 @@ export const STRINGS = {
       uploadFailedErr: "Upload failed.",
       profileRequiredBanner:
         "Please finish the required profile fields below before using Manage or Explore.",
+      coreIssueDisplayName: "Display name is missing or empty.",
+      coreIssueBio:
+        "Bio must be at least 8 characters (including spaces) before you can use Manage or Explore.",
+      coreIssueLocation: "Location is missing or empty.",
+      coreIssueIndustry: "Industry / field is missing or empty.",
     },
     credits: {
       dailyLimitReached: "Daily Limit Reached",
@@ -505,6 +510,10 @@ export const STRINGS = {
       uploadFailedErr: "上傳失敗。",
       profileRequiredBanner:
         "請先完成下方必填的個人檔案欄位，再使用管理中心或探索廣場等功能。",
+      coreIssueDisplayName: "顯示名稱仍未填寫。",
+      coreIssueBio: "簡介至少需要 8 個字元（含空格），才能使用管理中心或探索廣場。",
+      coreIssueLocation: "所在地仍未填寫。",
+      coreIssueIndustry: "產業／領域仍未填寫。",
     },
     credits: {
       dailyLimitReached: "今日額度已用盡",

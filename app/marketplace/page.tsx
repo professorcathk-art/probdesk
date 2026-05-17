@@ -3,6 +3,7 @@ import { listMarketplaceListings } from "@/actions/marketplace";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { MarketplaceFeed } from "@/components/marketplace-feed";
 import { getAuthContext } from "@/lib/auth-context";
+import { ensureProfileCoreCompleteForAppUse } from "@/lib/ensure-profile-core";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ export default async function MarketplacePage({
 }: {
   searchParams?: Promise<{ intent?: string }>;
 }) {
+  await ensureProfileCoreCompleteForAppUse();
   const sp = (await searchParams) ?? {};
   const intentHighlight = typeof sp.intent === "string" ? sp.intent : undefined;
 
