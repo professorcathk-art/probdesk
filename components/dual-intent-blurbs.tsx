@@ -25,7 +25,7 @@ export function DualIntentBlurbs({ idA, idB }: { idA: string | null; idB: string
   return (
     <div className="space-y-2 blur-[1.5px]">
       {lines.map((line, i) => (
-        <p key={i} className="text-sm leading-relaxed text-slate-300">
+        <p key={i} className="break-words text-sm leading-relaxed text-slate-300">
           {line}
         </p>
       ))}

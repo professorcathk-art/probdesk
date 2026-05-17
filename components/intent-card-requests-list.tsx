@@ -88,7 +88,7 @@ export function IntentCardRequestsList({
 
         return (
           <li key={m.id} className="rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-xl md:p-5">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-start gap-x-2 gap-y-1.5">
               <Badge variant="outline" className="border-slate-500/35 text-[11px] font-medium text-slate-300">
                 {sourceLabel}
               </Badge>
@@ -136,10 +136,10 @@ export function IntentCardRequestsList({
                 {isInbound ? (
                   <>
                     <SenderPreviewBlock match={m} />
-                    <div className="flex flex-wrap gap-2 pt-1">
+                    <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:flex-wrap">
                       <Button
                         size="sm"
-                        className="border border-emerald-400/35 bg-emerald-500/15 text-emerald-50 hover:bg-emerald-500/25"
+                        className="min-h-11 w-full touch-manipulation border border-emerald-400/35 bg-emerald-500/15 text-emerald-50 hover:bg-emerald-500/25 sm:w-auto sm:min-h-10"
                         onClick={() => onRespond(m.id, "Accepted")}
                       >
                         {d.accept}
@@ -147,7 +147,7 @@ export function IntentCardRequestsList({
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-slate-400 hover:bg-white/5"
+                        className="min-h-11 w-full touch-manipulation text-slate-400 hover:bg-white/5 sm:w-auto sm:min-h-10"
                         onClick={() => onRespond(m.id, "Rejected")}
                       >
                         {d.decline}
@@ -165,10 +165,10 @@ export function IntentCardRequestsList({
                 {isSystem ? (
                   <>
                     <DualIntentBlurbs idA={m.intent_request_id} idB={m.counterparty_intent_id} />
-                    <div className="flex flex-wrap gap-2 pt-1">
+                    <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:flex-wrap">
                       <Button
                         size="sm"
-                        className="border border-emerald-400/35 bg-emerald-500/15 text-emerald-50 hover:bg-emerald-500/25 disabled:opacity-50"
+                        className="min-h-11 w-full touch-manipulation border border-emerald-400/35 bg-emerald-500/15 text-emerald-50 hover:bg-emerald-500/25 disabled:opacity-50 sm:w-auto sm:min-h-10"
                         disabled={Boolean(myAck && !peerAck)}
                         onClick={() => onRespond(m.id, "Accepted")}
                       >
@@ -177,7 +177,7 @@ export function IntentCardRequestsList({
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-slate-400 hover:bg-white/5"
+                        className="min-h-11 w-full touch-manipulation text-slate-400 hover:bg-white/5 sm:w-auto sm:min-h-10"
                         onClick={() => onRespond(m.id, "Rejected")}
                       >
                         {d.decline}

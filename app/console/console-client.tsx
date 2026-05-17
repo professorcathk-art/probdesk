@@ -489,7 +489,7 @@ export function ConsoleClient({
                                   <Button
                                     size="sm"
                                     className={cn(
-                                      "galaxy-btn-glow mt-4 w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25",
+                                      "galaxy-btn-glow mt-4 min-h-11 w-full touch-manipulation border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 sm:min-h-10",
                                       !blocked && outOfCredits && "opacity-50 hover:bg-sky-500/15",
                                     )}
                                     disabled={blocked}
@@ -754,7 +754,7 @@ export function ConsoleClient({
                   <Button
                     size="sm"
                     className={cn(
-                      "galaxy-btn-glow mt-4 w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25",
+                      "galaxy-btn-glow mt-4 min-h-11 w-full touch-manipulation border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 sm:min-h-10",
                       !blocked && outOfCredits && "opacity-50 hover:bg-sky-500/15",
                     )}
                     disabled={blocked}
