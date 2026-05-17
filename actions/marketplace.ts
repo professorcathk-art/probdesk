@@ -39,8 +39,8 @@ export async function listMarketplaceListings(): Promise<
 const INTENT_UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-/** Fetch one marketplace-visible intent; relies on RLS + explicit public/active filters. */
-export async function getPublicMarketplaceIntentById(
+/** Explore deep link (/explore/[id]): intent shared from Manage. Readable when active/paused (see RLS intent_share_deep_link_read). */
+export async function getExploreIntentForDeepLink(
   intentId: string,
 ): Promise<{ listing: MarketplaceListing } | { error: string }> {
   const id = intentId.trim();
@@ -56,8 +56,7 @@ export async function getPublicMarketplaceIntentById(
         "id, natural_language_input, location_filter, extracted_persona, user_id, is_demo_listing, must_haves",
       )
       .eq("id", id)
-      .eq("is_marketplace_public", true)
-      .eq("status", "active")
+      .in("status", ["active", "paused"])
       .maybeSingle();
 
     if (error) return { error: error.message };
@@ -67,4 +66,11 @@ export async function getPublicMarketplaceIntentById(
     const msg = e instanceof Error ? e.message : "Server configuration error";
     return { error: msg };
   }
+}
+
+/** @deprecated Use getExploreIntentForDeepLink — kept name for older imports. */
+export async function getPublicMarketplaceIntentById(
+  intentId: string,
+): Promise<{ listing: MarketplaceListing } | { error: string }> {
+  return getExploreIntentForDeepLink(intentId);
 }

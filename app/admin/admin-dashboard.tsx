@@ -6,13 +6,24 @@ import {
   adminForceSystemMatch,
   adminListDirectory,
   adminListMatchTracker,
+  adminListPairingScoreLogs,
   type AdminIntentRow,
   type AdminMatchTrackerRow,
+  type AdminPairingScoreRow,
 } from "@/actions/admin";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+
+function formatMetaPreview(meta: Record<string, unknown>) {
+  try {
+    const s = JSON.stringify(meta);
+    return s.length > 160 ? `${s.slice(0, 160)}…` : s;
+  } catch {
+    return "—";
+  }
+}
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
@@ -20,6 +31,8 @@ export default function AdminDashboard() {
   const [intents, setIntents] = useState<AdminIntentRow[]>([]);
   const [userCount, setUserCount] = useState(0);
   const [tracker, setTracker] = useState<AdminMatchTrackerRow[]>([]);
+  const [pairingLogs, setPairingLogs] = useState<AdminPairingScoreRow[]>([]);
+  const [pairingLogsErr, setPairingLogsErr] = useState<string | null>(null);
   const [selA, setSelA] = useState<string>("");
   const [selB, setSelB] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -27,7 +40,11 @@ export default function AdminDashboard() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [dir, trk] = await Promise.all([adminListDirectory(), adminListMatchTracker()]);
+      const [dir, trk, logs] = await Promise.all([
+        adminListDirectory(),
+        adminListMatchTracker(),
+        adminListPairingScoreLogs(),
+      ]);
       if (cancelled) return;
       setLoading(false);
       if (!dir.ok) {
@@ -38,11 +55,15 @@ export default function AdminDashboard() {
         setError(trk.message);
         setIntents(dir.intents);
         setUserCount(dir.users.length);
+        setPairingLogsErr(logs.ok ? null : logs.message);
+        if (logs.ok) setPairingLogs(logs.rows);
         return;
       }
       setIntents(dir.intents);
       setUserCount(dir.users.length);
       setTracker(trk.matches);
+      setPairingLogsErr(logs.ok ? null : logs.message);
+      if (logs.ok) setPairingLogs(logs.rows);
       setError(null);
     })();
     return () => {
@@ -62,8 +83,9 @@ export default function AdminDashboard() {
     }
     setSelA("");
     setSelB("");
-    const trk = await adminListMatchTracker();
+    const [trk, logs] = await Promise.all([adminListMatchTracker(), adminListPairingScoreLogs()]);
     if (trk.ok) setTracker(trk.matches);
+    if (logs.ok) setPairingLogs(logs.rows);
   }
 
   return (
@@ -202,6 +224,65 @@ export default function AdminDashboard() {
                       <td className="whitespace-nowrap px-3 py-2 align-top text-xs font-medium text-slate-200">{m.status}</td>
                       <td className="whitespace-nowrap px-3 py-2 align-top text-xs text-slate-500">
                         {new Date(m.created_at).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold text-white">Pairing score log</h2>
+          <p className="text-xs text-slate-500">
+            Recent hybrid suggestion, invite vibe, and admin system-match scoring events (service role). Apply migration 059 if this table is missing.
+          </p>
+          <div className="overflow-x-auto rounded-xl border border-white/10">
+            <table className="w-full min-w-[960px] border-collapse text-left text-xs">
+              <thead className="border-b border-white/10 bg-black/30 uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="whitespace-nowrap px-2 py-2 font-medium">Time</th>
+                  <th className="whitespace-nowrap px-2 py-2 font-medium">Source</th>
+                  <th className="whitespace-nowrap px-2 py-2 font-medium">Anchor intent</th>
+                  <th className="whitespace-nowrap px-2 py-2 font-medium">Candidate intent</th>
+                  <th className="whitespace-nowrap px-2 py-2 font-medium">Score</th>
+                  <th className="whitespace-nowrap px-2 py-2 font-medium">Sim</th>
+                  <th className="whitespace-nowrap px-2 py-2 font-medium">RPC θ</th>
+                  <th className="whitespace-nowrap px-2 py-2 font-medium">Rank</th>
+                  <th className="whitespace-nowrap px-2 py-2 font-medium">Top?</th>
+                  <th className="min-w-[120px] px-2 py-2 font-medium">Excluded</th>
+                  <th className="min-w-[140px] px-2 py-2 font-medium">Compat note</th>
+                  <th className="min-w-[160px] px-2 py-2 font-medium">Meta</th>
+                </tr>
+              </thead>
+              <tbody className="text-slate-300">
+                {pairingLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={12} className="px-3 py-6 text-center text-slate-500">
+                      {pairingLogsErr ?? "No pairing score events yet."}
+                    </td>
+                  </tr>
+                ) : (
+                  pairingLogs.map((r) => (
+                    <tr key={r.id} className="border-b border-white/5 align-top">
+                      <td className="whitespace-nowrap px-2 py-2 text-slate-500">{new Date(r.created_at).toLocaleString()}</td>
+                      <td className="px-2 py-2 font-mono text-[11px] text-slate-400">{r.source}</td>
+                      <td className="max-w-[100px] truncate px-2 py-2 font-mono text-[11px]" title={r.anchor_intent_id ?? ""}>
+                        {r.anchor_intent_id ?? "—"}
+                      </td>
+                      <td className="max-w-[100px] truncate px-2 py-2 font-mono text-[11px]" title={r.candidate_intent_id ?? ""}>
+                        {r.candidate_intent_id ?? "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-2 py-2 tabular-nums">{r.match_score ?? "—"}</td>
+                      <td className="whitespace-nowrap px-2 py-2 tabular-nums">{r.similarity ?? "—"}</td>
+                      <td className="whitespace-nowrap px-2 py-2 tabular-nums">{r.rpc_threshold ?? "—"}</td>
+                      <td className="whitespace-nowrap px-2 py-2">{r.rank_after_sort ?? "—"}</td>
+                      <td className="whitespace-nowrap px-2 py-2">{r.selected_top == null ? "—" : r.selected_top ? "yes" : "no"}</td>
+                      <td className="max-w-[140px] break-words px-2 py-2 text-slate-400">{r.excluded_reason ?? "—"}</td>
+                      <td className="max-w-[160px] break-words px-2 py-2 text-slate-400">{r.compatibility_reason ?? "—"}</td>
+                      <td className="max-w-[200px] break-all px-2 py-2 font-mono text-[10px] text-slate-500" title={formatMetaPreview(r.meta)}>
+                        {formatMetaPreview(r.meta)}
                       </td>
                     </tr>
                   ))

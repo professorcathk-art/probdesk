@@ -39,7 +39,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useConnectionCredits } from "@/hooks/use-connection-credits";
@@ -98,8 +97,6 @@ export function ConsoleClient({
 
   const blockedPeers = useMemo(() => new Set(blockedPeerIds), [blockedPeerIds]);
 
-  const [suggestionsByIntent, setSuggestionsByIntent] = useState<Record<string, SuggestionCard[]>>({});
-  const [busyIntent, setBusyIntent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [connectOpen, setConnectOpen] = useState(false);
@@ -222,18 +219,6 @@ export function ConsoleClient({
     router.refresh();
   }
 
-  async function loadSuggestions(intentId: string) {
-    setBusyIntent(intentId);
-    setError(null);
-    const res = await computeHybridSuggestions(intentId);
-    setBusyIntent(null);
-    if (!res.ok) {
-      setError(res.message);
-      return;
-    }
-    setSuggestionsByIntent((prev) => ({ ...prev, [intentId]: res.suggestions }));
-  }
-
   async function onRespond(matchId: string, decision: "Accepted" | "Rejected") {
     const res = await respondToMatch(matchId, decision);
     if (!res.ok) {
@@ -294,7 +279,6 @@ export function ConsoleClient({
     setPostCreateDiscovering(false);
     await router.refresh();
     if (discover.ok && discover.suggestions.length > 0) {
-      setSuggestionsByIntent((prev) => ({ ...prev, [newIntentId]: discover.suggestions }));
       setFreshMatchesIntentId(newIntentId);
       setFreshMatchesModal(discover.suggestions);
     } else if (!discover.ok) {
@@ -445,13 +429,6 @@ export function ConsoleClient({
                           >
                             {intent.status === "active" ? t.pauseMatching : t.resumeMatching}
                           </Button>
-                          <Button
-                            className="galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
-                            disabled={busyIntent === intent.id || intent.status !== "active"}
-                            onClick={() => void loadSuggestions(intent.id)}
-                          >
-                            {busyIntent === intent.id ? t.discovering : t.discoverMatches}
-                          </Button>
                         </div>
                       </div>
 
@@ -466,51 +443,6 @@ export function ConsoleClient({
                           matches={matches}
                           onRespond={(id, dec) => void onRespond(id, dec)}
                         />
-                      </div>
-
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{t.intentDashboard.discoverCarouselTitle}</p>
-                        </div>
-                        <ScrollArea className="w-full pb-3">
-                          <div className="flex w-max max-w-none flex-nowrap gap-4 pb-1">
-                            {(suggestionsByIntent[intent.id] ?? []).map((s) => {
-                              const blocked = blockedPeers.has(s.owner_user_id);
-                              return (
-                                <div
-                                  key={s.intent_id}
-                                  className="w-[min(280px,85vw)] max-w-[min(280px,85vw)] shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-xl"
-                                >
-                                  <div className="flex min-w-0 items-center gap-3">
-                                    <LockedAvatarPreview />
-                                    <div className="min-w-0">
-                                      <p className="text-xs text-slate-500">{t.matchFitScore}</p>
-                                      <p className="text-lg font-semibold text-sky-200">{s.match_score}</p>
-                                    </div>
-                                  </div>
-                                  <p className="mt-3 line-clamp-4 break-words text-sm text-slate-200">{s.natural_language_input}</p>
-                                  <Button
-                                    size="sm"
-                                    className={cn(
-                                      "galaxy-btn-glow mt-4 min-h-11 w-full touch-manipulation border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 sm:min-h-10",
-                                      !blocked && outOfCredits && "opacity-50 hover:bg-sky-500/15",
-                                    )}
-                                    disabled={blocked}
-                                    onClick={() => !blocked && openConnect(s, intent.id)}
-                                  >
-                                    {blocked ? t.alreadyPending : outOfCredits ? cr.dailyLimitReached : t.requestConnection}
-                                  </Button>
-                                </div>
-                              );
-                            })}
-                            {(suggestionsByIntent[intent.id] ?? []).length === 0 ? (
-                              <div className="rounded-2xl border border-dashed border-white/10 px-6 py-10 text-sm text-slate-500">
-                                {t.intentDashboard.discoverCarouselEmpty}
-                              </div>
-                            ) : null}
-                          </div>
-                          <ScrollBar orientation="horizontal" />
-                        </ScrollArea>
                       </div>
                     </CardContent>
                   </Card>

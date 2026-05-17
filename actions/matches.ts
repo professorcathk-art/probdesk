@@ -7,6 +7,7 @@ import { formatProfileMatchingSnippet } from "@/lib/profile-matching-snippet";
 import { DUPLICATE_MATCH_MESSAGE, BLOCKING_MATCH_STATUSES, hasBlockingMatchBetween } from "@/lib/match-blocking";
 import { validateProfileBasicsForPublish } from "@/lib/profile-basics";
 import { isAdminEmail } from "@/lib/admin-emails";
+import { logPairingScoreEvent } from "@/lib/pairing-score-log";
 
 export type MatchRow = {
   id: string;
@@ -152,24 +153,27 @@ export async function initiateConnection(params: {
   }
 
   let senderIntentText: string | null = null;
+  let anchorIntentIdForLog: string | null = null;
   if (ctxIntent) {
     const { data: ctxRow } = await supabase
       .from("intent_requests")
-      .select("natural_language_input")
+      .select("id, natural_language_input")
       .eq("id", ctxIntent)
       .eq("user_id", user.id)
       .maybeSingle();
+    anchorIntentIdForLog = ctxRow?.id ?? null;
     senderIntentText = ctxRow?.natural_language_input?.trim() ?? null;
   }
   if (!senderIntentText) {
     const { data: latestSenderIntent } = await supabase
       .from("intent_requests")
-      .select("natural_language_input")
+      .select("id, natural_language_input")
       .eq("user_id", user.id)
       .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
+    anchorIntentIdForLog = latestSenderIntent?.id ?? anchorIntentIdForLog;
     senderIntentText = latestSenderIntent?.natural_language_input?.trim() ?? null;
   }
 
@@ -224,6 +228,18 @@ export async function initiateConnection(params: {
     compatibility_reason =
       "Fit scoring was unavailable — Vennode defaulted this relationship hint conservatively; judge overlap from both intents.";
   }
+
+  void logPairingScoreEvent({
+    source: "invite_vibe",
+    actor_user_id: user.id,
+    anchor_intent_id: anchorIntentIdForLog,
+    candidate_intent_id: params.receiverIntentId,
+    candidate_user_id: receiverId,
+    match_score,
+    compatibility_reason,
+    excluded_reason: senderIntentText ? null : "no_sender_intent_text",
+    meta: { sender_context_intent_id: ctxIntent || null },
+  });
 
   let ai_context_sender: Record<string, unknown> = {
     headline: "Anonymous sender",

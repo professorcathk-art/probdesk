@@ -15,6 +15,7 @@ import { normalizeProfileTags } from "@/lib/profile-tags";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
 import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
+import { logPairingScoreEvent } from "@/lib/pairing-score-log";
 
 function vectorLiteral(vec: number[]): string {
   return `[${vec.join(",")}]`;
@@ -424,10 +425,12 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     return { ok: false, message: "This intent could not be processed — please create a new one." };
   }
 
+  const RPC_THRESHOLD = 0.55;
+
   const { data: rpcRows, error: rpcError } = await supabase.rpc("match_intents", {
     target_embedding: intent.embedding as unknown as string,
     p_location: intent.location_filter,
-    p_threshold: 0.55,
+    p_threshold: RPC_THRESHOLD,
     p_limit: 24,
     p_exclude_user_id: user.id,
   });
@@ -505,6 +508,26 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   );
 
   scored.sort((a, b) => b.match_score - a.match_score);
+
+  void Promise.all(
+    scored.map(({ row, match_score, compatibility_reason }, index) =>
+      logPairingScoreEvent({
+        source: "hybrid_suggestion",
+        actor_user_id: user.id,
+        anchor_intent_id: intentId,
+        candidate_intent_id: row.intent_id,
+        candidate_user_id: row.owner_user_id,
+        similarity: row.similarity,
+        rpc_threshold: RPC_THRESHOLD,
+        rank_after_sort: index + 1,
+        selected_top: index < 3,
+        match_score,
+        compatibility_reason,
+        excluded_reason: index >= 3 ? "not_in_top_3_after_sort" : null,
+        meta: { pool_size: pool.length },
+      }),
+    ),
+  );
 
   const suggestions: SuggestionCard[] = scored.slice(0, 3).map(({ row, match_score, compatibility_reason }) => ({
     ...row,

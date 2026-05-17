@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { DUPLICATE_MATCH_MESSAGE, hasBlockingMatchBetween } from "@/lib/match-blocking";
+import { logPairingScoreEvent } from "@/lib/pairing-score-log";
 
 export type AdminUserRow = {
   id: string;
@@ -38,6 +39,24 @@ export type AdminMatchTrackerRow = {
   counterparty_intent_id: string | null;
   match_type: string;
   created_at: string;
+};
+
+export type AdminPairingScoreRow = {
+  id: string;
+  created_at: string;
+  source: string;
+  actor_user_id: string | null;
+  anchor_intent_id: string | null;
+  candidate_intent_id: string | null;
+  candidate_user_id: string | null;
+  similarity: number | null;
+  rpc_threshold: number | null;
+  rank_after_sort: number | null;
+  selected_top: boolean | null;
+  match_score: number | null;
+  compatibility_reason: string | null;
+  excluded_reason: string | null;
+  meta: Record<string, unknown>;
 };
 
 async function assertAdmin() {
@@ -158,6 +177,54 @@ export async function adminListMatchTracker(): Promise<
   }
 }
 
+export async function adminListPairingScoreLogs(): Promise<
+  { ok: true; rows: AdminPairingScoreRow[] } | { ok: false; message: string }
+> {
+  try {
+    await assertAdmin();
+    let svc;
+    try {
+      svc = createServiceRoleClient();
+    } catch {
+      return { ok: false, message: "Missing SUPABASE_SERVICE_ROLE_KEY." };
+    }
+
+    const { data, error } = await svc
+      .from("pairing_score_events")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    if (error) return { ok: false, message: error.message };
+
+    const rows: AdminPairingScoreRow[] = (data ?? []).map((r) => ({
+      id: r.id as string,
+      created_at: r.created_at as string,
+      source: r.source as string,
+      actor_user_id: (r.actor_user_id as string | null) ?? null,
+      anchor_intent_id: (r.anchor_intent_id as string | null) ?? null,
+      candidate_intent_id: (r.candidate_intent_id as string | null) ?? null,
+      candidate_user_id: (r.candidate_user_id as string | null) ?? null,
+      similarity: r.similarity != null ? Number(r.similarity) : null,
+      rpc_threshold: r.rpc_threshold != null ? Number(r.rpc_threshold) : null,
+      rank_after_sort: (r.rank_after_sort as number | null) ?? null,
+      selected_top: (r.selected_top as boolean | null) ?? null,
+      match_score: r.match_score != null ? Number(r.match_score) : null,
+      compatibility_reason: (r.compatibility_reason as string | null) ?? null,
+      excluded_reason: (r.excluded_reason as string | null) ?? null,
+      meta:
+        typeof r.meta === "object" && r.meta !== null && !Array.isArray(r.meta)
+          ? (r.meta as Record<string, unknown>)
+          : {},
+    }));
+
+    return { ok: true, rows };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Forbidden";
+    return { ok: false, message: msg };
+  }
+}
+
 export async function adminForceSystemMatch(params: { intentAId: string; intentBId: string }): Promise<
   { ok: true } | { ok: false; message: string }
 > {
@@ -203,7 +270,7 @@ export async function adminForceSystemMatch(params: { intentAId: string; intentB
       status: "Pending_System",
       introductory_context:
         "Curated introduction — Vennode matched your intents. Review both statements and accept if you want to connect.",
-      compatibility_reason: "Manual system match (admin cold-start).",
+      compatibility_reason: null,
       ai_context_sender: {
         headline: "System-curated pairing",
         summary: "Both intents were selected for mutual review.",
@@ -214,6 +281,23 @@ export async function adminForceSystemMatch(params: { intentAId: string; intentB
     });
 
     if (insErr) return { ok: false, message: insErr.message };
+
+    await logPairingScoreEvent({
+      source: "admin_system_match",
+      actor_user_id: null,
+      anchor_intent_id: intentAId,
+      candidate_intent_id: intentBId,
+      candidate_user_id: b.user_id,
+      similarity: null,
+      rpc_threshold: null,
+      rank_after_sort: null,
+      selected_top: true,
+      match_score: null,
+      compatibility_reason: null,
+      excluded_reason: null,
+      meta: { receiver_user_id: b.user_id },
+    });
+
     revalidatePath("/console");
     revalidatePath("/admin");
     return { ok: true };

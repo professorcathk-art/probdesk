@@ -598,8 +598,7 @@ export const STRINGS = {
       accept: "接受",
       decline: "婉拒",
       outboundTitle: "已送出的邀請",
-      outboundDesc:
-        "你向他人探索徵求送出的邀請——無論等待回覆、已連結或已婉拒，紀錄都會保留在此以便追溯。",
+      outboundDesc: "你向他人探索徵求送出的邀請。",
       outboundNone: "尚未對其他人的公開徵求送出過邀請。",
       outboundLine: "已送出介紹",
       outboundAwaiting: "等待回覆",
