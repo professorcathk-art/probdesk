@@ -5,6 +5,7 @@ import type { MarketplaceListing } from "@/actions/marketplace";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { IntentMustHavesCallout } from "@/components/intent-must-haves-callout";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
+import { MarketplaceListingIdentity } from "@/components/marketplace-listing-identity";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,6 +67,7 @@ export function ExploreIntentLanding({ listing, viewerUserId }: Props) {
             {listing.must_haves?.trim() ? (
               <IntentMustHavesCallout compact heading={x.expectationsHeading} body={listing.must_haves} />
             ) : null}
+            <MarketplaceListingIdentity listing={listing} />
           </CardContent>
         </Card>
 

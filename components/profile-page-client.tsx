@@ -22,6 +22,7 @@ import {
   type ProfileCoreFieldKey,
   type ProfileGenderValue,
 } from "@/lib/profile-basics";
+import { displayGenderLabel } from "@/lib/display-gender";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -74,22 +75,7 @@ function genderLabel(
   },
   value: ProfileGenderValue,
 ): string {
-  switch (value) {
-    case "woman":
-      return cx.genderWoman;
-    case "man":
-      return cx.genderMan;
-    case "non_binary":
-      return cx.genderNonBinary;
-    case "prefer_not_say":
-      return cx.genderPreferNotSay;
-    case "other":
-      return cx.genderOther;
-    default: {
-      const _exhaustive: never = value;
-      return _exhaustive;
-    }
-  }
+  return displayGenderLabel(value, cx) ?? value;
 }
 
 export function ProfilePageClient({

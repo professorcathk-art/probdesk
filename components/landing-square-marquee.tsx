@@ -4,6 +4,7 @@ import type { MarketplaceListing } from "@/actions/marketplace";
 import { ConnectModal } from "@/components/connect-modal";
 import { CreditsLimitModal } from "@/components/credits-limit-modal";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
+import { MarketplaceListingIdentity } from "@/components/marketplace-listing-identity";
 import { useLanguage } from "@/components/language-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -97,6 +98,7 @@ export function LandingSquareMarquee({
           </Badge>
         </div>
         <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-slate-100">{item.natural_language_input}</p>
+        <MarketplaceListingIdentity listing={item} density="compact" />
       </button>
     ));
   }
@@ -151,6 +153,7 @@ export function LandingSquareMarquee({
               <Badge variant="outline" className="border-white/15 text-slate-200">
                 {preview.location_filter ?? mp.locationUnknown}
               </Badge>
+              <MarketplaceListingIdentity listing={preview} />
               <p className="text-sm leading-relaxed text-slate-200">{preview.natural_language_input}</p>
             </div>
           ) : null}

@@ -84,6 +84,10 @@ export const STRINGS = {
       empty: "Explore is quiet — check back when people publish public requests.",
       mustHavesHeading: "Expectations",
       inviteTargetLabel: "this Explore listing",
+      publicGenderLabel: "Gender",
+      publicGenderUnset: "Gender not set on profile",
+      publicInterestsLabel: "Interests & languages",
+      noInterestTags: "No interest tags yet — add skills & languages under Profile so people recognize you.",
     },
     exploreIntent: {
       kicker: "Shared Explore link",
@@ -199,6 +203,8 @@ export const STRINGS = {
         "Describe what you're looking for. We'll refine your request and location signals for Smart Matchmaking.",
       dialogEditTitle: "Edit request",
       dialogEditDesc: "Updates your request so we can keep recommending the right people.",
+      intentExploreIdentityPreviewNote:
+        "When this request is listed on Explore (home & Explore), your profile gender and interest/language tags appear on the card so others understand you before they invite you. Edit them under Profile anytime.",
       locationOptional: "Location (optional)",
       locationPlaceholderCreate: "e.g. Hong Kong — helps us match nearby",
       locationHintCreate: "Leave blank to use hints from your text or profile location.",
@@ -522,6 +528,10 @@ export const STRINGS = {
       empty: "探索廣場目前很安靜——稍後再來看看是否有人公開徵求。",
       mustHavesHeading: "期望",
       inviteTargetLabel: "這則探索廣場徵求",
+      publicGenderLabel: "性別",
+      publicGenderUnset: "個人檔案尚未填寫性別",
+      publicInterestsLabel: "興趣與語言標籤",
+      noInterestTags: "尚未設定興趣標籤——可到「個人檔案」填寫技能與語言，方便他人認識你。",
     },
     exploreIntent: {
       kicker: "探索徵求 · 分享連結",
@@ -634,6 +644,8 @@ export const STRINGS = {
         "描述你想找什麼。我們會整理徵求與地區線索，進行智慧配對。",
       dialogEditTitle: "編輯徵求",
       dialogEditDesc: "更新後我們會持續為你推薦更合適的人。",
+      intentExploreIdentityPreviewNote:
+        "當這則徵求在首頁或探索廣場公開時，個人檔案的性別以及興趣／語言標籤會顯示在卡片上，讓對方在發出邀請前更了解你。可隨時到「個人檔案」修改。",
       locationOptional: "地區（選填）",
       locationPlaceholderCreate: "例如：香港——有助於就近配對",
       locationHintCreate: "留白則從內文或個人檔案地區推斷。",

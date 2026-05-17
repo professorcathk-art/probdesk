@@ -605,6 +605,7 @@ export function ConsoleClient({
           <DialogHeader>
             <DialogTitle>{t.dialogNewTitle}</DialogTitle>
             <DialogDescription className="text-slate-400">{t.dialogNewDesc}</DialogDescription>
+            <p className="text-xs leading-relaxed text-sky-300/85">{t.intentExploreIdentityPreviewNote}</p>
           </DialogHeader>
           <Textarea
             value={createDraft}
@@ -662,6 +663,7 @@ export function ConsoleClient({
           <DialogHeader>
             <DialogTitle>{t.dialogEditTitle}</DialogTitle>
             <DialogDescription className="text-slate-400">{t.dialogEditDesc}</DialogDescription>
+            <p className="text-xs leading-relaxed text-sky-300/85">{t.intentExploreIdentityPreviewNote}</p>
           </DialogHeader>
           <Textarea
             value={editDraft}
