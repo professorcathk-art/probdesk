@@ -87,6 +87,7 @@ create table if not exists public.matches (
   compatibility_reason text,
   ai_context_sender jsonb,
   counterparty_intent_id uuid references public.intent_requests (id) on delete set null,
+  sender_context_intent_id uuid references public.intent_requests (id) on delete set null,
   system_ack_sender boolean not null default false,
   system_ack_receiver boolean not null default false,
   sender_discloses_profile boolean not null default false,

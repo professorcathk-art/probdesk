@@ -19,6 +19,7 @@ export type MatchRow = {
   ai_context_sender: Record<string, unknown> | null;
   intent_request_id: string | null;
   counterparty_intent_id: string | null;
+  sender_context_intent_id: string | null;
   system_ack_sender: boolean;
   system_ack_receiver: boolean;
   sender_discloses_profile: boolean;
@@ -77,6 +78,8 @@ export async function initiateConnection(params: {
   receiverIntentId: string;
   introductory_context: string;
   senderDisclosesProfile?: boolean;
+  /** Manage discovery: sender's intent card this invite was started from. */
+  senderContextIntentId?: string | null;
 }): Promise<InitiateConnectionResult> {
   const supabase = await createClient();
   const {
@@ -126,6 +129,22 @@ export async function initiateConnection(params: {
 
   if (user.id === receiverId) {
     return { ok: false as const, message: "You cannot connect with yourself." };
+  }
+
+  const ctxIntent = params.senderContextIntentId?.trim();
+  if (ctxIntent) {
+    if (!/^[\da-f]{8}-[\da-f]{4}-[1-5][\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i.test(ctxIntent)) {
+      return { ok: false as const, message: "Invalid sender intent." };
+    }
+    const { data: owned } = await supabase
+      .from("intent_requests")
+      .select("id")
+      .eq("id", ctxIntent)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!owned) {
+      return { ok: false as const, message: "Sender intent not found." };
+    }
   }
 
   if (await hasBlockingMatchBetween(supabase, user.id, receiverId)) {
@@ -241,6 +260,7 @@ export async function initiateConnection(params: {
     sender_id: user.id,
     receiver_id: receiverId,
     intent_request_id: params.receiverIntentId,
+    sender_context_intent_id: ctxIntent || null,
     introductory_context: params.introductory_context,
     match_score,
     compatibility_reason,
@@ -273,7 +293,7 @@ export async function listMatches(): Promise<{ matches: MatchRow[] } | { error: 
   const { data, error } = await supabase
     .from("matches")
     .select(
-      "id, sender_id, receiver_id, status, introductory_context, match_score, compatibility_reason, ai_context_sender, intent_request_id, counterparty_intent_id, system_ack_sender, system_ack_receiver, sender_discloses_profile, created_at",
+      "id, sender_id, receiver_id, status, introductory_context, match_score, compatibility_reason, ai_context_sender, intent_request_id, counterparty_intent_id, sender_context_intent_id, system_ack_sender, system_ack_receiver, sender_discloses_profile, created_at",
     )
     .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
     .order("created_at", { ascending: false });
@@ -282,6 +302,7 @@ export async function listMatches(): Promise<{ matches: MatchRow[] } | { error: 
   return {
     matches: (data ?? []).map((m) => ({
       ...m,
+      sender_context_intent_id: (m as { sender_context_intent_id?: string | null }).sender_context_intent_id ?? null,
       system_ack_sender: Boolean(m.system_ack_sender),
       system_ack_receiver: Boolean(m.system_ack_receiver),
       sender_discloses_profile: Boolean(m.sender_discloses_profile),

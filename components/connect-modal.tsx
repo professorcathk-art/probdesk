@@ -24,6 +24,8 @@ type Props = {
   receiverUserId: string;
   receiverIntentId: string;
   headline: string;
+  /** When set (Manage discovery), stored on the match for grouping under your intent card. */
+  senderContextIntentId?: string | null;
   onInviteSent?: () => void;
   /** After completing profile, return here (internal path + query). Used when server returns PROFILE_INCOMPLETE. */
   profileIncompleteResumeAfter?: string;
@@ -35,6 +37,7 @@ export function ConnectModal({
   receiverUserId,
   receiverIntentId,
   headline,
+  senderContextIntentId,
   onInviteSent,
   profileIncompleteResumeAfter,
 }: Props) {
@@ -56,6 +59,7 @@ export function ConnectModal({
       receiverIntentId,
       introductory_context: message.trim(),
       senderDisclosesProfile: discloseProfile,
+      senderContextIntentId: senderContextIntentId ?? undefined,
     });
     setBusy(false);
     if (!res.ok) {
