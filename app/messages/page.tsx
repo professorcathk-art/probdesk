@@ -3,7 +3,6 @@ import { listMessengerThreads, resolveMessengerPeerFromMatch } from "@/actions/m
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { MessagesPageClient } from "@/components/messages-page-client";
 import { getAuthContext } from "@/lib/auth-context";
-import { ensureProfileCoreCompleteForAppUse } from "@/lib/ensure-profile-core";
 
 export const dynamic = "force-dynamic";
 
@@ -12,11 +11,8 @@ export default async function MessagesPage({
 }: {
   searchParams?: Promise<{ matchId?: string }>;
 }) {
-  const { user, onboardingStatus } = await getAuthContext();
-  if (!user) redirect("/login");
-  if (onboardingStatus !== "complete") redirect("/onboarding");
-
-  await ensureProfileCoreCompleteForAppUse();
+  const { user } = await getAuthContext();
+  if (!user) redirect("/login?after=%2Fmessages");
 
   const sp = (await searchParams) ?? {};
   const matchIdRaw = typeof sp.matchId === "string" ? sp.matchId.trim() : "";

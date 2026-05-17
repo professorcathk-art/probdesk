@@ -20,9 +20,17 @@ type Props = {
   currentUserId: string | null;
   pendingIntentIds: string[];
   highlightIntentId?: string;
+  /** Open connect modal once after auth + optional profile gate (matches intent id). */
+  connectToIntentId?: string;
 };
 
-export function MarketplaceGrid({ listings, currentUserId, pendingIntentIds, highlightIntentId }: Props) {
+export function MarketplaceGrid({
+  listings,
+  currentUserId,
+  pendingIntentIds,
+  highlightIntentId,
+  connectToIntentId,
+}: Props) {
   const router = useRouter();
   const { strings } = useLanguage();
   const mp = strings.marketplace;
@@ -32,8 +40,19 @@ export function MarketplaceGrid({ listings, currentUserId, pendingIntentIds, hig
   const [ctx, setCtx] = useState<{ receiverUserId: string; receiverIntentId: string } | null>(null);
   const [creditsTeaserOpen, setCreditsTeaserOpen] = useState(false);
   const highlightedRef = useRef<HTMLDivElement | null>(null);
+  const resumedConnectRef = useRef(false);
 
   const { refresh: refreshCredits, outOfCredits } = useConnectionCredits(currentUserId);
+
+  useEffect(() => {
+    if (!connectToIntentId || !currentUserId || resumedConnectRef.current) return;
+    const listing = listings.find((l) => l.id === connectToIntentId);
+    if (!listing || listing.user_id === currentUserId || pending.has(listing.id)) return;
+    resumedConnectRef.current = true;
+    setCtx({ receiverUserId: listing.user_id, receiverIntentId: listing.id });
+    setConnectOpen(true);
+    router.replace("/square", { scroll: false });
+  }, [connectToIntentId, currentUserId, listings, pending, router]);
 
   useEffect(() => {
     if (!highlightIntentId || listings.every((l) => l.id !== highlightIntentId)) return;
@@ -93,7 +112,7 @@ export function MarketplaceGrid({ listings, currentUserId, pendingIntentIds, hig
                   disabled={currentUserId === item.user_id || pending.has(item.id)}
                   onClick={() => {
                     if (!currentUserId) {
-                      router.push("/login");
+                      router.push(`/login?flow=pending_connect&connectIntent=${encodeURIComponent(item.id)}`);
                       return;
                     }
                     if (currentUserId === item.user_id || pending.has(item.id)) return;
@@ -128,7 +147,7 @@ export function MarketplaceGrid({ listings, currentUserId, pendingIntentIds, hig
           }}
           receiverUserId={ctx.receiverUserId}
           receiverIntentId={ctx.receiverIntentId}
-          headline="this listing"
+          headline={mp.inviteTargetLabel}
           onInviteSent={() => void refreshCredits()}
         />
       ) : null}

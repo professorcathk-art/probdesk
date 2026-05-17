@@ -73,16 +73,17 @@ export const STRINGS = {
       kicker: "Explore",
       title: "Explore",
       description:
-        "Opt-in listings only. Profiles stay protected until mutual acceptance — connect with a thoughtful introduction.",
+        "Profiles stay protected until mutual acceptance — when you send an invite, a thoughtful opening message makes a big difference.",
       backManage: "Back to Manage",
       loadErrorPrefix: "Could not load listings:",
-      anonymous: "Anonymous seeker",
+      anonymous: "Anonymous user",
       anonymousHint: "Identities unlock after you match",
       locationUnknown: "Hidden location",
       connect: "Send invite",
       pending: "Pending",
       empty: "Explore is quiet — check back when people publish public requests.",
       mustHavesHeading: "Must-haves",
+      inviteTargetLabel: "this Explore listing",
     },
     messagesPage: {
       title: "Messages",
@@ -139,6 +140,7 @@ export const STRINGS = {
       emptyInboundBody: "No pending invitations yet.",
       emptyConnectionsBody: "No connections yet.",
       browseExplore: "Browse Explore",
+      connectHeadlineSuggestion: "this recommendation",
       newIntro: "New introduction",
       contextMessage: "Context message",
       personaPreview: "Protected preview",
@@ -327,8 +329,16 @@ export const STRINGS = {
       copyFailed: "Couldn't copy — try again.",
     },
     login: {
+      kicker: "Passwordless entry",
+      title: "Sign in to Vennode",
       sub:
-        "We'll carry what you wrote on the homepage into onboarding and Smart Matchmaking — no passwords, no noise.",
+        "Use Google or a one-time email link — no password to remember. After signing in, complete your profile to explore and send invites.",
+      googleCta: "Continue with Google",
+      divider: "Or email link",
+      emailPlaceholder: "you@domain.com",
+      magicSubmit: "Email me a magic link",
+      inboxInfo: "Check your inbox for the secure login link.",
+      backLanding: "Back to landing",
     },
     onboarding: {
       sub:
@@ -455,16 +465,17 @@ export const STRINGS = {
       kicker: "探索廣場",
       title: "探索廣場",
       description:
-        "僅限主動公開的徵求。雙方同意前個人檔案受到保護——請附上一則用心的開場訊息。",
+        "雙方同意前個人檔案受到保護——發送邀請時附上一則用心的開場訊息會大大提高成功率！",
       backManage: "返回管理中心",
       loadErrorPrefix: "無法載入清單：",
-      anonymous: "匿名徵求者",
+      anonymous: "匿名用戶",
       anonymousHint: "配對成功後解鎖真實身分",
       locationUnknown: "隱藏地區",
       connect: "發送邀請",
       pending: "等待中",
       empty: "探索廣場目前很安靜——稍後再來看看是否有人公開徵求。",
       mustHavesHeading: "必備條件",
+      inviteTargetLabel: "這則探索廣場徵求",
     },
     messagesPage: {
       title: "訊息",
@@ -520,6 +531,7 @@ export const STRINGS = {
       emptyInboundBody: "目前還沒有新的邀請。",
       emptyConnectionsBody: "目前還沒有新的連結。",
       browseExplore: "去探索廣場逛逛",
+      connectHeadlineSuggestion: "這則推薦對象",
       newIntro: "新的介紹",
       contextMessage: "開場訊息",
       personaPreview: "受保護預覽",
@@ -701,8 +713,16 @@ export const STRINGS = {
       copyFailed: "無法複製，請再試一次。",
     },
     login: {
+      kicker: "無密碼登入",
+      title: "登入 Vennode",
       sub:
-        "我們會帶著你在首頁寫的徵求進入設定與智慧配對——無密碼，更安靜。",
+        "可用 Google 或電郵一次性連結登入，無需設定密碼。登入後先完成個人檔案，就能瀏覽探索廣場並發送邀請。若在首頁已寫好徵求草稿，我們會在你進入管理中心後引導你繼續完成。",
+      googleCta: "使用 Google 繼續",
+      divider: "或使用電郵連結",
+      emailPlaceholder: "你@信箱網域.com",
+      magicSubmit: "寄送登入連結到信箱",
+      inboxInfo: "請查收信箱中的安全登入連結。",
+      backLanding: "返回首頁",
     },
     onboarding: {
       sub:

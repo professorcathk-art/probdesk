@@ -58,6 +58,8 @@ type Props = {
   matches: MatchRow[];
   blockedPeerIds: string[];
   initialConsoleTab?: "intents" | "requests" | "connections";
+  /** Post-login cue from `/console?cue=` — stripped client-side after handling. */
+  initialConsoleCue?: "pulseCreateIntent" | "openIntentDraft" | null;
   quotaSnapshot: {
     activeIntentCount: number;
     maxActiveIntents: number;
@@ -101,6 +103,7 @@ export function ConsoleClient({
   matches,
   blockedPeerIds,
   initialConsoleTab = "intents",
+  initialConsoleCue = null,
   quotaSnapshot,
 }: Props) {
   const router = useRouter();
@@ -143,6 +146,7 @@ export function ConsoleClient({
   const [createMustHaves, setCreateMustHaves] = useState("");
   const [createBusy, setCreateBusy] = useState(false);
   const openedFromLandingHandoffRef = useRef(false);
+  const [pulseCreateBtn, setPulseCreateBtn] = useState(false);
 
   function consumeLandingHandoffDraft() {
     useSessionStore.getState().clearLandingIntent();
@@ -154,14 +158,34 @@ export function ConsoleClient({
     if (raw.length < MIN_INTENT_CHARS) {
       raw = readLandingIntentDraftBackup()?.trim() ?? "";
     }
+    const forceOpenCue = initialConsoleCue === "openIntentDraft";
+    if (raw.length < MIN_INTENT_CHARS && !forceOpenCue) return;
     if (raw.length < MIN_INTENT_CHARS) return;
+
     openedFromLandingHandoffRef.current = true;
-    /* eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate create dialog from landing draft once on mount */
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate create dialog from landing / post-login cue */
     setCreateDraft(raw);
     setCreateMustHaves("");
     setCreateLocation("");
     setCreateOpen(true);
-  }, []);
+    setActiveTab("intents");
+  }, [initialConsoleCue]);
+
+  useEffect(() => {
+    if (initialConsoleCue !== "pulseCreateIntent") return;
+    setActiveTab("intents");
+    if (intents.length === 0) setPulseCreateBtn(true);
+    const tid = window.setTimeout(() => setPulseCreateBtn(false), 14000);
+    return () => window.clearTimeout(tid);
+  }, [initialConsoleCue, intents.length]);
+
+  useEffect(() => {
+    if (!initialConsoleCue) return;
+    const u = new URL(window.location.href);
+    if (!u.searchParams.has("cue")) return;
+    u.searchParams.delete("cue");
+    window.history.replaceState({}, "", `${u.pathname}${u.search}${u.hash}`);
+  }, [initialConsoleCue]);
 
   const [editIntent, setEditIntent] = useState<IntentRow | null>(null);
   const [editDraft, setEditDraft] = useState("");
@@ -261,7 +285,7 @@ export function ConsoleClient({
     setConnectCtx({
       receiverUserId: card.owner_user_id,
       receiverIntentId: card.intent_id,
-      headline: "this intent",
+      headline: t.connectHeadlineSuggestion,
     });
     setConnectOpen(true);
   }
@@ -367,7 +391,10 @@ export function ConsoleClient({
                 type="button"
                 disabled={intentAtCap}
                 title={intentAtCap ? t.intentLimitMessage : undefined}
-                className="galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+                className={cn(
+                  "galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 disabled:cursor-not-allowed disabled:opacity-40",
+                  pulseCreateBtn && "animate-pulse ring-2 ring-sky-400/55 shadow-[0_0_22px_rgba(56,189,248,0.28)]",
+                )}
                 onClick={() => {
                   setCreateDraft("");
                   setCreateLocation("");

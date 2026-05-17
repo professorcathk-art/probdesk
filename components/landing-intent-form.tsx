@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/components/language-provider";
 import { MIN_INTENT_CHARS, persistLandingIntentDraft } from "@/lib/intent-draft";
+import { setEntryCookieClient } from "@/lib/entry-cookie";
 import { useSessionStore } from "@/stores/session-store";
 
 export function LandingIntentForm() {
@@ -26,7 +27,8 @@ export function LandingIntentForm() {
     setTooShort(false);
     setLandingIntentText(text);
     persistLandingIntentDraft(text);
-    router.push("/login");
+    setEntryCookieClient({ v: 1, kind: "start_matching" });
+    router.push("/login?flow=start_matching");
   }
 
   return (

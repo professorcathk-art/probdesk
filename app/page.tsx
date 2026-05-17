@@ -7,7 +7,7 @@ import { getAuthContext } from "@/lib/auth-context";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const { user, onboardingStatus } = await getAuthContext();
+  const { user } = await getAuthContext();
 
   const listingsRes = await listMarketplaceListings();
   const squareListings = "error" in listingsRes ? [] : listingsRes.listings.slice(0, 48);
@@ -23,7 +23,6 @@ export default async function Home() {
       <LandingGalaxyScene />
       <LandingPageBody
         user={user}
-        onboardingStatus={onboardingStatus}
         squareListings={squareListings}
         squarePendingIntentIds={squarePendingIntentIds}
       />

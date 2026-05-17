@@ -162,7 +162,9 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
               onClick={() => {
                 if (!preview) return;
                 if (!currentUserId) {
-                  router.push("/login");
+                  router.push(
+                    `/login?flow=pending_connect&connectIntent=${encodeURIComponent(preview.id)}`,
+                  );
                   return;
                 }
                 if (preview.user_id === currentUserId || pending.has(preview.id)) return;
@@ -207,7 +209,7 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
           }}
           receiverUserId={connectCtx.receiverUserId}
           receiverIntentId={connectCtx.receiverIntentId}
-          headline="this listing"
+          headline={mp.inviteTargetLabel}
           onInviteSent={() => void refreshCredits()}
         />
       ) : null}

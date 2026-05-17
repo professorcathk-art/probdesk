@@ -121,7 +121,7 @@ export function SiteNav({
           ) : null}
           {!isAuthenticated ? (
             <Link
-              href="/login"
+              href="/login?flow=enter"
               className={cn(
                 buttonVariants({ variant: "default", size: "lg" }),
                 "galaxy-btn-glow min-h-11 border border-sky-400/35 bg-sky-500/15 px-4 text-sky-50 hover:bg-sky-500/25 sm:min-h-8 sm:px-2.5",

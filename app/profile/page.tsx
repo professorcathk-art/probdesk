@@ -3,22 +3,24 @@ import { getMyProfileAvatar, getMyProfileIdentity } from "@/actions/profile";
 import { ProfilePageClient } from "@/components/profile-page-client";
 import { getAuthContext } from "@/lib/auth-context";
 import { getProfileCoreFieldIssues, type ProfileCoreFieldKey } from "@/lib/profile-basics";
+import { sanitizeInternalRedirect } from "@/lib/sanitize-redirect";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams?: Promise<{ required?: string }>;
+  searchParams?: Promise<{ required?: string; after?: string }>;
 }) {
   const { user } = await getAuthContext();
 
   if (!user) {
-    redirect("/login");
+    redirect("/login?after=%2Fprofile");
   }
 
   const sp = (await searchParams) ?? {};
   const showProfileRequiredBanner = sp.required === "profile";
+  const redirectAfterSave = sanitizeInternalRedirect(typeof sp.after === "string" ? sp.after : undefined);
 
   const avatarRes = await getMyProfileAvatar();
   const profileRes = await getMyProfileIdentity();
@@ -53,6 +55,7 @@ export default async function ProfilePage({
       profileIdentity={profileIdentity}
       showProfileRequiredBanner={showProfileRequiredBanner}
       coreFieldIssues={coreFieldIssues}
+      redirectAfterSave={redirectAfterSave}
     />
   );
 }

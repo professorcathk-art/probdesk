@@ -11,22 +11,21 @@ export const dynamic = "force-dynamic";
 export default async function ConsolePage({
   searchParams,
 }: {
-  searchParams?: Promise<{ tab?: string }>;
+  searchParams?: Promise<{ tab?: string; cue?: string }>;
 }) {
-  const { user, onboardingStatus } = await getAuthContext();
+  const { user } = await getAuthContext();
 
   if (!user) {
-    redirect("/login");
-  }
-
-  if (onboardingStatus !== "complete") {
-    redirect("/onboarding");
+    redirect("/login?after=%2Fconsole");
   }
 
   await ensureProfileCoreCompleteForAppUse();
 
   const sp = (await searchParams) ?? {};
   const tabRaw = typeof sp.tab === "string" ? sp.tab : undefined;
+  const cueRaw = typeof sp.cue === "string" ? sp.cue : undefined;
+  const initialConsoleCue =
+    cueRaw === "pulseCreateIntent" || cueRaw === "openIntentDraft" ? cueRaw : null;
   const validTabs = ["intents", "requests", "connections"] as const;
   const initialConsoleTab: (typeof validTabs)[number] = validTabs.includes(
     tabRaw as (typeof validTabs)[number],
@@ -50,12 +49,13 @@ export default async function ConsolePage({
 
   return (
     <ConsoleClient
-      key={initialConsoleTab}
+      key={`${initialConsoleTab}-${initialConsoleCue ?? ""}`}
       userId={user.id}
       intents={intents}
       matches={matches}
       blockedPeerIds={blockedPeerIds}
       initialConsoleTab={initialConsoleTab}
+      initialConsoleCue={initialConsoleCue}
       quotaSnapshot={quotaSnapshot}
     />
   );

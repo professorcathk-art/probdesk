@@ -13,6 +13,8 @@ type Props = {
   currentUserId: string | null;
   pendingIntentIds: string[];
   highlightIntentId?: string | null;
+  /** Resume “send invite” after profile completion (intent row id). */
+  connectToIntentId?: string | null;
   loadError?: string | null;
   quotaSnapshot?: {
     activeIntentCount: number;
@@ -26,6 +28,7 @@ export function MarketplaceFeed({
   currentUserId,
   pendingIntentIds,
   highlightIntentId,
+  connectToIntentId = null,
   loadError,
   quotaSnapshot = null,
 }: Props) {
@@ -60,6 +63,7 @@ export function MarketplaceFeed({
         currentUserId={currentUserId}
         pendingIntentIds={pendingIntentIds}
         highlightIntentId={highlightIntentId ?? undefined}
+        connectToIntentId={connectToIntentId ?? undefined}
       />
     </>
   );

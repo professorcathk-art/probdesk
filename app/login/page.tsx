@@ -1,101 +1,18 @@
-"use client";
+import { Suspense } from "react";
+import { LoginPageContent } from "@/components/login-page-content";
 
-import Link from "next/link";
-import { useState } from "react";
-import { signInWithGoogle, signInWithMagicLink } from "@/actions/auth";
-import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
-import { useLanguage } from "@/components/language-provider";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+function LoginFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
+      <p className="text-sm">Loading…</p>
+    </div>
+  );
+}
 
 export default function LoginPage() {
-  const { strings } = useLanguage();
-  const [email, setEmail] = useState("");
-  const [info, setInfo] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function onMagicLink(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    setInfo(null);
-    const res = await signInWithMagicLink(email);
-    setBusy(false);
-    if (!res.ok) {
-      setError(res.message);
-      return;
-    }
-    setInfo("Check your inbox for the secure login link.");
-  }
-
-  async function onGoogle() {
-    setBusy(true);
-    setError(null);
-    const res = await signInWithGoogle();
-    setBusy(false);
-    if (!res.ok || !res.url) {
-      setError(res.ok ? "Missing redirect URL" : res.message);
-      return;
-    }
-    window.location.assign(res.url);
-  }
-
   return (
-    <div className="relative min-h-screen text-slate-50">
-      <GalaxyBackdrop />
-      <main className="mx-auto flex max-w-lg flex-col gap-8 px-6 py-16 md:py-24">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">Passwordless entry</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">Sign in to continue your intent</h1>
-          <p className="mt-3 text-sm leading-relaxed text-slate-400">{strings.login.sub}</p>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 backdrop-blur-xl">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full border-white/15 bg-white/[0.03] text-slate-100 hover:bg-white/[0.06]"
-            onClick={onGoogle}
-            disabled={busy}
-          >
-            Continue with Google
-          </Button>
-
-          <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-[0.22em] text-slate-500">
-            <div className="h-px flex-1 bg-white/10" />
-            or email link
-            <div className="h-px flex-1 bg-white/10" />
-          </div>
-
-          <form className="space-y-4" onSubmit={onMagicLink}>
-            <Input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@domain.com"
-              className="border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500"
-            />
-            <Button
-              type="submit"
-              disabled={busy}
-              className="w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
-            >
-              Email me a magic link
-            </Button>
-          </form>
-
-          {info ? <p className="mt-4 text-sm text-sky-300/90">{info}</p> : null}
-          {error ? <p className="mt-4 text-sm text-red-400">{error}</p> : null}
-        </div>
-
-        <p className="text-center text-sm text-slate-500">
-          <Link href="/" className="text-slate-300 underline-offset-4 hover:underline">
-            Back to landing
-          </Link>
-        </p>
-      </main>
-    </div>
+    <Suspense fallback={<LoginFallback />}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

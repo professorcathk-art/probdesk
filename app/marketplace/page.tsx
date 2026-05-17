@@ -12,11 +12,13 @@ export const dynamic = "force-dynamic";
 export default async function MarketplacePage({
   searchParams,
 }: {
-  searchParams?: Promise<{ intent?: string }>;
+  searchParams?: Promise<{ intent?: string; connectTo?: string }>;
 }) {
   await ensureProfileCoreCompleteForAppUse();
   const sp = (await searchParams) ?? {};
   const intentHighlight = typeof sp.intent === "string" ? sp.intent : undefined;
+  const connectToRaw = typeof sp.connectTo === "string" ? sp.connectTo.trim() : "";
+  const connectToIntentId = /^[0-9a-f-]{36}$/i.test(connectToRaw) ? connectToRaw : undefined;
 
   const res = await listMarketplaceListings();
   const listings = "error" in res ? [] : res.listings;
@@ -39,6 +41,7 @@ export default async function MarketplacePage({
           currentUserId={user?.id ?? null}
           pendingIntentIds={pendingIntentIds}
           highlightIntentId={intentHighlight}
+          connectToIntentId={connectToIntentId}
           loadError={"error" in res ? res.error : null}
           quotaSnapshot={user?.id ? quotaSnapshot : null}
         />

@@ -29,6 +29,8 @@ type Props = {
   profileIdentity: ProfileIdentity;
   showProfileRequiredBanner?: boolean;
   coreFieldIssues?: ProfileCoreFieldKey[];
+  /** After a successful save, jump here instead of staying on /profile (must be server-sanitized). */
+  redirectAfterSave?: string | null;
 };
 
 function profileCoreIssueText(
@@ -95,6 +97,7 @@ export function ProfilePageClient({
   profileIdentity,
   showProfileRequiredBanner = false,
   coreFieldIssues = [],
+  redirectAfterSave = null,
 }: Props) {
   const router = useRouter();
   const { strings } = useLanguage();
@@ -177,6 +180,11 @@ export function ProfilePageClient({
       return;
     }
     setPfNote(t.profileSaved);
+    if (redirectAfterSave) {
+      router.replace(redirectAfterSave);
+      await router.refresh();
+      return;
+    }
     router.replace("/profile");
     await router.refresh();
   }

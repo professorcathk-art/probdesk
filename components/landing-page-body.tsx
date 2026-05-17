@@ -10,12 +10,11 @@ import Link from "next/link";
 
 type Props = {
   user: { id: string } | null;
-  onboardingStatus: "pending" | "in_progress" | "complete";
   squareListings: MarketplaceListing[];
   squarePendingIntentIds: string[];
 };
 
-export function LandingPageBody({ user, onboardingStatus, squareListings, squarePendingIntentIds }: Props) {
+export function LandingPageBody({ user, squareListings, squarePendingIntentIds }: Props) {
   const { strings } = useLanguage();
   const L = strings.landing;
 
@@ -48,13 +47,13 @@ export function LandingPageBody({ user, onboardingStatus, squareListings, square
         {user ? (
           <div className="flex flex-wrap gap-3">
             <Link
-              href={onboardingStatus === "complete" ? "/console" : "/onboarding"}
+              href="/console"
               className={cn(
                 buttonVariants({ variant: "default" }),
                 "border border-white/10 bg-white/[0.06] text-white hover:bg-white/10",
               )}
             >
-              {onboardingStatus === "complete" ? L.openConsole : L.continueOnboarding}
+              {L.openConsole}
             </Link>
             <Link
               href="/square"
