@@ -1,18 +1,63 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { UserRound } from "lucide-react";
+import { getMessengerUnreadThreadCount } from "@/actions/messenger";
 import { useLanguage } from "@/components/language-provider";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+function MessagesNavLink({ label, messengerUnreadInitial }: { label: string; messengerUnreadInitial: number }) {
+  const pathname = usePathname();
+  const [unread, setUnread] = useState(messengerUnreadInitial);
+
+  useEffect(() => {
+    setUnread(messengerUnreadInitial);
+  }, [messengerUnreadInitial]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const res = await getMessengerUnreadThreadCount();
+      if (cancelled) return;
+      if (typeof res === "number") setUnread(res);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
+
+  return (
+    <Link
+      href="/messages"
+      className={cn(
+        buttonVariants({ variant: "ghost" }),
+        "relative min-h-11 px-3 text-slate-200 hover:bg-white/5 hover:text-white sm:min-h-8 sm:px-2.5",
+      )}
+    >
+      <span>{label}</span>
+      {unread > 0 ? (
+        <span
+          className="absolute right-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-sky-500 px-1 text-[10px] font-semibold leading-none text-white shadow-[0_0_12px_rgba(56,189,248,0.45)]"
+          aria-label={`${unread} unread`}
+        >
+          {unread > 99 ? "99+" : unread}
+        </span>
+      ) : null}
+    </Link>
+  );
+}
+
 export function SiteNav({
   isAuthenticated,
   avatarUrl,
+  messengerUnreadInitial = 0,
 }: {
   isAuthenticated: boolean;
   avatarUrl: string | null;
+  messengerUnreadInitial?: number;
 }) {
   const { lang, setLang, strings } = useLanguage();
 
@@ -60,6 +105,9 @@ export function SiteNav({
           >
             {strings.nav.explore}
           </Link>
+          {isAuthenticated ? (
+            <MessagesNavLink label={strings.nav.messages} messengerUnreadInitial={messengerUnreadInitial} />
+          ) : null}
           {isAuthenticated ? (
             <Link
               href="/console"

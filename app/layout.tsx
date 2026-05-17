@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import { Footer } from "@/components/footer";
 import { LanguageProvider } from "@/components/language-provider";
 import { SiteNav } from "@/components/site-nav";
+import { getMessengerUnreadThreadCount } from "@/actions/messenger";
 import { getMyProfileAvatar } from "@/actions/profile";
 import { getAuthContext } from "@/lib/auth-context";
 import { getMetadataBase } from "@/lib/site-url";
@@ -49,16 +50,23 @@ export default async function RootLayout({
 }>) {
   const { user } = await getAuthContext();
   let avatarUrl: string | null = null;
+  let messengerUnreadInitial = 0;
   if (user) {
     const av = await getMyProfileAvatar();
     avatarUrl = "error" in av ? null : av.avatar_url;
+    const unreadRes = await getMessengerUnreadThreadCount();
+    messengerUnreadInitial = typeof unreadRes === "number" ? unreadRes : 0;
   }
 
   return (
     <html lang="en" className={`dark ${inter.variable} ${spaceGrotesk.variable} h-full`}>
       <body className="flex min-h-full flex-col antialiased">
         <LanguageProvider>
-          <SiteNav isAuthenticated={!!user} avatarUrl={avatarUrl} />
+          <SiteNav
+            isAuthenticated={!!user}
+            avatarUrl={avatarUrl}
+            messengerUnreadInitial={messengerUnreadInitial}
+          />
           <div className="relative flex-1">{children}</div>
           <Footer />
         </LanguageProvider>

@@ -390,6 +390,7 @@ export async function sendMatchMessage(matchId: string, content: string) {
 
   if (error) return { ok: false as const, message: error.message };
   revalidatePath("/console");
+  revalidatePath("/messages");
   return { ok: true as const };
 }
 

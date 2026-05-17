@@ -108,6 +108,15 @@ create table if not exists public.messages (
 
 create index if not exists messages_match_id_idx on public.messages (match_id);
 
+create table if not exists public.match_message_reads (
+  match_id uuid not null references public.matches (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
+  last_read_at timestamptz not null default now(),
+  primary key (match_id, user_id)
+);
+
+create index if not exists match_message_reads_user_idx on public.match_message_reads (user_id);
+
 -- -----------------------------------------------------------------------------
 -- Sync auth.users -> public.users
 -- -----------------------------------------------------------------------------
@@ -183,6 +192,7 @@ alter table public.profiles enable row level security;
 alter table public.intent_requests enable row level security;
 alter table public.matches enable row level security;
 alter table public.messages enable row level security;
+alter table public.match_message_reads enable row level security;
 
 -- users: own row
 drop policy if exists users_select_own on public.users;
@@ -283,6 +293,15 @@ create policy messages_insert on public.messages for insert with check (
   )
 );
 
+drop policy if exists match_message_reads_select_own on public.match_message_reads;
+create policy match_message_reads_select_own on public.match_message_reads for select using (auth.uid() = user_id);
+
+drop policy if exists match_message_reads_insert_own on public.match_message_reads;
+create policy match_message_reads_insert_own on public.match_message_reads for insert with check (auth.uid() = user_id);
+
+drop policy if exists match_message_reads_update_own on public.match_message_reads;
+create policy match_message_reads_update_own on public.match_message_reads for update using (auth.uid() = user_id);
+
 -- -----------------------------------------------------------------------------
 -- Grants (authenticated + anon for marketplace read via RLS)
 -- -----------------------------------------------------------------------------
@@ -293,6 +312,7 @@ grant select, insert, update, delete on public.intent_requests to authenticated;
 grant select on public.intent_requests to anon;
 grant select, insert, update on public.matches to authenticated;
 grant select, insert on public.messages to authenticated;
+grant select, insert, update on public.match_message_reads to authenticated;
 grant execute on function public.match_intents(vector, text, float, int, uuid) to authenticated;
 
 -- -----------------------------------------------------------------------------

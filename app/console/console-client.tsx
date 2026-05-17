@@ -25,7 +25,6 @@ import { PeerIdentityCard } from "@/components/peer-identity-card";
 import { IntentMustHavesCallout } from "@/components/intent-must-haves-callout";
 import { SenderPreviewBlock } from "@/components/sender-preview-block";
 import { useLanguage } from "@/components/language-provider";
-import { MergedMatchChatPanel } from "@/components/match-chat-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,7 +58,6 @@ type Props = {
   matches: MatchRow[];
   blockedPeerIds: string[];
   initialConsoleTab?: "intents" | "requests" | "connections";
-  initialOpenPeerId?: string | null;
   quotaSnapshot: {
     activeIntentCount: number;
     maxActiveIntents: number;
@@ -103,7 +101,6 @@ export function ConsoleClient({
   matches,
   blockedPeerIds,
   initialConsoleTab = "intents",
-  initialOpenPeerId = null,
   quotaSnapshot,
 }: Props) {
   const router = useRouter();
@@ -138,11 +135,7 @@ export function ConsoleClient({
     headline: string;
   } | null>(null);
 
-  const [activeTab, setActiveTab] = useState<"intents" | "requests" | "connections">(() =>
-    initialOpenPeerId ? "connections" : initialConsoleTab,
-  );
-
-  const [selectedPeerId, setSelectedPeerId] = useState<string | null>(() => initialOpenPeerId ?? null);
+  const [activeTab, setActiveTab] = useState<"intents" | "requests" | "connections">(() => initialConsoleTab);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createDraft, setCreateDraft] = useState("");
@@ -257,7 +250,6 @@ export function ConsoleClient({
       setError(res.message);
       return;
     }
-    setSelectedPeerId(null);
     await router.refresh();
   }
 
@@ -631,7 +623,7 @@ export function ConsoleClient({
                           </div>
                           <div className="flex shrink-0 flex-col items-stretch justify-center gap-3 md:w-44 md:items-end">
                             <Link
-                              href={`/console?tab=connections&peer=${encodeURIComponent(peerId)}`}
+                              href={`/messages?matchId=${encodeURIComponent(m.id)}`}
                               className={cn(
                                 buttonVariants({ variant: "default", size: "sm" }),
                                 "galaxy-btn-glow inline-flex justify-center border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25",
@@ -720,37 +712,29 @@ export function ConsoleClient({
                 </Card>
               ) : (
                 connectionsByPeer.map(([peerId, peerMatches]) => {
-                  const matchIds = peerMatches.map((m) => m.id);
                   const sendOnMatchId = peerMatches[0]?.id ?? "";
-                  const open = selectedPeerId === peerId;
                   const subtitle =
                     peerMatches.length > 1
                       ? t.multiIntroTpl.replace("{n}", String(peerMatches.length))
                       : peerMatches[0]?.introductory_context?.trim() || "";
                   return (
-                    <Card
-                      key={peerId}
-                      className={`border-white/10 bg-white/[0.035] backdrop-blur-xl transition-shadow ${open ? "ring-1 ring-sky-500/45 shadow-[0_0_24px_rgba(56,189,248,0.12)]" : ""}`}
-                    >
+                    <Card key={peerId} className="border-white/10 bg-white/[0.035] backdrop-blur-xl transition-shadow">
                       <CardHeader>
                         <CardTitle className="text-base text-slate-100">{t.mutualMatch}</CardTitle>
                         <CardDescription className="line-clamp-3 text-slate-400">{subtitle || "—"}</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <PeerIdentityCard peerUserId={peerId} showViewProfileButton />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="galaxy-btn-glow border-white/15 text-slate-200"
-                          onClick={() => setSelectedPeerId(open ? null : peerId)}
-                        >
-                          {open ? t.hideMessaging : t.openMessaging}
-                        </Button>
-                        {open && sendOnMatchId ? (
-                          <div className="min-h-0">
-                            <MergedMatchChatPanel matchIds={matchIds} sendOnMatchId={sendOnMatchId} userId={userId} />
-                          </div>
+                        {sendOnMatchId ? (
+                          <Link
+                            href={`/messages?matchId=${encodeURIComponent(sendOnMatchId)}`}
+                            className={cn(
+                              buttonVariants({ variant: "default", size: "sm" }),
+                              "galaxy-btn-glow inline-flex w-full justify-center border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 sm:w-auto",
+                            )}
+                          >
+                            {t.messagePeerCta}
+                          </Link>
                         ) : null}
                       </CardContent>
                     </Card>

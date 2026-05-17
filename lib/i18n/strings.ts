@@ -8,6 +8,7 @@ export const STRINGS = {
   en: {
     nav: {
       explore: "Explore",
+      messages: "Messages",
       manage: "Manage",
       profile: "Profile",
       signOut: "Sign out",
@@ -83,6 +84,21 @@ export const STRINGS = {
       empty: "Explore is quiet — check back when people publish public requests.",
       mustHavesHeading: "Must-haves",
     },
+    messagesPage: {
+      title: "Messages",
+      emptyTitle: "No conversations yet",
+      emptyBody: "When you accept a connection, your chats show up here.",
+      pickThread: "Select a conversation",
+      invalidMatchHint: "That link may be outdated — choose a thread from the list.",
+      back: "Back",
+      matchedOn: "Matched on:",
+      industryUnset: "Industry not set",
+      sendPlaceholder: "Write a message…",
+      send: "Send",
+      sending: "Sending…",
+      refresh: "Refresh",
+      loadThreadError: "Could not load messages.",
+    },
     console: {
       kicker: "Manage",
       title: "Your requests & connections",
@@ -154,7 +170,7 @@ export const STRINGS = {
       pendingBtn: "Waiting",
       connectionsTitle: "Active connections",
       connectionsDesc:
-        "People you've mutually accepted show up here — open a thread below to keep chatting.",
+        "People you've mutually accepted show up here — open Messages in the header to keep chatting.",
       noConnections: "No active connections yet.",
       mutualMatch: "Mutual match",
       multiIntroTpl: "{n} mutual introductions · shared thread",
@@ -375,6 +391,7 @@ export const STRINGS = {
   zh: {
     nav: {
       explore: "探索廣場",
+      messages: "訊息",
       manage: "管理中心",
       profile: "個人檔案",
       signOut: "登出",
@@ -449,6 +466,21 @@ export const STRINGS = {
       empty: "探索廣場目前很安靜——稍後再來看看是否有人公開徵求。",
       mustHavesHeading: "必備條件",
     },
+    messagesPage: {
+      title: "訊息",
+      emptyTitle: "尚無對話",
+      emptyBody: "當你與對方互相接受連結後，對話會顯示在這裡。",
+      pickThread: "請選擇一個對話",
+      invalidMatchHint: "連結可能已失效——請從左側清單選擇對話。",
+      back: "返回",
+      matchedOn: "配對來自：",
+      industryUnset: "未設定產業／領域",
+      sendPlaceholder: "輸入訊息…",
+      send: "傳送",
+      sending: "傳送中…",
+      refresh: "重新整理",
+      loadThreadError: "無法載入訊息。",
+    },
     console: {
       kicker: "管理中心",
       title: "你的徵求與連結",
@@ -518,7 +550,7 @@ export const STRINGS = {
       pendingBtn: "等待中",
       connectionsTitle: "進行中的連結",
       connectionsDesc:
-        "互相接受的對象會出現在這裡——在下方開啟對話即可繼續聊天。",
+        "互相接受的對象會出現在這裡——請到頂部「訊息」頁面繼續聊天。",
       noConnections: "尚無進行中的連結。",
       mutualMatch: "互相接受的配對",
       multiIntroTpl: "{n} 個互相介紹 · 合併對話",
