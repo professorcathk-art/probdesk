@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { bootstrapIntentFromLanding, completeOnboarding } from "@/actions/intents";
 import { createClient } from "@/lib/supabase/client";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
@@ -10,14 +10,14 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { TagInputField } from "@/components/tag-input-field";
+import { TagInputField, type TagInputFieldHandle } from "@/components/tag-input-field";
 import { useLanguage } from "@/components/language-provider";
 import {
   clearLandingIntentDraftBackups,
   MIN_INTENT_CHARS,
   readLandingIntentDraftBackup,
 } from "@/lib/intent-draft";
-import { PROFILE_CORE_MIN_BIO_LENGTH, PROFILE_GENDER_VALUES, type ProfileGenderValue } from "@/lib/profile-basics";
+import { PROFILE_CORE_MIN_BIO_LENGTH, PROFILE_GENDER_VALUES, PROFILE_SUPERPOWER_MAX, PROFILE_SUPERPOWER_MIN_PUBLISH, type ProfileGenderValue } from "@/lib/profile-basics";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
 
@@ -67,10 +67,14 @@ export default function OnboardingPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const skillsRef = useRef<TagInputFieldHandle>(null);
+  const langsRef = useRef<TagInputFieldHandle>(null);
+
   const [profile, setProfile] = useState({
     display_name: "",
     industry: "",
-    available_time: "",
+    intent_level: "",
+    superpower: "",
     location: "",
     bio: "",
     gender: "",
@@ -149,10 +153,12 @@ export default function OnboardingPage() {
     const answerPayload = Object.fromEntries(
       questions.map((q, idx) => [q, answers[idx] ?? ""]).filter(([, v]) => v.trim().length > 0),
     );
+    const skills_tags = skillsRef.current?.flushPending() ?? profile.skills_tags;
+    const languages = langsRef.current?.flushPending() ?? profile.languages;
     const res = await completeOnboarding({
       intentId,
       answers: answerPayload,
-      profile,
+      profile: { ...profile, skills_tags, languages },
     });
     setBusy(false);
     if (!res.ok) {
@@ -259,13 +265,39 @@ export default function OnboardingPage() {
                     className="border-white/10 bg-white/[0.03] text-slate-50"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-slate-200">{cx.profileAvailability}</Label>
-                  <Input
-                    value={profile.available_time}
-                    onChange={(e) => setProfile({ ...profile, available_time: e.target.value })}
-                    className="border-white/10 bg-white/[0.03] text-slate-50"
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-slate-200">{pr.intentLevelLabel}</Label>
+                  <p className="text-xs leading-relaxed text-slate-500">{pr.intentLevelDesc}</p>
+                  <select
+                    value={profile.intent_level}
+                    onChange={(e) => setProfile({ ...profile, intent_level: e.target.value })}
+                    className={cn(
+                      "h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-slate-50 outline-none focus-visible:border-sky-400/40 focus-visible:ring-2 focus-visible:ring-sky-500/30",
+                    )}
+                  >
+                    <option value="">{pr.intentLevelUnset}</option>
+                    <option value="casual_open">{pr.intentCasual}</option>
+                    <option value="intentional_seeking">{pr.intentIntentional}</option>
+                    <option value="focused_commit">{pr.intentFocused}</option>
+                  </select>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-slate-200">{pr.superpowerLabel}</Label>
+                  <p className="text-xs leading-relaxed text-slate-500">{pr.superpowerDesc}</p>
+                  <Textarea
+                    value={profile.superpower}
+                    maxLength={PROFILE_SUPERPOWER_MAX}
+                    onChange={(e) => setProfile({ ...profile, superpower: e.target.value })}
+                    placeholder={pr.superpowerPlaceholder}
+                    className="min-h-[88px] border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500"
                   />
+                  <p className="text-xs text-slate-500">
+                    {profile.superpower.trim().length}/{PROFILE_SUPERPOWER_MAX}
+                    {profile.superpower.trim().length > 0 &&
+                    profile.superpower.trim().length < PROFILE_SUPERPOWER_MIN_PUBLISH ? (
+                      <span className="mt-1 block text-amber-400/95">{pr.superpowerPublishHint}</span>
+                    ) : null}
+                  </p>
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label className="text-slate-200">{ob.genderLabel}</Label>
@@ -299,6 +331,7 @@ export default function OnboardingPage() {
                   <Label className="text-slate-200">{pr.skillsTraitsLabel}</Label>
                   <p className="text-xs leading-relaxed text-slate-500">{pr.skillsTraitsDesc}</p>
                   <TagInputField
+                    ref={skillsRef}
                     tags={profile.skills_tags}
                     onChange={(tags) => setProfile((p) => ({ ...p, skills_tags: tags }))}
                     maxTags={5}
@@ -309,6 +342,7 @@ export default function OnboardingPage() {
                   <Label className="text-slate-200">{pr.languagesLabel}</Label>
                   <p className="text-xs leading-relaxed text-slate-500">{pr.languagesDesc}</p>
                   <TagInputField
+                    ref={langsRef}
                     tags={profile.languages}
                     onChange={(tags) => setProfile((p) => ({ ...p, languages: tags }))}
                     maxTags={5}

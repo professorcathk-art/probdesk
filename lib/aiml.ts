@@ -216,10 +216,10 @@ export async function sanitizeProfilePreview(profile: {
   industry: string | null;
   location: string | null;
   bio: string | null;
-  available_time: string | null;
+  superpower: string | null;
   skills_tags?: string[] | null;
   languages?: string[] | null;
-  current_status?: string | null;
+  intent_level?: string | null;
 }): Promise<Record<string, unknown>> {
   const model = process.env.AIML_SANITIZE_MODEL ?? "gpt-4o-mini";
   const res = await fetch(`${base()}/chat/completions`, {

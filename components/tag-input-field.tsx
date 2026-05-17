@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { forwardRef, useImperativeHandle, useState } from "react";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { mergeDraftIntoTags } from "@/lib/tag-merge";
+
+export type TagInputFieldHandle = {
+  /** Merge draft into tags (comma-split or single token) and clear draft. */
+  flushPending: () => string[];
+};
 
 type Props = {
   tags: string[];
@@ -12,10 +18,13 @@ type Props = {
   placeholder: string;
 };
 
-export function TagInputField({ tags, onChange, maxTags, placeholder }: Props) {
+export const TagInputField = forwardRef<TagInputFieldHandle, Props>(function TagInputField(
+  { tags, onChange, maxTags, placeholder },
+  ref,
+) {
   const [draft, setDraft] = useState("");
 
-  function commit() {
+  function commitSingle() {
     const v = draft.trim();
     if (!v || tags.length >= maxTags) return;
     const exists = tags.some((t) => t.toLowerCase() === v.toLowerCase());
@@ -23,6 +32,15 @@ export function TagInputField({ tags, onChange, maxTags, placeholder }: Props) {
     onChange([...tags, v]);
     setDraft("");
   }
+
+  useImperativeHandle(ref, () => ({
+    flushPending(): string[] {
+      const merged = mergeDraftIntoTags(tags, draft, maxTags);
+      if (draft.trim()) setDraft("");
+      if (merged !== tags) onChange(merged);
+      return merged;
+    },
+  }));
 
   return (
     <div className="space-y-2">
@@ -48,7 +66,7 @@ export function TagInputField({ tags, onChange, maxTags, placeholder }: Props) {
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
-            commit();
+            commitSingle();
           }
         }}
         placeholder={placeholder}
@@ -56,4 +74,4 @@ export function TagInputField({ tags, onChange, maxTags, placeholder }: Props) {
       />
     </div>
   );
-}
+});

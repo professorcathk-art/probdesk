@@ -21,7 +21,8 @@ type PeerRow = {
   location: string | null;
   skills_tags: string[] | null;
   languages: string[] | null;
-  current_status: string | null;
+  intent_level: string | null;
+  superpower: string | null;
   social_link: string | null;
   preferred_contact_channel: string | null;
   preferred_contact_detail: string | null;
@@ -47,21 +48,21 @@ function contactChannelLabel(
   }
 }
 
-function currentStatusLabel(
-  p: {
-    statusExploring: string;
-    statusReady: string;
-    statusCommitted: string;
+function intentLevelLabel(
+  pr: {
+    intentCasual: string;
+    intentIntentional: string;
+    intentFocused: string;
   },
   key: string | null,
 ): string {
   switch (key) {
-    case "exploring":
-      return p.statusExploring;
-    case "ready_to_build":
-      return p.statusReady;
-    case "fully_committed":
-      return p.statusCommitted;
+    case "casual_open":
+      return pr.intentCasual;
+    case "intentional_seeking":
+      return pr.intentIntentional;
+    case "focused_commit":
+      return pr.intentFocused;
     default:
       return key ?? "";
   }
@@ -91,7 +92,7 @@ export function PeerIdentityCard({
       const { data } = await supabase
         .from("profiles")
         .select(
-          "display_name, industry, avatar_url, bio, location, skills_tags, languages, current_status, social_link, preferred_contact_channel, preferred_contact_detail",
+          "display_name, industry, avatar_url, bio, location, skills_tags, languages, intent_level, superpower, social_link, preferred_contact_channel, preferred_contact_detail",
         )
         .eq("user_id", peerUserId)
         .maybeSingle();
@@ -150,10 +151,16 @@ export function PeerIdentityCard({
           </div>
         </div>
       ) : null}
-      {peer.current_status ? (
+      {peer.intent_level ? (
         <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.peerProfileStatus}</p>
-          <p className="mt-2 text-slate-200">{currentStatusLabel(p, peer.current_status)}</p>
+          <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.peerProfileIntentLevel}</p>
+          <p className="mt-2 text-slate-200">{intentLevelLabel(p, peer.intent_level)}</p>
+        </div>
+      ) : null}
+      {peer.superpower?.trim() ? (
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.peerProfileSuperpower}</p>
+          <p className="mt-2 leading-relaxed text-slate-200">{peer.superpower.trim()}</p>
         </div>
       ) : null}
       {revealSensitiveDetails && peer.social_link ? (

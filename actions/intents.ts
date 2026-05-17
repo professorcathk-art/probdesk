@@ -10,6 +10,8 @@ import {
 } from "@/lib/aiml";
 import { formatProfileMatchingSnippet } from "@/lib/profile-matching-snippet";
 import { validateProfileBasicsForPublish } from "@/lib/profile-basics";
+import { parseIntentLevel } from "@/lib/profile-intent-level";
+import { normalizeProfileTags } from "@/lib/profile-tags";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
 
@@ -155,7 +157,8 @@ export async function completeOnboarding(params: {
   profile: {
     display_name?: string;
     industry?: string;
-    available_time?: string;
+    intent_level?: string;
+    superpower?: string;
     location?: string;
     bio?: string;
     gender?: string;
@@ -180,7 +183,8 @@ export async function completeOnboarding(params: {
     bio: params.profile.bio,
     location: params.profile.location,
     industry: params.profile.industry,
-    available_time: params.profile.available_time,
+    intent_level: params.profile.intent_level,
+    superpower: params.profile.superpower,
     gender: params.profile.gender,
     skills_tags: params.profile.skills_tags ?? [],
     languages: params.profile.languages ?? [],
@@ -216,15 +220,23 @@ export async function completeOnboarding(params: {
 
   const genderTrim = params.profile.gender?.trim() ?? "";
 
-  const skillTags = (params.profile.skills_tags ?? []).map((s) => s.trim()).filter(Boolean).slice(0, 5);
-  const langTags = (params.profile.languages ?? []).map((s) => s.trim()).filter(Boolean).slice(0, 5);
+  const intent_level = parseIntentLevel(params.profile.intent_level ?? "");
+  if (!intent_level) {
+    return { ok: false as const, code: "PROFILE_INCOMPLETE" as const };
+  }
+
+  const superpowerTrim = params.profile.superpower?.trim() ?? "";
+
+  const skillTags = normalizeProfileTags(params.profile.skills_tags ?? [], 5);
+  const langTags = normalizeProfileTags(params.profile.languages ?? [], 5);
 
   const { error: profileError } = await supabase.from("profiles").upsert(
     {
       user_id: user.id,
       display_name: params.profile.display_name ?? null,
       industry: params.profile.industry ?? null,
-      available_time: params.profile.available_time ?? null,
+      intent_level,
+      superpower: superpowerTrim || null,
       location: params.profile.location ?? null,
       bio: params.profile.bio ?? null,
       gender: genderTrim || null,
@@ -291,7 +303,7 @@ export async function setIntentMarketplacePublic(intentId: string, isPublic: boo
   if (isPublic) {
     const { data: prof, error: profErr } = await supabase
       .from("profiles")
-      .select("display_name, bio, location, industry, available_time, gender, skills_tags, languages")
+      .select("display_name, bio, location, industry, intent_level, superpower, gender, skills_tags, languages")
       .eq("user_id", user.id)
       .maybeSingle();
     if (profErr) return { ok: false as const, message: profErr.message };
@@ -419,14 +431,14 @@ export async function computeHybridSuggestions(intentId: string): Promise<
 
   const { data: senderProf } = await supabase
     .from("profiles")
-    .select("bio, industry, skills_tags, languages, current_status")
+    .select("bio, industry, skills_tags, languages, intent_level, superpower")
     .eq("user_id", user.id)
     .maybeSingle();
 
   const ownerIds = [...new Set(pool.map((r) => r.owner_user_id))];
   const { data: ownerProfiles } = await supabase
     .from("profiles")
-    .select("user_id, bio, industry, skills_tags, languages, current_status")
+    .select("user_id, bio, industry, skills_tags, languages, intent_level, superpower")
     .in("user_id", ownerIds);
 
   const profMap = new Map((ownerProfiles ?? []).map((p) => [p.user_id as string, p]));
@@ -440,14 +452,16 @@ export async function computeHybridSuggestions(intentId: string): Promise<
           industry: senderProf?.industry ?? null,
           skills_tags: senderProf?.skills_tags ?? null,
           languages: senderProf?.languages ?? null,
-          current_status: senderProf?.current_status ?? null,
+          intent_level: senderProf?.intent_level ?? null,
+          superpower: senderProf?.superpower ?? null,
         });
         const candidateSnippet = formatProfileMatchingSnippet({
           bio: cand?.bio ?? null,
           industry: cand?.industry ?? null,
           skills_tags: cand?.skills_tags ?? null,
           languages: cand?.languages ?? null,
-          current_status: cand?.current_status ?? null,
+          intent_level: cand?.intent_level ?? null,
+          superpower: cand?.superpower ?? null,
         });
         const vibe = await vibeCheckWith4o({
           senderIntent: intent.natural_language_input,
@@ -517,7 +531,7 @@ export async function createConsoleIntent(naturalLanguageInput: string, location
   if ((existingCount ?? 0) === 0) {
     const { data: prof, error: profErr } = await supabase
       .from("profiles")
-      .select("display_name, bio, location, industry, available_time, gender, skills_tags, languages")
+      .select("display_name, bio, location, industry, intent_level, superpower, gender, skills_tags, languages")
       .eq("user_id", user.id)
       .maybeSingle();
     if (profErr) return { ok: false as const, message: profErr.message };

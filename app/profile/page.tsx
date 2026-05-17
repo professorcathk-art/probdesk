@@ -36,13 +36,13 @@ export default async function ProfilePage({
           bio: null,
           location: null,
           industry: null,
-          available_time: null,
+          superpower: null,
           gender: null,
           preferred_contact_channel: null,
           preferred_contact_detail: null,
           skills_tags: [],
           languages: [],
-          current_status: null,
+          intent_level: null,
           social_link: null,
         }
       : profileRes;

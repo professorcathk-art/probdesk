@@ -24,7 +24,7 @@ export type AdminIntentRow = {
   profile_display_name: string | null;
   profile_location: string | null;
   profile_industry: string | null;
-  profile_available_time: string | null;
+  profile_superpower: string | null;
 };
 
 export type AdminMatchTrackerRow = {
@@ -86,8 +86,8 @@ export async function adminListDirectory(): Promise<
     const userIds = [...new Set((intentsRaw ?? []).map((i) => i.user_id))];
     const { data: profiles } =
       userIds.length > 0
-        ? await svc.from("profiles").select("user_id, display_name, location, industry, available_time").in("user_id", userIds)
-        : { data: [] as { user_id: string; display_name: string | null; location: string | null; industry: string | null; available_time: string | null }[] };
+        ? await svc.from("profiles").select("user_id, display_name, location, industry, superpower").in("user_id", userIds)
+        : { data: [] as { user_id: string; display_name: string | null; location: string | null; industry: string | null; superpower: string | null }[] };
 
     const profileByUser = new Map((profiles ?? []).map((p) => [p.user_id, p]));
 
@@ -98,7 +98,7 @@ export async function adminListDirectory(): Promise<
         profile_display_name: p?.display_name ?? null,
         profile_location: p?.location ?? null,
         profile_industry: p?.industry ?? null,
-        profile_available_time: p?.available_time ?? null,
+        profile_superpower: p?.superpower ?? null,
       };
     });
 

@@ -156,8 +156,8 @@ export default function AdminDashboard() {
                     {i.profile_industry ?? "—"}
                   </p>
                   <p>
-                    <span className="text-slate-500">Availability · </span>
-                    {i.profile_available_time ?? "—"}
+                    <span className="text-slate-500">Superpower · </span>
+                    {i.profile_superpower ?? "—"}
                   </p>
                 </div>
                 <p className="mt-2 text-xs text-slate-500">

@@ -2,26 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { CURRENT_STATUS_KEYS, type CurrentStatusKey } from "@/lib/profile-current-status";
-import { parseProfileGender, PROFILE_CORE_MIN_BIO_LENGTH } from "@/lib/profile-basics";
+import { PROFILE_CORE_MIN_BIO_LENGTH, PROFILE_SUPERPOWER_MAX, parseProfileGender } from "@/lib/profile-basics";
+import { parseIntentLevel } from "@/lib/profile-intent-level";
+import { normalizeProfileTags } from "@/lib/profile-tags";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_TAGS = 5;
-
-function normalizeTags(raw: string[], max: number): string[] {
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const x of raw) {
-    const v = String(x).trim();
-    if (!v || out.length >= max) continue;
-    const k = v.toLowerCase();
-    if (seen.has(k)) continue;
-    seen.add(k);
-    out.push(v);
-  }
-  return out;
-}
 
 function parseSocialLink(raw: string): string | null {
   const t = raw.trim();
@@ -38,12 +25,6 @@ function parseSocialLink(raw: string): string | null {
   }
   if (u.protocol !== "http:" && u.protocol !== "https:") return null;
   return u.toString();
-}
-
-function parseCurrentStatus(raw: string): CurrentStatusKey | null {
-  const t = raw.trim();
-  if (!t) return null;
-  return (CURRENT_STATUS_KEYS as readonly string[]).includes(t) ? (t as CurrentStatusKey) : null;
 }
 
 /** Prefer browser → Supabase Storage from `ConsoleAvatarUpload` to avoid platform body limits (413). */
@@ -108,13 +89,13 @@ export type ProfileIdentity = {
   bio: string | null;
   location: string | null;
   industry: string | null;
-  available_time: string | null;
+  superpower: string | null;
   gender: string | null;
   preferred_contact_channel: string | null;
   preferred_contact_detail: string | null;
   skills_tags: string[];
   languages: string[];
-  current_status: string | null;
+  intent_level: string | null;
   social_link: string | null;
 };
 
@@ -128,7 +109,7 @@ export async function getMyProfileIdentity(): Promise<ProfileIdentity | { error:
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "display_name, bio, location, industry, available_time, gender, preferred_contact_channel, preferred_contact_detail, skills_tags, languages, current_status, social_link",
+      "display_name, bio, location, industry, superpower, gender, preferred_contact_channel, preferred_contact_detail, skills_tags, languages, intent_level, social_link",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -139,13 +120,13 @@ export async function getMyProfileIdentity(): Promise<ProfileIdentity | { error:
     bio: data?.bio ?? null,
     location: data?.location ?? null,
     industry: data?.industry ?? null,
-    available_time: data?.available_time ?? null,
+    superpower: data?.superpower ?? null,
     gender: data?.gender ?? null,
     preferred_contact_channel: data?.preferred_contact_channel ?? null,
     preferred_contact_detail: data?.preferred_contact_detail ?? null,
     skills_tags: Array.isArray(data?.skills_tags) ? (data!.skills_tags as string[]) : [],
     languages: Array.isArray(data?.languages) ? (data!.languages as string[]) : [],
-    current_status: data?.current_status ?? null,
+    intent_level: data?.intent_level ?? null,
     social_link: data?.social_link ?? null,
   };
 }
@@ -155,13 +136,13 @@ export async function updateMyProfileIdentity(fields: {
   bio: string;
   location: string;
   industry: string;
-  available_time: string;
+  superpower: string;
   gender: string;
   preferred_contact_channel?: string;
   preferred_contact_detail?: string;
   skills_tags: string[];
   languages: string[];
-  current_status: string;
+  intent_level: string;
   social_link: string;
 }) {
   const supabase = await createClient();
@@ -188,8 +169,8 @@ export async function updateMyProfileIdentity(fields: {
     return { ok: false as const, message: "Invalid gender selection." };
   }
 
-  const skills_tags = normalizeTags(fields.skills_tags ?? [], MAX_TAGS);
-  const languages = normalizeTags(fields.languages ?? [], MAX_TAGS);
+  const skills_tags = normalizeProfileTags(fields.skills_tags ?? [], MAX_TAGS);
+  const languages = normalizeProfileTags(fields.languages ?? [], MAX_TAGS);
 
   if (fields.bio.trim().length < PROFILE_CORE_MIN_BIO_LENGTH) {
     return {
@@ -198,16 +179,24 @@ export async function updateMyProfileIdentity(fields: {
     };
   }
   if (skills_tags.length === 0) {
-    return { ok: false as const, message: "Add at least one keyword (skill, interest, or trait)." };
+    return { ok: false as const, message: "Add at least one keyword (interest or trait)." };
   }
   if (languages.length === 0) {
     return { ok: false as const, message: "Add at least one language." };
   }
 
-  const csRaw = fields.current_status?.trim() ?? "";
-  const current_status = csRaw ? parseCurrentStatus(csRaw) : null;
-  if (csRaw && !current_status) {
-    return { ok: false as const, message: "Invalid current status." };
+  const ilRaw = fields.intent_level?.trim() ?? "";
+  const intent_level = ilRaw ? parseIntentLevel(ilRaw) : null;
+  if (ilRaw && !intent_level) {
+    return { ok: false as const, message: "Invalid intent level." };
+  }
+
+  const superTrim = fields.superpower?.trim() ?? "";
+  if (superTrim.length > PROFILE_SUPERPOWER_MAX) {
+    return {
+      ok: false as const,
+      message: `What you offer must be at most ${PROFILE_SUPERPOWER_MAX} characters.`,
+    };
   }
 
   const socialParsed = parseSocialLink(fields.social_link ?? "");
@@ -224,13 +213,13 @@ export async function updateMyProfileIdentity(fields: {
         bio: fields.bio.trim() || null,
         location: fields.location.trim() || null,
         industry: fields.industry.trim() || null,
-        available_time: fields.available_time.trim() || null,
+        superpower: superTrim || null,
         gender: genderResolved,
         preferred_contact_channel: hasPair ? chRaw : null,
         preferred_contact_detail: hasPair ? detRaw : null,
         skills_tags,
         languages,
-        current_status,
+        intent_level,
         social_link: socialParsed,
         updated_at: new Date().toISOString(),
       },

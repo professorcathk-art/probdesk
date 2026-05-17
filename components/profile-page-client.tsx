@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ProfileIdentity } from "@/actions/profile";
 import { updateMyProfileIdentity } from "@/actions/profile";
@@ -8,13 +8,20 @@ import { signOut } from "@/actions/auth";
 import { ConsoleAvatarUpload } from "@/components/console-avatar-upload";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { useLanguage } from "@/components/language-provider";
-import { TagInputField } from "@/components/tag-input-field";
+import { TagInputField, type TagInputFieldHandle } from "@/components/tag-input-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PROFILE_CORE_MIN_BIO_LENGTH, PROFILE_GENDER_VALUES, type ProfileCoreFieldKey, type ProfileGenderValue } from "@/lib/profile-basics";
+import {
+  PROFILE_CORE_MIN_BIO_LENGTH,
+  PROFILE_GENDER_VALUES,
+  PROFILE_SUPERPOWER_MAX,
+  PROFILE_SUPERPOWER_MIN_PUBLISH,
+  type ProfileCoreFieldKey,
+  type ProfileGenderValue,
+} from "@/lib/profile-basics";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -24,14 +31,17 @@ type Props = {
   coreFieldIssues?: ProfileCoreFieldKey[];
 };
 
-function profileCoreIssueText(labels: {
-  coreIssueDisplayName: string;
-  coreIssueBio: string;
-  coreIssueLocation: string;
-  coreIssueIndustry: string;
-  coreIssueSkillsTags: string;
-  coreIssueLanguages: string;
-}, key: ProfileCoreFieldKey): string {
+function profileCoreIssueText(
+  labels: {
+    coreIssueDisplayName: string;
+    coreIssueBio: string;
+    coreIssueLocation: string;
+    coreIssueIndustry: string;
+    coreIssueSkillsTags: string;
+    coreIssueLanguages: string;
+  },
+  key: ProfileCoreFieldKey,
+): string {
   switch (key) {
     case "display_name":
       return labels.coreIssueDisplayName;
@@ -52,13 +62,16 @@ function profileCoreIssueText(labels: {
   }
 }
 
-function genderLabel(cx: {
-  genderWoman: string;
-  genderMan: string;
-  genderNonBinary: string;
-  genderPreferNotSay: string;
-  genderOther: string;
-}, value: ProfileGenderValue): string {
+function genderLabel(
+  cx: {
+    genderWoman: string;
+    genderMan: string;
+    genderNonBinary: string;
+    genderPreferNotSay: string;
+    genderOther: string;
+  },
+  value: ProfileGenderValue,
+): string {
   switch (value) {
     case "woman":
       return cx.genderWoman;
@@ -89,17 +102,20 @@ export function ProfilePageClient({
   const t = strings.console;
   const ob = strings.onboarding;
 
+  const skillsRef = useRef<TagInputFieldHandle>(null);
+  const langsRef = useRef<TagInputFieldHandle>(null);
+
   const [pfName, setPfName] = useState(profileIdentity.display_name ?? "");
   const [pfBio, setPfBio] = useState(profileIdentity.bio ?? "");
   const [pfLoc, setPfLoc] = useState(profileIdentity.location ?? "");
   const [pfInd, setPfInd] = useState(profileIdentity.industry ?? "");
-  const [pfAvail, setPfAvail] = useState(profileIdentity.available_time ?? "");
+  const [pfSuper, setPfSuper] = useState(profileIdentity.superpower ?? "");
   const [pfGender, setPfGender] = useState(profileIdentity.gender ?? "");
   const [pfContactCh, setPfContactCh] = useState(profileIdentity.preferred_contact_channel ?? "");
   const [pfContactDet, setPfContactDet] = useState(profileIdentity.preferred_contact_detail ?? "");
   const [pfSkills, setPfSkills] = useState<string[]>(profileIdentity.skills_tags ?? []);
   const [pfLangs, setPfLangs] = useState<string[]>(profileIdentity.languages ?? []);
-  const [pfStatus, setPfStatus] = useState(profileIdentity.current_status ?? "");
+  const [pfIntent, setPfIntent] = useState(profileIdentity.intent_level ?? "");
   const [pfSocial, setPfSocial] = useState(profileIdentity.social_link ?? "");
   const [pfBusy, setPfBusy] = useState(false);
   const [pfNote, setPfNote] = useState<string | null>(null);
@@ -111,26 +127,26 @@ export function ProfilePageClient({
     setPfBio(profileIdentity.bio ?? "");
     setPfLoc(profileIdentity.location ?? "");
     setPfInd(profileIdentity.industry ?? "");
-    setPfAvail(profileIdentity.available_time ?? "");
+    setPfSuper(profileIdentity.superpower ?? "");
     setPfGender(profileIdentity.gender ?? "");
     setPfContactCh(profileIdentity.preferred_contact_channel ?? "");
     setPfContactDet(profileIdentity.preferred_contact_detail ?? "");
     setPfSkills(profileIdentity.skills_tags ?? []);
     setPfLangs(profileIdentity.languages ?? []);
-    setPfStatus(profileIdentity.current_status ?? "");
+    setPfIntent(profileIdentity.intent_level ?? "");
     setPfSocial(profileIdentity.social_link ?? "");
   }, [
     profileIdentity.display_name,
     profileIdentity.bio,
     profileIdentity.location,
     profileIdentity.industry,
-    profileIdentity.available_time,
+    profileIdentity.superpower,
     profileIdentity.gender,
     profileIdentity.preferred_contact_channel,
     profileIdentity.preferred_contact_detail,
     profileIdentity.skills_tags,
     profileIdentity.languages,
-    profileIdentity.current_status,
+    profileIdentity.intent_level,
     profileIdentity.social_link,
   ]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -139,18 +155,20 @@ export function ProfilePageClient({
     setPfBusy(true);
     setPfNote(null);
     setError(null);
+    const skills_tags = skillsRef.current?.flushPending() ?? pfSkills;
+    const languages = langsRef.current?.flushPending() ?? pfLangs;
     const res = await updateMyProfileIdentity({
       display_name: pfName,
       bio: pfBio,
       location: pfLoc,
       industry: pfInd,
-      available_time: pfAvail,
+      superpower: pfSuper,
       gender: pfGender,
       preferred_contact_channel: pfContactCh,
       preferred_contact_detail: pfContactDet,
-      skills_tags: pfSkills,
-      languages: pfLangs,
-      current_status: pfStatus,
+      skills_tags,
+      languages,
+      intent_level: pfIntent,
       social_link: pfSocial,
     });
     setPfBusy(false);
@@ -162,6 +180,8 @@ export function ProfilePageClient({
     router.replace("/profile");
     await router.refresh();
   }
+
+  const superLen = pfSuper.trim().length;
 
   return (
     <div className="relative min-h-screen text-slate-50">
@@ -257,6 +277,7 @@ export function ProfilePageClient({
               <Label className="text-slate-300">{p.skillsTraitsLabel}</Label>
               <p className="text-xs leading-relaxed text-slate-500">{p.skillsTraitsDesc}</p>
               <TagInputField
+                ref={skillsRef}
                 tags={pfSkills}
                 onChange={setPfSkills}
                 maxTags={5}
@@ -265,21 +286,22 @@ export function ProfilePageClient({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="pf-status" className="text-slate-300">
-                {p.currentStatusLabel}
+              <Label htmlFor="pf-intent" className="text-slate-300">
+                {p.intentLevelLabel}
               </Label>
+              <p className="text-xs leading-relaxed text-slate-500">{p.intentLevelDesc}</p>
               <select
-                id="pf-status"
-                value={pfStatus}
-                onChange={(e) => setPfStatus(e.target.value)}
+                id="pf-intent"
+                value={pfIntent}
+                onChange={(e) => setPfIntent(e.target.value)}
                 className={cn(
                   "h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-slate-50 outline-none focus-visible:border-sky-400/40 focus-visible:ring-2 focus-visible:ring-sky-500/30",
                 )}
               >
-                <option value="">{p.statusUnset}</option>
-                <option value="exploring">{p.statusExploring}</option>
-                <option value="ready_to_build">{p.statusReady}</option>
-                <option value="fully_committed">{p.statusCommitted}</option>
+                <option value="">{p.intentLevelUnset}</option>
+                <option value="casual_open">{p.intentCasual}</option>
+                <option value="intentional_seeking">{p.intentIntentional}</option>
+                <option value="focused_commit">{p.intentFocused}</option>
               </select>
             </div>
 
@@ -287,6 +309,7 @@ export function ProfilePageClient({
               <Label className="text-slate-300">{p.languagesLabel}</Label>
               <p className="text-xs leading-relaxed text-slate-500">{p.languagesDesc}</p>
               <TagInputField
+                ref={langsRef}
                 tags={pfLangs}
                 onChange={setPfLangs}
                 maxTags={5}
@@ -311,16 +334,26 @@ export function ProfilePageClient({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="pf-avail" className="text-slate-300">
-                {t.profileAvailability}
+              <Label htmlFor="pf-super" className="text-slate-300">
+                {p.superpowerLabel}
               </Label>
-              <Input
-                id="pf-avail"
-                value={pfAvail}
-                onChange={(e) => setPfAvail(e.target.value)}
-                className="border-white/10 bg-white/[0.03] text-slate-50"
+              <p className="text-xs leading-relaxed text-slate-500">{p.superpowerDesc}</p>
+              <Textarea
+                id="pf-super"
+                value={pfSuper}
+                maxLength={PROFILE_SUPERPOWER_MAX}
+                onChange={(e) => setPfSuper(e.target.value)}
+                placeholder={p.superpowerPlaceholder}
+                className="min-h-[88px] border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500"
               />
+              <p className="text-xs text-slate-500">
+                {superLen}/{PROFILE_SUPERPOWER_MAX}
+                {superLen > 0 && superLen < PROFILE_SUPERPOWER_MIN_PUBLISH ? (
+                  <span className="mt-1 block text-amber-400/95">{p.superpowerPublishHint}</span>
+                ) : null}
+              </p>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="pf-gender" className="text-slate-300">
                 {t.profileGender}

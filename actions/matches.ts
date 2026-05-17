@@ -130,14 +130,14 @@ export async function initiateConnection(params: {
   const { data: senderProfile } = await supabase
     .from("profiles")
     .select(
-      "display_name, industry, location, bio, available_time, skills_tags, languages, current_status",
+      "display_name, industry, location, bio, superpower, skills_tags, languages, intent_level",
     )
     .eq("user_id", user.id)
     .maybeSingle();
 
   const { data: receiverProfile } = await supabase
     .from("profiles")
-    .select("bio, industry, skills_tags, languages, current_status")
+    .select("bio, industry, skills_tags, languages, intent_level, superpower")
     .eq("user_id", receiverId)
     .maybeSingle();
 
@@ -148,14 +148,16 @@ export async function initiateConnection(params: {
         industry: senderProfile?.industry ?? null,
         skills_tags: senderProfile?.skills_tags ?? null,
         languages: senderProfile?.languages ?? null,
-        current_status: senderProfile?.current_status ?? null,
+        intent_level: senderProfile?.intent_level ?? null,
+        superpower: senderProfile?.superpower ?? null,
       });
       const candidateSnippet = formatProfileMatchingSnippet({
         bio: receiverProfile?.bio ?? null,
         industry: receiverProfile?.industry ?? null,
         skills_tags: receiverProfile?.skills_tags ?? null,
         languages: receiverProfile?.languages ?? null,
-        current_status: receiverProfile?.current_status ?? null,
+        intent_level: receiverProfile?.intent_level ?? null,
+        superpower: receiverProfile?.superpower ?? null,
       });
       const vibe = await vibeCheckWith4o({
         senderIntent: senderIntent.natural_language_input,
@@ -183,10 +185,10 @@ export async function initiateConnection(params: {
         industry: senderProfile.industry,
         location: senderProfile.location,
         bio: senderProfile.bio,
-        available_time: senderProfile.available_time,
+        superpower: senderProfile.superpower,
         skills_tags: senderProfile.skills_tags,
         languages: senderProfile.languages,
-        current_status: senderProfile.current_status,
+        intent_level: senderProfile.intent_level,
       });
     }
   } catch {

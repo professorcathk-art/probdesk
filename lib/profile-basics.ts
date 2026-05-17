@@ -1,15 +1,22 @@
+import { parseIntentLevel } from "@/lib/profile-intent-level";
+
 /** Values persisted in `profiles.gender` (migration 050). */
 export const PROFILE_GENDER_VALUES = ["woman", "man", "non_binary", "prefer_not_say", "other"] as const;
 export type ProfileGenderValue = (typeof PROFILE_GENDER_VALUES)[number];
 
 const ALLOWED_GENDER = new Set<string>(PROFILE_GENDER_VALUES);
 
+/** Publish / listing gate — short value-offer line for matching. */
+export const PROFILE_SUPERPOWER_MIN_PUBLISH = 8;
+export const PROFILE_SUPERPOWER_MAX = 150;
+
 export type ProfileBasicsInput = {
   display_name?: string | null;
   bio?: string | null;
   location?: string | null;
   industry?: string | null;
-  available_time?: string | null;
+  intent_level?: string | null;
+  superpower?: string | null;
   gender?: string | null;
   skills_tags?: string[] | null;
   languages?: string[] | null;
@@ -20,7 +27,7 @@ export const PROFILE_CORE_MIN_BIO_LENGTH = 20;
 
 /** Server-side hint when core routing gate fails (English; UI uses localized `profilePage` strings). */
 export const PROFILE_CORE_INCOMPLETE_MSG =
-  "Complete required profile fields: display name, bio, location, industry, at least one keyword (skills/interests/traits), and at least one language.";
+  "Complete required profile fields: display name, bio, location, industry, at least one keyword (interests/traits), and at least one language.";
 
 export type ProfileCoreInput = Pick<
   ProfileBasicsInput,
@@ -82,7 +89,7 @@ export function getProfileCoreFieldIssues(row: ProfileCoreInput): ProfileCoreFie
 
 /** Publish / Explore listing / first console intent (server validation). */
 export const PROFILE_BASICS_INCOMPLETE_MSG =
-  "Complete your profile: display name, bio (at least 20 characters), location, industry, availability, gender, at least one keyword (skills, interests, or traits), and at least one spoken language.";
+  "Complete your profile: display name, bio (at least 20 characters), location, industry, intent level, a short what-you-offer line (8-150 characters), gender, at least one keyword (interests or traits), and at least one spoken language.";
 
 export function validateProfileBasicsForPublish(
   input: ProfileBasicsInput,
@@ -91,8 +98,9 @@ export function validateProfileBasicsForPublish(
   const bio = input.bio?.trim() ?? "";
   const location = input.location?.trim() ?? "";
   const industry = input.industry?.trim() ?? "";
-  const available_time = input.available_time?.trim() ?? "";
+  const superpower = input.superpower?.trim() ?? "";
   const gender = input.gender?.trim() ?? "";
+  const intent_level = parseIntentLevel(input.intent_level);
   const tagCount = nonEmptyTags(input.skills_tags);
   const langCount = nonEmptyTags(input.languages);
 
@@ -100,7 +108,9 @@ export function validateProfileBasicsForPublish(
     !display_name ||
     !location ||
     !industry ||
-    !available_time ||
+    !intent_level ||
+    superpower.length < PROFILE_SUPERPOWER_MIN_PUBLISH ||
+    superpower.length > PROFILE_SUPERPOWER_MAX ||
     bio.length < PROFILE_CORE_MIN_BIO_LENGTH ||
     !ALLOWED_GENDER.has(gender) ||
     tagCount < 1 ||
