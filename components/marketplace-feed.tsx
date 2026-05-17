@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { MarketplaceListing } from "@/actions/marketplace";
+import { InviteQuotaPill } from "@/components/invite-quota-pill";
 import { useLanguage } from "@/components/language-provider";
 import { MarketplaceGrid } from "@/app/marketplace/marketplace-grid";
 import { buttonVariants } from "@/components/ui/button";
@@ -13,6 +14,11 @@ type Props = {
   pendingIntentIds: string[];
   highlightIntentId?: string | null;
   loadError?: string | null;
+  quotaSnapshot?: {
+    activeIntentCount: number;
+    maxActiveIntents: number;
+    unlimitedIntents: boolean;
+  } | null;
 };
 
 export function MarketplaceFeed({
@@ -21,6 +27,7 @@ export function MarketplaceFeed({
   pendingIntentIds,
   highlightIntentId,
   loadError,
+  quotaSnapshot = null,
 }: Props) {
   const { strings } = useLanguage();
 
@@ -31,6 +38,11 @@ export function MarketplaceFeed({
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">{strings.marketplace.kicker}</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">{strings.marketplace.title}</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">{strings.marketplace.description}</p>
+          {quotaSnapshot ? (
+            <div className="mt-4">
+              <InviteQuotaPill userId={currentUserId} quota={quotaSnapshot} />
+            </div>
+          ) : null}
         </div>
         <Link href="/console" className={cn(buttonVariants({ variant: "ghost" }), "text-sky-300/90 underline-offset-4 hover:underline")}>
           {strings.marketplace.backManage}

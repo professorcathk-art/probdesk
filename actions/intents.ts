@@ -10,9 +10,51 @@ import {
 } from "@/lib/aiml";
 import { formatProfileMatchingSnippet } from "@/lib/profile-matching-snippet";
 import { validateProfileBasicsForPublish } from "@/lib/profile-basics";
+import { isAdminEmail } from "@/lib/admin-emails";
+import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
 
 function vectorLiteral(vec: number[]): string {
   return `[${vec.join(",")}]`;
+}
+
+export type IntentLimitErrorCode = "MAX_ACTIVE_INTENTS";
+
+async function countActiveIntentsForUser(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("intent_requests")
+    .select("*", { head: true, count: "exact" })
+    .eq("user_id", userId)
+    .eq("status", "active");
+
+  if (error) return 0;
+  return count ?? 0;
+}
+
+export async function getConsoleQuotaSnapshot(): Promise<
+  | {
+      activeIntentCount: number;
+      maxActiveIntents: number;
+      unlimitedIntents: boolean;
+    }
+  | { error: string }
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const unlimitedIntents = isAdminEmail(user.email ?? undefined);
+  const activeIntentCount = await countActiveIntentsForUser(supabase, user.id);
+
+  return {
+    activeIntentCount,
+    maxActiveIntents: MAX_ACTIVE_INTENTS_PER_USER,
+    unlimitedIntents,
+  };
 }
 
 export type IntentRow = {
@@ -33,6 +75,17 @@ export async function bootstrapIntentFromLanding(naturalLanguageInput: string) {
 
   if (userError || !user) {
     return { ok: false as const, message: "Not authenticated" };
+  }
+
+  if (!isAdminEmail(user.email ?? undefined)) {
+    const active = await countActiveIntentsForUser(supabase, user.id);
+    if (active >= MAX_ACTIVE_INTENTS_PER_USER) {
+      return {
+        ok: false as const,
+        message: "MAX_ACTIVE_INTENTS",
+        code: "MAX_ACTIVE_INTENTS" as const,
+      };
+    }
   }
 
   const trimmed = naturalLanguageInput.trim();
@@ -108,6 +161,8 @@ export async function completeOnboarding(params: {
     gender?: string;
     preferred_contact_channel?: "whatsapp" | "line" | "wechat" | "" | null;
     preferred_contact_detail?: string;
+    skills_tags?: string[];
+    languages?: string[];
   };
 }) {
   const supabase = await createClient();
@@ -127,9 +182,11 @@ export async function completeOnboarding(params: {
     industry: params.profile.industry,
     available_time: params.profile.available_time,
     gender: params.profile.gender,
+    skills_tags: params.profile.skills_tags ?? [],
+    languages: params.profile.languages ?? [],
   });
   if (!basics.ok) {
-    return { ok: false as const, message: basics.message };
+    return { ok: false as const, code: "PROFILE_INCOMPLETE" as const };
   }
 
   const chRaw = params.profile.preferred_contact_channel?.trim() ?? "";
@@ -159,6 +216,9 @@ export async function completeOnboarding(params: {
 
   const genderTrim = params.profile.gender?.trim() ?? "";
 
+  const skillTags = (params.profile.skills_tags ?? []).map((s) => s.trim()).filter(Boolean).slice(0, 5);
+  const langTags = (params.profile.languages ?? []).map((s) => s.trim()).filter(Boolean).slice(0, 5);
+
   const { error: profileError } = await supabase.from("profiles").upsert(
     {
       user_id: user.id,
@@ -170,6 +230,8 @@ export async function completeOnboarding(params: {
       gender: genderTrim || null,
       preferred_contact_channel: hasPair ? chRaw : null,
       preferred_contact_detail: hasPair ? detRaw : null,
+      skills_tags: skillTags,
+      languages: langTags,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },
@@ -229,7 +291,7 @@ export async function setIntentMarketplacePublic(intentId: string, isPublic: boo
   if (isPublic) {
     const { data: prof, error: profErr } = await supabase
       .from("profiles")
-      .select("display_name, bio, location, industry, available_time, gender")
+      .select("display_name, bio, location, industry, available_time, gender, skills_tags, languages")
       .eq("user_id", user.id)
       .maybeSingle();
     if (profErr) return { ok: false as const, message: profErr.message };
@@ -250,12 +312,34 @@ export async function setIntentMarketplacePublic(intentId: string, isPublic: boo
   return { ok: true as const };
 }
 
-export async function setIntentStatus(intentId: string, status: "active" | "paused") {
+export async function setIntentStatus(
+  intentId: string,
+  status: "active" | "paused",
+): Promise<{ ok: true } | { ok: false; message: string; code?: IntentLimitErrorCode }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, message: "Not authenticated" };
+
+  if (status === "active" && !isAdminEmail(user.email ?? undefined)) {
+    const { data: row } = await supabase
+      .from("intent_requests")
+      .select("status")
+      .eq("id", intentId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (row?.status === "paused") {
+      const active = await countActiveIntentsForUser(supabase, user.id);
+      if (active >= MAX_ACTIVE_INTENTS_PER_USER) {
+        return {
+          ok: false as const,
+          message: "MAX_ACTIVE_INTENTS",
+          code: "MAX_ACTIVE_INTENTS" as const,
+        };
+      }
+    }
+  }
 
   const { error } = await supabase
     .from("intent_requests")
@@ -419,10 +503,21 @@ export async function createConsoleIntent(naturalLanguageInput: string, location
     return { ok: false as const, message: countErr.message };
   }
 
+  if (!isAdminEmail(user.email ?? undefined)) {
+    const active = await countActiveIntentsForUser(supabase, user.id);
+    if (active >= MAX_ACTIVE_INTENTS_PER_USER) {
+      return {
+        ok: false as const,
+        message: "MAX_ACTIVE_INTENTS",
+        code: "MAX_ACTIVE_INTENTS" as const,
+      };
+    }
+  }
+
   if ((existingCount ?? 0) === 0) {
     const { data: prof, error: profErr } = await supabase
       .from("profiles")
-      .select("display_name, bio, location, industry, available_time, gender")
+      .select("display_name, bio, location, industry, available_time, gender, skills_tags, languages")
       .eq("user_id", user.id)
       .maybeSingle();
     if (profErr) return { ok: false as const, message: profErr.message };

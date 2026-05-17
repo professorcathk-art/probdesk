@@ -11,19 +11,26 @@ export type ProfileBasicsInput = {
   industry?: string | null;
   available_time?: string | null;
   gender?: string | null;
+  skills_tags?: string[] | null;
+  languages?: string[] | null;
 };
 
-/** Routing gate: shorter than publish/onboarding so Chinese bios aren’t unfairly blocked. */
-export const PROFILE_CORE_MIN_BIO_LENGTH = 8;
+/** Routing gate (Manage / Explore): minimum bio length in characters (including spaces). */
+export const PROFILE_CORE_MIN_BIO_LENGTH = 20;
 
-/** Minimum profile required before using Manage / Explore / etc. */
+/** Server-side hint when core routing gate fails (English; UI uses localized `profilePage` strings). */
 export const PROFILE_CORE_INCOMPLETE_MSG =
-  "Please complete your profile: display name, bio, location, and industry. / 請完成個人檔案：顯示名稱、簡介、所在地與產業／領域。";
+  "Complete required profile fields: display name, bio, location, industry, at least one keyword (skills/interests/traits), and at least one language.";
 
 export type ProfileCoreInput = Pick<
   ProfileBasicsInput,
-  "display_name" | "bio" | "location" | "industry"
+  "display_name" | "bio" | "location" | "industry" | "skills_tags" | "languages"
 >;
+
+function nonEmptyTags(tags: string[] | null | undefined): number {
+  if (!Array.isArray(tags)) return 0;
+  return tags.map((t) => String(t).trim()).filter(Boolean).length;
+}
 
 export function validateMandatoryProfileCore(
   row: ProfileCoreInput,
@@ -32,13 +39,28 @@ export function validateMandatoryProfileCore(
   const bio = row.bio?.trim() ?? "";
   const location = row.location?.trim() ?? "";
   const industry = row.industry?.trim() ?? "";
-  if (!display_name || !location || !industry || bio.length < PROFILE_CORE_MIN_BIO_LENGTH) {
+  const tagCount = nonEmptyTags(row.skills_tags);
+  const langCount = nonEmptyTags(row.languages);
+  if (
+    !display_name ||
+    !location ||
+    !industry ||
+    bio.length < PROFILE_CORE_MIN_BIO_LENGTH ||
+    tagCount < 1 ||
+    langCount < 1
+  ) {
     return { ok: false, message: PROFILE_CORE_INCOMPLETE_MSG };
   }
   return { ok: true };
 }
 
-export type ProfileCoreFieldKey = "display_name" | "bio" | "location" | "industry";
+export type ProfileCoreFieldKey =
+  | "display_name"
+  | "bio"
+  | "location"
+  | "industry"
+  | "skills_tags"
+  | "languages";
 
 /** Which core fields still fail the routing gate (for UI hints). */
 export function getProfileCoreFieldIssues(row: ProfileCoreInput): ProfileCoreFieldKey[] {
@@ -46,17 +68,21 @@ export function getProfileCoreFieldIssues(row: ProfileCoreInput): ProfileCoreFie
   const bio = row.bio?.trim() ?? "";
   const location = row.location?.trim() ?? "";
   const industry = row.industry?.trim() ?? "";
+  const tagCount = nonEmptyTags(row.skills_tags);
+  const langCount = nonEmptyTags(row.languages);
   const issues: ProfileCoreFieldKey[] = [];
   if (!display_name) issues.push("display_name");
   if (bio.length < PROFILE_CORE_MIN_BIO_LENGTH) issues.push("bio");
   if (!location) issues.push("location");
   if (!industry) issues.push("industry");
+  if (tagCount < 1) issues.push("skills_tags");
+  if (langCount < 1) issues.push("languages");
   return issues;
 }
 
-/** User-facing when server blocks onboarding completion / explore / first console intent. */
+/** Publish / Explore listing / first console intent (server validation). */
 export const PROFILE_BASICS_INCOMPLETE_MSG =
-  "Complete your profile first: display name, bio (at least 12 characters), location, industry, availability, and gender. / 請先填妥個人檔案：顯示名稱、簡介（至少 12 字）、所在地、產業、可聯絡時段與性別。";
+  "Complete your profile: display name, bio (at least 20 characters), location, industry, availability, gender, at least one keyword (skills, interests, or traits), and at least one spoken language.";
 
 export function validateProfileBasicsForPublish(
   input: ProfileBasicsInput,
@@ -67,14 +93,18 @@ export function validateProfileBasicsForPublish(
   const industry = input.industry?.trim() ?? "";
   const available_time = input.available_time?.trim() ?? "";
   const gender = input.gender?.trim() ?? "";
+  const tagCount = nonEmptyTags(input.skills_tags);
+  const langCount = nonEmptyTags(input.languages);
 
   if (
     !display_name ||
     !location ||
     !industry ||
     !available_time ||
-    bio.length < 12 ||
-    !ALLOWED_GENDER.has(gender)
+    bio.length < PROFILE_CORE_MIN_BIO_LENGTH ||
+    !ALLOWED_GENDER.has(gender) ||
+    tagCount < 1 ||
+    langCount < 1
   ) {
     return { ok: false, message: PROFILE_BASICS_INCOMPLETE_MSG };
   }

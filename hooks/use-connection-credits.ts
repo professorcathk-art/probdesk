@@ -2,21 +2,37 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getConnectionCreditsRemaining } from "@/actions/matches";
+import { DAILY_OUTBOUND_INVITE_CREDITS } from "@/lib/limits";
 
-/** Loads remaining outbound invites for the signed-in user (UTC daily reset). */
+export type ConnectionCreditsState = {
+  credits: number | null;
+  unlimited: boolean;
+  dailyCap: number;
+  loading: boolean;
+};
+
+/** Loads remaining outbound invites for the signed-in user (UTC daily reset). Admins are unlimited. */
 export function useConnectionCredits(userId: string | null | undefined) {
   const [credits, setCredits] = useState<number | null>(null);
+  const [unlimited, setUnlimited] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     if (!userId) {
       setCredits(null);
+      setUnlimited(false);
+      setLoading(false);
       return;
     }
+    setLoading(true);
     const res = await getConnectionCreditsRemaining();
+    setLoading(false);
     if ("error" in res) {
       setCredits(null);
+      setUnlimited(false);
       return;
     }
+    setUnlimited(res.unlimited);
     setCredits(res.credits);
   }, [userId]);
 
@@ -25,7 +41,14 @@ export function useConnectionCredits(userId: string | null | undefined) {
     void refresh();
   }, [refresh]);
 
-  const outOfCredits = credits !== null && credits <= 0;
+  const outOfCredits = !unlimited && credits !== null && credits <= 0;
 
-  return { credits, refresh, outOfCredits };
+  return {
+    credits,
+    unlimited,
+    dailyCap: DAILY_OUTBOUND_INVITE_CREDITS,
+    loading,
+    refresh,
+    outOfCredits,
+  };
 }

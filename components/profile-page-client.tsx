@@ -24,15 +24,14 @@ type Props = {
   coreFieldIssues?: ProfileCoreFieldKey[];
 };
 
-function profileCoreIssueText(
-  labels: {
-    coreIssueDisplayName: string;
-    coreIssueBio: string;
-    coreIssueLocation: string;
-    coreIssueIndustry: string;
-  },
-  key: ProfileCoreFieldKey,
-): string {
+function profileCoreIssueText(labels: {
+  coreIssueDisplayName: string;
+  coreIssueBio: string;
+  coreIssueLocation: string;
+  coreIssueIndustry: string;
+  coreIssueSkillsTags: string;
+  coreIssueLanguages: string;
+}, key: ProfileCoreFieldKey): string {
   switch (key) {
     case "display_name":
       return labels.coreIssueDisplayName;
@@ -42,6 +41,10 @@ function profileCoreIssueText(
       return labels.coreIssueLocation;
     case "industry":
       return labels.coreIssueIndustry;
+    case "skills_tags":
+      return labels.coreIssueSkillsTags;
+    case "languages":
+      return labels.coreIssueLanguages;
     default: {
       const _e: never = key;
       return _e;

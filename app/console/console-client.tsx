@@ -17,6 +17,7 @@ import { respondToMatch } from "@/actions/matches";
 import { ConnectModal } from "@/components/connect-modal";
 import { CreditsLimitModal } from "@/components/credits-limit-modal";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
+import { InviteQuotaPill } from "@/components/invite-quota-pill";
 import { IntentShareButton } from "@/components/intent-share-button";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
 import { IntentSnippet } from "@/components/intent-snippet";
@@ -58,6 +59,11 @@ type Props = {
   blockedPeerIds: string[];
   initialConsoleTab?: "intents" | "requests" | "connections";
   initialOpenPeerId?: string | null;
+  quotaSnapshot: {
+    activeIntentCount: number;
+    maxActiveIntents: number;
+    unlimitedIntents: boolean;
+  };
 };
 
 function DualIntentBlurbs({ idA, idB }: { idA: string | null; idB: string | null }) {
@@ -97,6 +103,7 @@ export function ConsoleClient({
   blockedPeerIds,
   initialConsoleTab = "intents",
   initialOpenPeerId = null,
+  quotaSnapshot,
 }: Props) {
   const router = useRouter();
   const { strings } = useLanguage();
@@ -105,6 +112,17 @@ export function ConsoleClient({
 
   const { refresh: refreshCredits, outOfCredits } = useConnectionCredits(userId);
   const [creditsTeaserOpen, setCreditsTeaserOpen] = useState(false);
+
+  const intentAtCap =
+    !quotaSnapshot.unlimitedIntents &&
+    quotaSnapshot.activeIntentCount >= quotaSnapshot.maxActiveIntents;
+
+  function localizeConsoleFailure(res: { ok: false; message: string; code?: string }) {
+    if (res.code === "MAX_ACTIVE_INTENTS" || res.message === "MAX_ACTIVE_INTENTS") {
+      return t.intentLimitMessage;
+    }
+    return res.message;
+  }
 
   const blockedPeers = useMemo(() => new Set(blockedPeerIds), [blockedPeerIds]);
 
@@ -211,7 +229,7 @@ export function ConsoleClient({
   async function togglePaused(intentId: string, status: "active" | "paused") {
     const res = await setIntentStatus(intentId, status);
     if (!res.ok) {
-      setError(res.message);
+      setError(localizeConsoleFailure(res));
       return;
     }
     router.refresh();
@@ -263,7 +281,7 @@ export function ConsoleClient({
     const res = await createConsoleIntent(createDraft, createLocation.trim() || undefined);
     setCreateBusy(false);
     if (!res.ok) {
-      setError(res.message);
+      setError(localizeConsoleFailure(res));
       return;
     }
     openedFromLandingHandoffRef.current = false;
@@ -314,6 +332,9 @@ export function ConsoleClient({
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">{t.kicker}</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">{t.title}</h1>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-400">{t.subtitle}</p>
+            <div className="mt-4">
+              <InviteQuotaPill userId={userId} quota={quotaSnapshot} />
+            </div>
           </div>
         </header>
 
@@ -337,7 +358,9 @@ export function ConsoleClient({
               <h2 className="text-lg font-semibold text-white">{t.yourIntents}</h2>
               <Button
                 type="button"
-                className="galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
+                disabled={intentAtCap}
+                title={intentAtCap ? t.intentLimitMessage : undefined}
+                className="galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 disabled:cursor-not-allowed disabled:opacity-40"
                 onClick={() => {
                   setCreateDraft("");
                   setCreateLocation("");
@@ -752,13 +775,16 @@ export function ConsoleClient({
             />
             <p className="text-xs text-slate-500">{t.locationHintCreate}</p>
           </div>
+          {intentAtCap ? (
+            <p className="text-xs leading-relaxed text-amber-400/95">{t.intentLimitMessage}</p>
+          ) : null}
           <DialogFooter className="gap-2">
             <Button type="button" variant="ghost" className="text-slate-300" onClick={() => setCreateOpen(false)}>
               {t.cancel}
             </Button>
             <Button
               type="button"
-              disabled={createBusy || createDraft.trim().length < 12}
+              disabled={createBusy || createDraft.trim().length < 12 || intentAtCap}
               className="border border-sky-400/35 bg-sky-500/15 text-sky-50"
               onClick={() => void onCreateIntent()}
             >

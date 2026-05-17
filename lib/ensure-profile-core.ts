@@ -16,7 +16,7 @@ export async function ensureProfileCoreCompleteForAppUse() {
   const supabase = await createClient();
   const { data: prof, error } = await supabase
     .from("profiles")
-    .select("display_name, bio, location, industry")
+    .select("display_name, bio, location, industry, skills_tags, languages")
     .eq("user_id", user.id)
     .maybeSingle();
 

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sanitizeProfilePreview, vibeCheckWith4o } from "@/lib/aiml";
 import { formatProfileMatchingSnippet } from "@/lib/profile-matching-snippet";
 import { DUPLICATE_MATCH_MESSAGE, BLOCKING_MATCH_STATUSES, hasBlockingMatchBetween } from "@/lib/match-blocking";
+import { isAdminEmail } from "@/lib/admin-emails";
 
 export type MatchRow = {
   id: string;
@@ -41,12 +42,18 @@ export type InitiateConnectionResult =
   | { ok: false; message: string }
   | { ok: false; error: "OUT_OF_CREDITS" };
 
-export async function getConnectionCreditsRemaining(): Promise<{ credits: number } | { error: string }> {
+export async function getConnectionCreditsRemaining(): Promise<
+  { credits: number; unlimited: boolean } | { error: string }
+> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
+
+  if (isAdminEmail(user.email ?? undefined)) {
+    return { credits: 0, unlimited: true };
+  }
 
   const { data, error } = await supabase.rpc("get_connection_credits_remaining", {
     p_user_id: user.id,
@@ -59,7 +66,7 @@ export async function getConnectionCreditsRemaining(): Promise<{ credits: number
     return { error: row?.error ?? "Could not load credits." };
   }
 
-  return { credits: row.credits_remaining };
+  return { credits: row.credits_remaining, unlimited: false };
 }
 
 export async function initiateConnection(params: {
@@ -74,6 +81,8 @@ export async function initiateConnection(params: {
   } = await supabase.auth.getUser();
 
   if (!user) return { ok: false as const, message: "Not authenticated" };
+
+  const adminUser = isAdminEmail(user.email ?? undefined);
 
   const { data: receiverIntent, error: intentError } = await supabase
     .from("intent_requests")
@@ -184,23 +193,28 @@ export async function initiateConnection(params: {
     /* fallback */
   }
 
-  const { data: creditData, error: creditRpcError } = await supabase.rpc("consume_connection_credit", {
-    p_user_id: user.id,
-  });
+  let creditsConsumed = false;
 
-  if (creditRpcError) {
-    return { ok: false as const, message: creditRpcError.message };
-  }
+  if (!adminUser) {
+    const { data: creditData, error: creditRpcError } = await supabase.rpc("consume_connection_credit", {
+      p_user_id: user.id,
+    });
 
-  const creditRow = creditData as CreditRpcResult | null;
-  if (!creditRow?.ok) {
-    if (creditRow?.error === "OUT_OF_CREDITS") {
-      return { ok: false as const, error: "OUT_OF_CREDITS" };
+    if (creditRpcError) {
+      return { ok: false as const, message: creditRpcError.message };
     }
-    return {
-      ok: false as const,
-      message: creditRow?.error ?? "Could not use an invite credit.",
-    };
+
+    const creditRow = creditData as CreditRpcResult | null;
+    if (!creditRow?.ok) {
+      if (creditRow?.error === "OUT_OF_CREDITS") {
+        return { ok: false as const, error: "OUT_OF_CREDITS" };
+      }
+      return {
+        ok: false as const,
+        message: creditRow?.error ?? "Could not use an invite credit.",
+      };
+    }
+    creditsConsumed = true;
   }
 
   const { error } = await supabase.from("matches").insert({
@@ -218,7 +232,9 @@ export async function initiateConnection(params: {
   });
 
   if (error) {
-    await supabase.rpc("refund_connection_credit", { p_user_id: user.id });
+    if (creditsConsumed) {
+      await supabase.rpc("refund_connection_credit", { p_user_id: user.id });
+    }
     return { ok: false as const, message: error.message };
   }
   revalidatePath("/console");

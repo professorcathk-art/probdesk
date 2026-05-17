@@ -36,7 +36,7 @@ create table if not exists public.profiles (
   languages text[] not null default '{}'::text[],
   social_link text,
   updated_at timestamptz not null default now(),
-  daily_credits integer not null default 3,
+  daily_credits integer not null default 5,
   last_credit_reset timestamptz not null default now(),
   match_quality_alert_sent boolean not null default false
 );

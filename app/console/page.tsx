@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
+import { getConsoleQuotaSnapshot, listMyIntents } from "@/actions/intents";
 import { getBlockingPeerIdsForCurrentUser, listMatches } from "@/actions/matches";
-import { listMyIntents } from "@/actions/intents";
 import { getAuthContext } from "@/lib/auth-context";
 import { ensureProfileCoreCompleteForAppUse } from "@/lib/ensure-profile-core";
+import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
 import { ConsoleClient } from "./console-client";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +47,12 @@ export default async function ConsolePage({
   const matches = "error" in matchesRes ? [] : matchesRes.matches;
   const blockedPeerIds = "error" in blockedRes ? [] : blockedRes.peerIds;
 
+  const quotaRes = await getConsoleQuotaSnapshot();
+  const quotaSnapshot =
+    "error" in quotaRes
+      ? { activeIntentCount: 0, maxActiveIntents: MAX_ACTIVE_INTENTS_PER_USER, unlimitedIntents: false }
+      : quotaRes;
+
   return (
     <ConsoleClient
       key={`${initialConsoleTab}-${initialOpenPeerId ?? ""}`}
@@ -55,6 +62,7 @@ export default async function ConsolePage({
       blockedPeerIds={blockedPeerIds}
       initialConsoleTab={initialConsoleTab}
       initialOpenPeerId={initialOpenPeerId}
+      quotaSnapshot={quotaSnapshot}
     />
   );
 }

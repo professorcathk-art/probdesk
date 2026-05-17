@@ -10,14 +10,15 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { TagInputField } from "@/components/tag-input-field";
 import { useLanguage } from "@/components/language-provider";
 import {
   clearLandingIntentDraftBackups,
   MIN_INTENT_CHARS,
   readLandingIntentDraftBackup,
 } from "@/lib/intent-draft";
+import { PROFILE_CORE_MIN_BIO_LENGTH, PROFILE_GENDER_VALUES, type ProfileGenderValue } from "@/lib/profile-basics";
 import { cn } from "@/lib/utils";
-import { PROFILE_GENDER_VALUES, type ProfileGenderValue } from "@/lib/profile-basics";
 import { useSessionStore } from "@/stores/session-store";
 
 function onboardingGenderLabel(
@@ -53,6 +54,7 @@ export default function OnboardingPage() {
   const { strings } = useLanguage();
   const ob = strings.onboarding;
   const cx = strings.console;
+  const pr = strings.profilePage;
   const landingIntentText = useSessionStore((s) => s.landingIntentText);
   const clearLandingIntent = useSessionStore((s) => s.clearLandingIntent);
   const setLandingIntentText = useSessionStore((s) => s.setLandingIntentText);
@@ -74,6 +76,8 @@ export default function OnboardingPage() {
     gender: "",
     preferred_contact_channel: "" as "" | "whatsapp" | "line" | "wechat",
     preferred_contact_detail: "",
+    skills_tags: [] as string[],
+    languages: [] as string[],
   });
 
   useEffect(() => {
@@ -122,6 +126,10 @@ export default function OnboardingPage() {
     const res = await bootstrapIntentFromLanding(resolvedDraft);
     setBusy(false);
     if (!res.ok) {
+      if ("code" in res && res.code === "MAX_ACTIVE_INTENTS") {
+        setError(ob.intentLimitBootstrap);
+        return;
+      }
       setError(res.message);
       return;
     }
@@ -148,6 +156,10 @@ export default function OnboardingPage() {
     });
     setBusy(false);
     if (!res.ok) {
+      if ("code" in res && res.code === "PROFILE_INCOMPLETE") {
+        setError(ob.profileIncompleteHint);
+        return;
+      }
       setError(res.message);
       return;
     }
@@ -158,7 +170,7 @@ export default function OnboardingPage() {
     return (
       <div className="relative min-h-screen text-slate-50">
         <GalaxyBackdrop />
-        <main className="mx-auto max-w-3xl px-6 py-24 text-slate-400">Authenticating…</main>
+        <main className="mx-auto max-w-3xl px-6 py-24 text-slate-400">{ob.authChecking}</main>
       </div>
     );
   }
@@ -168,22 +180,22 @@ export default function OnboardingPage() {
       <GalaxyBackdrop />
       <main className="mx-auto flex max-w-3xl flex-col gap-10 px-6 py-16 md:py-24">
         <header className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">Progressive onboarding</p>
-          <h1 className="text-3xl font-semibold tracking-tight text-white">Shape your intent with precision</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">{ob.kicker}</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-white">{ob.title}</h1>
           <p className="text-sm leading-relaxed text-slate-400">{ob.sub}</p>
         </header>
 
         {!intentId ? (
           <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 backdrop-blur-xl">
             <Label htmlFor="draft" className="text-slate-200">
-              Intent statement
+              {ob.intentSectionTitle}
             </Label>
             <Textarea
               id="draft"
               value={resolvedDraft}
               onChange={(e) => setDraftIntent(e.target.value)}
               className="mt-3 min-h-[140px] border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500"
-              placeholder="Paste your landing intent if needed."
+              placeholder={ob.intentPlaceholder}
             />
             <div className="mt-4 flex flex-wrap gap-3">
               <Button
@@ -192,20 +204,20 @@ export default function OnboardingPage() {
                 onClick={runBootstrap}
                 className="border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
               >
-                {busy ? "Processing…" : "Parse + embed intent"}
+                {busy ? ob.processing : ob.parseEmbedCta}
               </Button>
               <Link
                 href="/"
                 className={cn(buttonVariants({ variant: "ghost" }), "text-slate-300 hover:bg-white/5")}
               >
-                Edit on landing
+                {ob.editLandingLink}
               </Link>
             </div>
           </section>
         ) : (
           <section className="space-y-8 rounded-2xl border border-white/10 bg-white/[0.035] p-6 backdrop-blur-xl">
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-white">Three enrichment questions</h2>
+              <h2 className="text-lg font-semibold text-white">{ob.enrichmentTitle}</h2>
               <div className="space-y-5">
                 {questions.map((q, idx) => (
                   <div key={`${idx}-${q.slice(0, 24)}`} className="space-y-2">
@@ -220,63 +232,89 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label className="text-slate-200">Display name</Label>
-                <Input
-                  value={profile.display_name}
-                  onChange={(e) => setProfile({ ...profile, display_name: e.target.value })}
-                  className="border-white/10 bg-white/[0.03] text-slate-50"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-slate-200">Location</Label>
-                <Input
-                  value={profile.location}
-                  onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                  className="border-white/10 bg-white/[0.03] text-slate-50"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-slate-200">Industry</Label>
-                <Input
-                  value={profile.industry}
-                  onChange={(e) => setProfile({ ...profile, industry: e.target.value })}
-                  className="border-white/10 bg-white/[0.03] text-slate-50"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-slate-200">Availability</Label>
-                <Input
-                  value={profile.available_time}
-                  onChange={(e) => setProfile({ ...profile, available_time: e.target.value })}
-                  className="border-white/10 bg-white/[0.03] text-slate-50"
-                />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label className="text-slate-200">{ob.genderLabel}</Label>
-                <select
-                  value={profile.gender}
-                  onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
-                  className={cn(
-                    "h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-slate-50 outline-none focus-visible:border-sky-400/40 focus-visible:ring-2 focus-visible:ring-sky-500/30",
-                  )}
-                >
-                  <option value="">{cx.genderUnset}</option>
-                  {PROFILE_GENDER_VALUES.map((v) => (
-                    <option key={v} value={v}>
-                      {onboardingGenderLabel(cx, v)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label className="text-slate-200">Bio</Label>
-                <Textarea
-                  value={profile.bio}
-                  onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                  className="border-white/10 bg-white/[0.03] text-slate-50"
-                />
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold text-white">{ob.profileGridTitle}</h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-slate-200">{cx.profileDisplayName}</Label>
+                  <Input
+                    value={profile.display_name}
+                    onChange={(e) => setProfile({ ...profile, display_name: e.target.value })}
+                    className="border-white/10 bg-white/[0.03] text-slate-50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-slate-200">{cx.profileLocation}</Label>
+                  <Input
+                    value={profile.location}
+                    onChange={(e) => setProfile({ ...profile, location: e.target.value })}
+                    className="border-white/10 bg-white/[0.03] text-slate-50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-slate-200">{cx.profileIndustry}</Label>
+                  <Input
+                    value={profile.industry}
+                    onChange={(e) => setProfile({ ...profile, industry: e.target.value })}
+                    className="border-white/10 bg-white/[0.03] text-slate-50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-slate-200">{cx.profileAvailability}</Label>
+                  <Input
+                    value={profile.available_time}
+                    onChange={(e) => setProfile({ ...profile, available_time: e.target.value })}
+                    className="border-white/10 bg-white/[0.03] text-slate-50"
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-slate-200">{ob.genderLabel}</Label>
+                  <select
+                    value={profile.gender}
+                    onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
+                    className={cn(
+                      "h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-slate-50 outline-none focus-visible:border-sky-400/40 focus-visible:ring-2 focus-visible:ring-sky-500/30",
+                    )}
+                  >
+                    <option value="">{cx.genderUnset}</option>
+                    {PROFILE_GENDER_VALUES.map((v) => (
+                      <option key={v} value={v}>
+                        {onboardingGenderLabel(cx, v)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-slate-200">{cx.profileBio}</Label>
+                  <Textarea
+                    value={profile.bio}
+                    onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                    className="border-white/10 bg-white/[0.03] text-slate-50"
+                  />
+                  <p className="text-xs text-slate-500">
+                    {ob.bioMinHint.replace(/\{min\}/g, String(PROFILE_CORE_MIN_BIO_LENGTH))}
+                  </p>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-slate-200">{pr.skillsTraitsLabel}</Label>
+                  <p className="text-xs leading-relaxed text-slate-500">{pr.skillsTraitsDesc}</p>
+                  <TagInputField
+                    tags={profile.skills_tags}
+                    onChange={(tags) => setProfile((p) => ({ ...p, skills_tags: tags }))}
+                    maxTags={5}
+                    placeholder={pr.skillsTraitsPlaceholder}
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-slate-200">{pr.languagesLabel}</Label>
+                  <p className="text-xs leading-relaxed text-slate-500">{pr.languagesDesc}</p>
+                  <TagInputField
+                    tags={profile.languages}
+                    onChange={(tags) => setProfile((p) => ({ ...p, languages: tags }))}
+                    maxTags={5}
+                    placeholder={pr.languagesPlaceholder}
+                  />
+                </div>
               </div>
             </div>
 
@@ -323,7 +361,7 @@ export default function OnboardingPage() {
               onClick={onFinish}
               className="border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
             >
-              {busy ? "Saving…" : "Activate console"}
+              {busy ? ob.saving : ob.activateCta}
             </Button>
           </section>
         )}

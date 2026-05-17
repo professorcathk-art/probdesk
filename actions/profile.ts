@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { CURRENT_STATUS_KEYS, type CurrentStatusKey } from "@/lib/profile-current-status";
-import { parseProfileGender } from "@/lib/profile-basics";
+import { parseProfileGender, PROFILE_CORE_MIN_BIO_LENGTH } from "@/lib/profile-basics";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -190,6 +190,19 @@ export async function updateMyProfileIdentity(fields: {
 
   const skills_tags = normalizeTags(fields.skills_tags ?? [], MAX_TAGS);
   const languages = normalizeTags(fields.languages ?? [], MAX_TAGS);
+
+  if (fields.bio.trim().length < PROFILE_CORE_MIN_BIO_LENGTH) {
+    return {
+      ok: false as const,
+      message: `Bio must be at least ${PROFILE_CORE_MIN_BIO_LENGTH} characters.`,
+    };
+  }
+  if (skills_tags.length === 0) {
+    return { ok: false as const, message: "Add at least one keyword (skill, interest, or trait)." };
+  }
+  if (languages.length === 0) {
+    return { ok: false as const, message: "Add at least one language." };
+  }
 
   const csRaw = fields.current_status?.trim() ?? "";
   const current_status = csRaw ? parseCurrentStatus(csRaw) : null;
