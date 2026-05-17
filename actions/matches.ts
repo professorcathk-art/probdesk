@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sanitizeProfilePreview, vibeCheckWith4o } from "@/lib/aiml";
+import { formatProfileMatchingSnippet } from "@/lib/profile-matching-snippet";
 import { DUPLICATE_MATCH_MESSAGE, BLOCKING_MATCH_STATUSES, hasBlockingMatchBetween } from "@/lib/match-blocking";
 
 export type MatchRow = {
@@ -18,6 +19,7 @@ export type MatchRow = {
   counterparty_intent_id: string | null;
   system_ack_sender: boolean;
   system_ack_receiver: boolean;
+  sender_discloses_profile: boolean;
   created_at: string;
 };
 
@@ -64,6 +66,7 @@ export async function initiateConnection(params: {
   receiverUserId: string;
   receiverIntentId: string;
   introductory_context: string;
+  senderDisclosesProfile?: boolean;
 }): Promise<InitiateConnectionResult> {
   const supabase = await createClient();
   const {
@@ -115,11 +118,41 @@ export async function initiateConnection(params: {
   let compatibility_reason =
     "Overlapping intent and geography — mutual fit depends on pace, proof, and incentive alignment.";
 
+  const { data: senderProfile } = await supabase
+    .from("profiles")
+    .select(
+      "display_name, industry, location, bio, available_time, skills_tags, languages, current_status",
+    )
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const { data: receiverProfile } = await supabase
+    .from("profiles")
+    .select("bio, industry, skills_tags, languages, current_status")
+    .eq("user_id", receiverId)
+    .maybeSingle();
+
   try {
     if (senderIntent?.natural_language_input) {
+      const senderSnippet = formatProfileMatchingSnippet({
+        bio: senderProfile?.bio ?? null,
+        industry: senderProfile?.industry ?? null,
+        skills_tags: senderProfile?.skills_tags ?? null,
+        languages: senderProfile?.languages ?? null,
+        current_status: senderProfile?.current_status ?? null,
+      });
+      const candidateSnippet = formatProfileMatchingSnippet({
+        bio: receiverProfile?.bio ?? null,
+        industry: receiverProfile?.industry ?? null,
+        skills_tags: receiverProfile?.skills_tags ?? null,
+        languages: receiverProfile?.languages ?? null,
+        current_status: receiverProfile?.current_status ?? null,
+      });
       const vibe = await vibeCheckWith4o({
         senderIntent: senderIntent.natural_language_input,
         candidateIntent: receiverIntent.natural_language_input,
+        senderProfileSnippet: senderSnippet || undefined,
+        candidateProfileSnippet: candidateSnippet || undefined,
       });
       match_score = vibe.match_score;
       compatibility_reason = vibe.compatibility_reason;
@@ -127,12 +160,6 @@ export async function initiateConnection(params: {
   } catch {
     /* keep defaults */
   }
-
-  const { data: senderProfile } = await supabase
-    .from("profiles")
-    .select("display_name, industry, location, bio, available_time")
-    .eq("user_id", user.id)
-    .maybeSingle();
 
   let ai_context_sender: Record<string, unknown> = {
     headline: "Anonymous sender",
@@ -148,6 +175,9 @@ export async function initiateConnection(params: {
         location: senderProfile.location,
         bio: senderProfile.bio,
         available_time: senderProfile.available_time,
+        skills_tags: senderProfile.skills_tags,
+        languages: senderProfile.languages,
+        current_status: senderProfile.current_status,
       });
     }
   } catch {
@@ -184,6 +214,7 @@ export async function initiateConnection(params: {
     status: "Pending",
     system_ack_sender: false,
     system_ack_receiver: false,
+    sender_discloses_profile: Boolean(params.senderDisclosesProfile),
   });
 
   if (error) {
@@ -206,7 +237,7 @@ export async function listMatches(): Promise<{ matches: MatchRow[] } | { error: 
   const { data, error } = await supabase
     .from("matches")
     .select(
-      "id, sender_id, receiver_id, status, introductory_context, match_score, compatibility_reason, ai_context_sender, intent_request_id, counterparty_intent_id, system_ack_sender, system_ack_receiver, created_at",
+      "id, sender_id, receiver_id, status, introductory_context, match_score, compatibility_reason, ai_context_sender, intent_request_id, counterparty_intent_id, system_ack_sender, system_ack_receiver, sender_discloses_profile, created_at",
     )
     .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
     .order("created_at", { ascending: false });
@@ -217,6 +248,7 @@ export async function listMatches(): Promise<{ matches: MatchRow[] } | { error: 
       ...m,
       system_ack_sender: Boolean(m.system_ack_sender),
       system_ack_receiver: Boolean(m.system_ack_receiver),
+      sender_discloses_profile: Boolean(m.sender_discloses_profile),
     })) as MatchRow[],
   };
 }

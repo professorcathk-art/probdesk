@@ -3,16 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserRound } from "lucide-react";
-import { signOut } from "@/actions/auth";
 import { useLanguage } from "@/components/language-provider";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 export function SiteNav({
@@ -22,21 +14,12 @@ export function SiteNav({
   isAuthenticated: boolean;
   avatarUrl: string | null;
 }) {
-  const router = useRouter();
   const { lang, setLang, strings } = useLanguage();
-
-  async function onSignOut() {
-    await signOut();
-    router.replace("/");
-  }
 
   return (
     <header className="sticky top-0 z-[200] isolate border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
-        <Link
-          href="/"
-          className="flex min-h-11 min-w-0 items-center sm:min-h-10"
-        >
+        <Link href="/" className="flex min-h-11 min-w-0 items-center sm:min-h-10">
           <span className="font-[family-name:var(--font-heading)] text-base font-semibold tracking-tight text-white">
             Vennode
           </span>
@@ -77,6 +60,17 @@ export function SiteNav({
           >
             {strings.nav.explore}
           </Link>
+          {isAuthenticated ? (
+            <Link
+              href="/console"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "min-h-11 px-3 text-slate-200 hover:bg-white/5 hover:text-white sm:min-h-8 sm:px-2.5",
+              )}
+            >
+              {strings.nav.manage}
+            </Link>
+          ) : null}
           {!isAuthenticated ? (
             <Link
               href="/login"
@@ -88,44 +82,20 @@ export function SiteNav({
               {strings.nav.enter}
             </Link>
           ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                aria-label={strings.nav.accountMenu}
-                className={cn(
-                  "flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/[0.04] text-slate-300 transition-colors hover:border-white/25 hover:bg-white/[0.07] sm:h-9 sm:w-9",
-                )}
-              >
-                {avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- remote Supabase Storage URL
-                  <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <UserRound className="h-5 w-5 opacity-80" strokeWidth={1.75} aria-hidden />
-                )}
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" sideOffset={10}>
-                <DropdownMenuItem
-                  className="cursor-pointer text-slate-200"
-                  onClick={() => router.push("/console")}
-                >
-                  {strings.nav.manage}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="cursor-pointer text-slate-200"
-                  onClick={() => router.push("/profile")}
-                >
-                  {strings.nav.profile}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="cursor-pointer text-slate-300"
-                  onClick={() => {
-                    void onSignOut();
-                  }}
-                >
-                  {strings.nav.signOut}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Link
+              href="/profile"
+              aria-label={strings.profilePage.title}
+              className={cn(
+                "flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/[0.04] text-slate-300 transition-colors hover:border-white/25 hover:bg-white/[0.07] sm:h-9 sm:w-9",
+              )}
+            >
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- remote Supabase Storage URL
+                <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <UserRound className="h-5 w-5 opacity-80" strokeWidth={1.75} aria-hidden />
+              )}
+            </Link>
           )}
         </nav>
       </div>

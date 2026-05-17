@@ -40,6 +40,10 @@ export default async function ProfilePage({
           gender: null,
           preferred_contact_channel: null,
           preferred_contact_detail: null,
+          skills_tags: [],
+          languages: [],
+          current_status: null,
+          social_link: null,
         }
       : profileRes;
 

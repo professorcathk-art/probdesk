@@ -95,6 +95,8 @@ export type VibeResult = {
 export async function vibeCheckWith4o(params: {
   senderIntent: string;
   candidateIntent: string;
+  senderProfileSnippet?: string;
+  candidateProfileSnippet?: string;
 }): Promise<VibeResult> {
   const model = process.env.AIML_VIBE_MODEL ?? "gpt-4o";
   const res = await fetch(`${base()}/chat/completions`, {
@@ -122,12 +124,19 @@ export async function vibeCheckWith4o(params: {
         {
           role: "system",
           content:
-            "You compare two high-intent networking requests. Score synergy 1-100. " +
-            "Write exactly two polished sentences explaining compatibility for a premium product UI.",
+            "You compare two high-intent networking requests and optional profile snippets (bio, industry, skills, languages, readiness). " +
+            "Score synergy 1-100. Write exactly two polished sentences explaining compatibility for a premium product UI.",
         },
         {
           role: "user",
-          content: `Sender intent:\n${params.senderIntent}\n\nCandidate intent:\n${params.candidateIntent}`,
+          content:
+            `Sender intent:\n${params.senderIntent}\n\nCandidate intent:\n${params.candidateIntent}` +
+            (params.senderProfileSnippet?.trim()
+              ? `\n\nSender profile context:\n${params.senderProfileSnippet.trim()}`
+              : "") +
+            (params.candidateProfileSnippet?.trim()
+              ? `\n\nCandidate profile context:\n${params.candidateProfileSnippet.trim()}`
+              : ""),
         },
       ],
     }),
@@ -208,6 +217,9 @@ export async function sanitizeProfilePreview(profile: {
   location: string | null;
   bio: string | null;
   available_time: string | null;
+  skills_tags?: string[] | null;
+  languages?: string[] | null;
+  current_status?: string | null;
 }): Promise<Record<string, unknown>> {
   const model = process.env.AIML_SANITIZE_MODEL ?? "gpt-4o-mini";
   const res = await fetch(`${base()}/chat/completions`, {

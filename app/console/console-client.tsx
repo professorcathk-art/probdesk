@@ -19,6 +19,9 @@ import { CreditsLimitModal } from "@/components/credits-limit-modal";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { IntentShareButton } from "@/components/intent-share-button";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
+import { IntentSnippet } from "@/components/intent-snippet";
+import { PeerIdentityCard } from "@/components/peer-identity-card";
+import { SenderPreviewBlock } from "@/components/sender-preview-block";
 import { useLanguage } from "@/components/language-provider";
 import { MergedMatchChatPanel } from "@/components/match-chat-panel";
 import { Badge } from "@/components/ui/badge";
@@ -83,55 +86,6 @@ function DualIntentBlurbs({ idA, idB }: { idA: string | null; idB: string | null
         </p>
       ))}
       {lines.length === 0 ? <p className="text-xs text-slate-500">{strings.console.peerLoading}</p> : null}
-    </div>
-  );
-}
-
-function PeerIdentityCard({ peerUserId }: { peerUserId: string }) {
-  const { strings } = useLanguage();
-  const [peer, setPeer] = useState<{
-    display_name: string | null;
-    industry: string | null;
-    avatar_url: string | null;
-    bio: string | null;
-    location: string | null;
-  } | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("profiles")
-        .select("display_name, industry, avatar_url, bio, location")
-        .eq("user_id", peerUserId)
-        .maybeSingle();
-      if (!cancelled) setPeer(data);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [peerUserId]);
-
-  return (
-    <div className="flex gap-4 rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-4">
-      {peer?.avatar_url ? (
-        // eslint-disable-next-line @next/next/no-img-element -- remote Supabase Storage URL
-        <img
-          src={peer.avatar_url}
-          alt=""
-          className="h-14 w-14 shrink-0 rounded-full border border-emerald-400/30 object-cover"
-        />
-      ) : (
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-emerald-400/25 bg-gradient-to-br from-emerald-500/25 to-sky-600/20 blur-[2px]" />
-      )}
-      <div className="min-w-0 flex-1">
-        <p className="text-xs uppercase tracking-[0.16em] text-emerald-300/80">{strings.console.peerConnection}</p>
-        <p className="mt-2 text-base font-semibold text-white">{peer?.display_name ?? strings.console.peerFallbackName}</p>
-        <p className="text-sm text-slate-400">{peer?.industry ?? ""}</p>
-        {peer?.location ? <p className="mt-1 text-sm text-slate-500">{peer.location}</p> : null}
-        {peer?.bio ? <p className="mt-2 text-sm leading-relaxed text-slate-300">{peer.bio}</p> : null}
-      </div>
     </div>
   );
 }
@@ -213,8 +167,8 @@ export function ConsoleClient({
     [matches, userId],
   );
 
-  const outboundAccepted = useMemo(() => {
-    const rows = matches.filter((m) => m.status === "Accepted" && m.sender_id === userId);
+  const acceptedInvites = useMemo(() => {
+    const rows = matches.filter((m) => m.status === "Accepted" && (m.sender_id === userId || m.receiver_id === userId));
     rows.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return rows;
   }, [matches, userId]);
@@ -301,10 +255,6 @@ export function ConsoleClient({
   function openConnectAndDismissFresh(card: SuggestionCard) {
     setFreshMatchesModal(null);
     openConnect(card);
-  }
-
-  function previewFrom(row: MatchRow | undefined) {
-    return row?.ai_context_sender as { headline?: string; summary?: string; signals?: string[] } | undefined;
   }
 
   async function onCreateIntent() {
@@ -485,12 +435,11 @@ export function ConsoleClient({
                                   <div className="flex min-w-0 items-center gap-3">
                                     <LockedAvatarPreview />
                                     <div className="min-w-0">
-                                      <p className="text-xs text-slate-500">{t.compatibility}</p>
+                                      <p className="text-xs text-slate-500">{t.matchFitScore}</p>
                                       <p className="text-lg font-semibold text-sky-200">{s.match_score}</p>
                                     </div>
                                   </div>
                                   <p className="mt-3 line-clamp-4 break-words text-sm text-slate-200">{s.natural_language_input}</p>
-                                  <p className="mt-3 break-words text-xs leading-relaxed text-slate-400">{s.compatibility_reason}</p>
                                   <Button
                                     size="sm"
                                     className={cn(
@@ -543,33 +492,23 @@ export function ConsoleClient({
                     </CardContent>
                   </Card>
                 ) : (
-                  pendingInbound.map((m) => {
-                    const preview = previewFrom(m);
-                    return (
+                  pendingInbound.map((m) => (
                       <Card key={m.id} className="border-white/10 bg-white/[0.035] backdrop-blur-xl">
-                        <CardHeader>
-                          <CardTitle className="text-base text-slate-100">{t.newIntro}</CardTitle>
-                          <CardDescription className="text-slate-400">
-                            {t.compatibility} {m.match_score ?? "—"} · {m.compatibility_reason}
-                          </CardDescription>
+                        <CardHeader className="space-y-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <CardTitle className="text-base text-slate-100">{t.newIntro}</CardTitle>
+                            <Badge variant="outline" className="border-amber-400/35 text-amber-100">
+                              {t.statusPendingBadge}
+                            </Badge>
+                          </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
                           <div>
                             <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.contextMessage}</p>
                             <p className="mt-2 text-slate-200">{m.introductory_context}</p>
                           </div>
-                          <div className="rounded-xl border border-white/10 bg-black/30 p-4">
-                            <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.personaPreview}</p>
-                            <div className="mt-2 blur-sm">
-                              <p className="font-medium text-slate-100">{preview?.headline}</p>
-                              <p className="mt-2 text-slate-300">{preview?.summary}</p>
-                              <ul className="mt-2 list-disc pl-5 text-slate-400">
-                                {(preview?.signals ?? []).map((s) => (
-                                  <li key={s}>{s}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
+                          <IntentSnippet intentId={m.intent_request_id} label={t.inviteListingLabel} />
+                          <SenderPreviewBlock match={m} />
                           <div className="flex flex-wrap gap-2">
                             <Button
                               className="galaxy-btn-glow border border-emerald-400/35 bg-emerald-500/15 text-emerald-50 hover:bg-emerald-500/25"
@@ -583,8 +522,7 @@ export function ConsoleClient({
                           </div>
                         </CardContent>
                       </Card>
-                    );
-                  })
+                    ))
                 )}
               </div>
             </section>
@@ -595,10 +533,26 @@ export function ConsoleClient({
               {outboundPending.length === 0 ? (
                 <p className="text-sm text-slate-500">{t.outboundNone}</p>
               ) : (
-                <ul className="space-y-2 text-sm text-slate-400">
+                <ul className="grid gap-4">
                   {outboundPending.map((m) => (
-                    <li key={m.id} className="rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3">
-                      {t.outboundLine} · {m.compatibility_reason ?? t.outboundAwaiting}
+                    <li key={m.id}>
+                      <Card className="border-white/10 bg-white/[0.035] backdrop-blur-xl">
+                        <CardHeader className="space-y-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <CardTitle className="text-base text-slate-100">{t.outboundLine}</CardTitle>
+                            <Badge variant="outline" className="border-amber-400/35 text-amber-100">
+                              {t.statusPendingBadge}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.contextMessage}</p>
+                            <p className="mt-2 text-sm leading-relaxed text-slate-200">{m.introductory_context}</p>
+                          </div>
+                          <IntentSnippet intentId={m.intent_request_id} label={t.outboundListingLabel} />
+                        </CardContent>
+                      </Card>
                     </li>
                   ))}
                 </ul>
@@ -608,39 +562,44 @@ export function ConsoleClient({
             <section className="space-y-4">
               <h2 className="text-xl font-semibold text-white">{t.outboundAcceptedTitle}</h2>
               <p className="text-sm text-slate-500">{t.outboundAcceptedDesc}</p>
-              {outboundAccepted.length === 0 ? (
+              {acceptedInvites.length === 0 ? (
                 <p className="text-sm text-slate-500">{t.outboundAcceptedEmpty}</p>
               ) : (
                 <div className="grid gap-4">
-                  {outboundAccepted.map((m) => (
-                    <Card key={m.id} className="border-emerald-500/20 bg-white/[0.035] backdrop-blur-xl">
-                      <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-stretch md:justify-between md:gap-6">
-                        <div className="min-w-0 flex-1 space-y-2">
-                          <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.contextMessage}</p>
-                          <p className="text-sm leading-relaxed text-slate-100">{m.introductory_context}</p>
-                          {m.compatibility_reason ? (
-                            <p className="text-xs leading-relaxed text-slate-500">
-                              {t.compatibility} {m.match_score ?? "—"} · {m.compatibility_reason}
-                            </p>
-                          ) : null}
-                        </div>
-                        <div className="flex shrink-0 flex-col items-stretch justify-center gap-3 md:w-44 md:items-end">
-                          <Badge variant="outline" className="border-emerald-400/35 bg-emerald-500/10 text-emerald-100">
-                            {t.statusConnectedBadge}
-                          </Badge>
-                          <Link
-                            href={`/console?tab=connections&peer=${encodeURIComponent(m.receiver_id)}`}
-                            className={cn(
-                              buttonVariants({ variant: "default", size: "sm" }),
-                              "galaxy-btn-glow inline-flex justify-center border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25",
-                            )}
-                          >
-                            {t.messagePeerCta}
-                          </Link>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {acceptedInvites.map((m) => {
+                    const peerId = m.sender_id === userId ? m.receiver_id : m.sender_id;
+                    const youSent = m.sender_id === userId;
+                    return (
+                      <Card key={m.id} className="border-emerald-500/20 bg-white/[0.035] backdrop-blur-xl">
+                        <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-stretch md:justify-between md:gap-6">
+                          <div className="min-w-0 flex-1 space-y-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant="outline" className="border-emerald-400/35 bg-emerald-500/10 text-emerald-100">
+                                {t.statusConnectedBadge}
+                              </Badge>
+                              <span className="text-xs text-slate-500">{youSent ? t.inviteRoleYouReachedOut : t.inviteRoleTheyReachedOut}</span>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.contextMessage}</p>
+                              <p className="mt-2 text-sm leading-relaxed text-slate-100">{m.introductory_context}</p>
+                            </div>
+                            <IntentSnippet intentId={m.intent_request_id} label={t.inviteListingLabel} />
+                          </div>
+                          <div className="flex shrink-0 flex-col items-stretch justify-center gap-3 md:w-44 md:items-end">
+                            <Link
+                              href={`/console?tab=connections&peer=${encodeURIComponent(peerId)}`}
+                              className={cn(
+                                buttonVariants({ variant: "default", size: "sm" }),
+                                "galaxy-btn-glow inline-flex justify-center border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25",
+                              )}
+                            >
+                              {t.messagePeerCta}
+                            </Link>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </section>
@@ -723,7 +682,7 @@ export function ConsoleClient({
                   const subtitle =
                     peerMatches.length > 1
                       ? t.multiIntroTpl.replace("{n}", String(peerMatches.length))
-                      : peerMatches[0]?.compatibility_reason ?? "";
+                      : peerMatches[0]?.introductory_context?.trim() || "";
                   return (
                     <Card
                       key={peerId}
@@ -731,10 +690,10 @@ export function ConsoleClient({
                     >
                       <CardHeader>
                         <CardTitle className="text-base text-slate-100">{t.mutualMatch}</CardTitle>
-                        <CardDescription className="text-slate-400">{subtitle}</CardDescription>
+                        <CardDescription className="line-clamp-3 text-slate-400">{subtitle || "—"}</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        <PeerIdentityCard peerUserId={peerId} />
+                        <PeerIdentityCard peerUserId={peerId} showViewProfileButton />
                         <Button
                           type="button"
                           variant="outline"
@@ -872,12 +831,11 @@ export function ConsoleClient({
                   <div className="flex min-w-0 items-center gap-3">
                     <LockedAvatarPreview />
                     <div className="min-w-0">
-                      <p className="text-xs text-slate-500">{t.compatibility}</p>
+                      <p className="text-xs text-slate-500">{t.matchFitScore}</p>
                       <p className="text-lg font-semibold text-sky-200">{s.match_score}</p>
                     </div>
                   </div>
                   <p className="mt-3 line-clamp-4 flex-1 break-words text-sm text-slate-200">{s.natural_language_input}</p>
-                  <p className="mt-3 break-words text-xs leading-relaxed text-slate-400">{s.compatibility_reason}</p>
                   <Button
                     size="sm"
                     className={cn(

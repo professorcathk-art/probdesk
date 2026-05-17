@@ -8,6 +8,7 @@ import {
   parseIntentWithMini,
   vibeCheckWith4o,
 } from "@/lib/aiml";
+import { formatProfileMatchingSnippet } from "@/lib/profile-matching-snippet";
 import { validateProfileBasicsForPublish } from "@/lib/profile-basics";
 
 function vectorLiteral(vec: number[]): string {
@@ -332,12 +333,43 @@ export async function computeHybridSuggestions(intentId: string): Promise<
 
   const pool = rows.slice(0, 6);
 
+  const { data: senderProf } = await supabase
+    .from("profiles")
+    .select("bio, industry, skills_tags, languages, current_status")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const ownerIds = [...new Set(pool.map((r) => r.owner_user_id))];
+  const { data: ownerProfiles } = await supabase
+    .from("profiles")
+    .select("user_id, bio, industry, skills_tags, languages, current_status")
+    .in("user_id", ownerIds);
+
+  const profMap = new Map((ownerProfiles ?? []).map((p) => [p.user_id as string, p]));
+
   const scored = await Promise.all(
     pool.map(async (row) => {
       try {
+        const cand = profMap.get(row.owner_user_id);
+        const senderSnippet = formatProfileMatchingSnippet({
+          bio: senderProf?.bio ?? null,
+          industry: senderProf?.industry ?? null,
+          skills_tags: senderProf?.skills_tags ?? null,
+          languages: senderProf?.languages ?? null,
+          current_status: senderProf?.current_status ?? null,
+        });
+        const candidateSnippet = formatProfileMatchingSnippet({
+          bio: cand?.bio ?? null,
+          industry: cand?.industry ?? null,
+          skills_tags: cand?.skills_tags ?? null,
+          languages: cand?.languages ?? null,
+          current_status: cand?.current_status ?? null,
+        });
         const vibe = await vibeCheckWith4o({
           senderIntent: intent.natural_language_input,
           candidateIntent: row.natural_language_input,
+          senderProfileSnippet: senderSnippet || undefined,
+          candidateProfileSnippet: candidateSnippet || undefined,
         });
         return {
           row,

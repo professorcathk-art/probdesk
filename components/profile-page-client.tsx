@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ProfileIdentity } from "@/actions/profile";
 import { updateMyProfileIdentity } from "@/actions/profile";
+import { signOut } from "@/actions/auth";
 import { ConsoleAvatarUpload } from "@/components/console-avatar-upload";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { useLanguage } from "@/components/language-provider";
+import { TagInputField } from "@/components/tag-input-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -92,6 +94,10 @@ export function ProfilePageClient({
   const [pfGender, setPfGender] = useState(profileIdentity.gender ?? "");
   const [pfContactCh, setPfContactCh] = useState(profileIdentity.preferred_contact_channel ?? "");
   const [pfContactDet, setPfContactDet] = useState(profileIdentity.preferred_contact_detail ?? "");
+  const [pfSkills, setPfSkills] = useState<string[]>(profileIdentity.skills_tags ?? []);
+  const [pfLangs, setPfLangs] = useState<string[]>(profileIdentity.languages ?? []);
+  const [pfStatus, setPfStatus] = useState(profileIdentity.current_status ?? "");
+  const [pfSocial, setPfSocial] = useState(profileIdentity.social_link ?? "");
   const [pfBusy, setPfBusy] = useState(false);
   const [pfNote, setPfNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +112,10 @@ export function ProfilePageClient({
     setPfGender(profileIdentity.gender ?? "");
     setPfContactCh(profileIdentity.preferred_contact_channel ?? "");
     setPfContactDet(profileIdentity.preferred_contact_detail ?? "");
+    setPfSkills(profileIdentity.skills_tags ?? []);
+    setPfLangs(profileIdentity.languages ?? []);
+    setPfStatus(profileIdentity.current_status ?? "");
+    setPfSocial(profileIdentity.social_link ?? "");
   }, [
     profileIdentity.display_name,
     profileIdentity.bio,
@@ -115,6 +125,10 @@ export function ProfilePageClient({
     profileIdentity.gender,
     profileIdentity.preferred_contact_channel,
     profileIdentity.preferred_contact_detail,
+    profileIdentity.skills_tags,
+    profileIdentity.languages,
+    profileIdentity.current_status,
+    profileIdentity.social_link,
   ]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -131,6 +145,10 @@ export function ProfilePageClient({
       gender: pfGender,
       preferred_contact_channel: pfContactCh,
       preferred_contact_detail: pfContactDet,
+      skills_tags: pfSkills,
+      languages: pfLangs,
+      current_status: pfStatus,
+      social_link: pfSocial,
     });
     setPfBusy(false);
     if (!res.ok) {
@@ -231,6 +249,64 @@ export function ProfilePageClient({
                 className="border-white/10 bg-white/[0.03] text-slate-50"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label className="text-slate-300">{p.skillsTraitsLabel}</Label>
+              <p className="text-xs leading-relaxed text-slate-500">{p.skillsTraitsDesc}</p>
+              <TagInputField
+                tags={pfSkills}
+                onChange={setPfSkills}
+                maxTags={5}
+                placeholder={p.skillsTraitsPlaceholder}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pf-status" className="text-slate-300">
+                {p.currentStatusLabel}
+              </Label>
+              <select
+                id="pf-status"
+                value={pfStatus}
+                onChange={(e) => setPfStatus(e.target.value)}
+                className={cn(
+                  "h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-slate-50 outline-none focus-visible:border-sky-400/40 focus-visible:ring-2 focus-visible:ring-sky-500/30",
+                )}
+              >
+                <option value="">{p.statusUnset}</option>
+                <option value="exploring">{p.statusExploring}</option>
+                <option value="ready_to_build">{p.statusReady}</option>
+                <option value="fully_committed">{p.statusCommitted}</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-slate-300">{p.languagesLabel}</Label>
+              <p className="text-xs leading-relaxed text-slate-500">{p.languagesDesc}</p>
+              <TagInputField
+                tags={pfLangs}
+                onChange={setPfLangs}
+                maxTags={5}
+                placeholder={p.languagesPlaceholder}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pf-social" className="text-slate-300">
+                {p.socialLinkLabel}
+              </Label>
+              <p className="text-xs leading-relaxed text-slate-500">{p.socialLinkDesc}</p>
+              <Input
+                id="pf-social"
+                type="url"
+                inputMode="url"
+                value={pfSocial}
+                onChange={(e) => setPfSocial(e.target.value)}
+                placeholder="https://"
+                className="border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500"
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="pf-avail" className="text-slate-300">
                 {t.profileAvailability}
@@ -309,6 +385,17 @@ export function ProfilePageClient({
             >
               {pfBusy ? t.profileSaving : t.profileSave}
             </Button>
+
+            <div className="border-t border-white/10 pt-6">
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                onClick={() => void signOut().then(() => router.replace("/"))}
+              >
+                {p.profileSignOut}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </main>

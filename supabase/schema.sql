@@ -31,6 +31,10 @@ create table if not exists public.profiles (
   preferred_contact_channel text,
   preferred_contact_detail text,
   gender text,
+  skills_tags text[] not null default '{}'::text[],
+  current_status text,
+  languages text[] not null default '{}'::text[],
+  social_link text,
   updated_at timestamptz not null default now(),
   daily_credits integer not null default 3,
   last_credit_reset timestamptz not null default now(),
@@ -84,6 +88,7 @@ create table if not exists public.matches (
   counterparty_intent_id uuid references public.intent_requests (id) on delete set null,
   system_ack_sender boolean not null default false,
   system_ack_receiver boolean not null default false,
+  sender_discloses_profile boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint matches_sender_receiver_diff check (sender_id <> receiver_id)
@@ -202,6 +207,17 @@ create policy profiles_select_accepted_peer on public.profiles for select using 
         (m.sender_id = auth.uid() and m.receiver_id = profiles.user_id)
         or (m.receiver_id = auth.uid() and m.sender_id = profiles.user_id)
       )
+  )
+);
+
+drop policy if exists profiles_select_pending_sender_disclosure on public.profiles;
+create policy profiles_select_pending_sender_disclosure on public.profiles for select using (
+  exists (
+    select 1 from public.matches m
+    where m.status = 'Pending'
+      and coalesce(m.sender_discloses_profile, false) = true
+      and m.sender_id = profiles.user_id
+      and m.receiver_id = auth.uid()
   )
 );
 

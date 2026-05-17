@@ -2,10 +2,49 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { CURRENT_STATUS_KEYS, type CurrentStatusKey } from "@/lib/profile-current-status";
 import { parseProfileGender } from "@/lib/profile-basics";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const MAX_TAGS = 5;
+
+function normalizeTags(raw: string[], max: number): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const x of raw) {
+    const v = String(x).trim();
+    if (!v || out.length >= max) continue;
+    const k = v.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(v);
+  }
+  return out;
+}
+
+function parseSocialLink(raw: string): string | null {
+  const t = raw.trim();
+  if (!t) return null;
+  let u: URL;
+  try {
+    u = new URL(t);
+  } catch {
+    try {
+      u = new URL(`https://${t}`);
+    } catch {
+      return null;
+    }
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+  return u.toString();
+}
+
+function parseCurrentStatus(raw: string): CurrentStatusKey | null {
+  const t = raw.trim();
+  if (!t) return null;
+  return (CURRENT_STATUS_KEYS as readonly string[]).includes(t) ? (t as CurrentStatusKey) : null;
+}
 
 /** Prefer browser → Supabase Storage from `ConsoleAvatarUpload` to avoid platform body limits (413). */
 export async function uploadProfileAvatar(formData: FormData) {
@@ -73,6 +112,10 @@ export type ProfileIdentity = {
   gender: string | null;
   preferred_contact_channel: string | null;
   preferred_contact_detail: string | null;
+  skills_tags: string[];
+  languages: string[];
+  current_status: string | null;
+  social_link: string | null;
 };
 
 export async function getMyProfileIdentity(): Promise<ProfileIdentity | { error: string }> {
@@ -85,7 +128,7 @@ export async function getMyProfileIdentity(): Promise<ProfileIdentity | { error:
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "display_name, bio, location, industry, available_time, gender, preferred_contact_channel, preferred_contact_detail",
+      "display_name, bio, location, industry, available_time, gender, preferred_contact_channel, preferred_contact_detail, skills_tags, languages, current_status, social_link",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -100,6 +143,10 @@ export async function getMyProfileIdentity(): Promise<ProfileIdentity | { error:
     gender: data?.gender ?? null,
     preferred_contact_channel: data?.preferred_contact_channel ?? null,
     preferred_contact_detail: data?.preferred_contact_detail ?? null,
+    skills_tags: Array.isArray(data?.skills_tags) ? (data!.skills_tags as string[]) : [],
+    languages: Array.isArray(data?.languages) ? (data!.languages as string[]) : [],
+    current_status: data?.current_status ?? null,
+    social_link: data?.social_link ?? null,
   };
 }
 
@@ -112,6 +159,10 @@ export async function updateMyProfileIdentity(fields: {
   gender: string;
   preferred_contact_channel?: string;
   preferred_contact_detail?: string;
+  skills_tags: string[];
+  languages: string[];
+  current_status: string;
+  social_link: string;
 }) {
   const supabase = await createClient();
   const {
@@ -137,6 +188,20 @@ export async function updateMyProfileIdentity(fields: {
     return { ok: false as const, message: "Invalid gender selection." };
   }
 
+  const skills_tags = normalizeTags(fields.skills_tags ?? [], MAX_TAGS);
+  const languages = normalizeTags(fields.languages ?? [], MAX_TAGS);
+
+  const csRaw = fields.current_status?.trim() ?? "";
+  const current_status = csRaw ? parseCurrentStatus(csRaw) : null;
+  if (csRaw && !current_status) {
+    return { ok: false as const, message: "Invalid current status." };
+  }
+
+  const socialParsed = parseSocialLink(fields.social_link ?? "");
+  if (fields.social_link?.trim() && !socialParsed) {
+    return { ok: false as const, message: "Social link must be a valid http(s) URL." };
+  }
+
   const { error } = await supabase
     .from("profiles")
     .upsert(
@@ -150,6 +215,10 @@ export async function updateMyProfileIdentity(fields: {
         gender: genderResolved,
         preferred_contact_channel: hasPair ? chRaw : null,
         preferred_contact_detail: hasPair ? detRaw : null,
+        skills_tags,
+        languages,
+        current_status,
+        social_link: socialParsed,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" },
