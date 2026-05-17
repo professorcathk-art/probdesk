@@ -173,6 +173,7 @@ export function ConsoleClient({
 
   useEffect(() => {
     if (initialConsoleCue !== "pulseCreateIntent") return;
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- cue-driven tab highlight after landing/login */
     setActiveTab("intents");
     if (intents.length === 0) setPulseCreateBtn(true);
     const tid = window.setTimeout(() => setPulseCreateBtn(false), 14000);
@@ -630,7 +631,6 @@ export function ConsoleClient({
               ) : (
                 <div className="grid gap-4">
                   {acceptedInvites.map((m) => {
-                    const peerId = m.sender_id === userId ? m.receiver_id : m.sender_id;
                     const youSent = m.sender_id === userId;
                     return (
                       <Card key={m.id} className="border-emerald-500/20 bg-white/[0.035] backdrop-blur-xl">

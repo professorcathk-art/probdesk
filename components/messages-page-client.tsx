@@ -7,6 +7,7 @@ import { ArrowLeft, UserRound } from "lucide-react";
 import type { MessengerThreadDTO } from "@/actions/messenger";
 import { markMessengerMatchesRead } from "@/actions/messenger";
 import { listMergedMatchMessages, sendMatchMessage } from "@/actions/matches";
+import { SYSTEM_CONNECTED_MESSAGE_CONTENT } from "@/lib/system-messages";
 import type { MessageRow } from "@/actions/matches";
 import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
@@ -69,7 +70,7 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
       return;
     }
     setMessages(res.messages);
-  }, [selected]);
+  }, [selected, setMessages, setLoadError]);
 
   useEffect(() => {
     let cancelled = false;
@@ -267,6 +268,17 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
               ) : (
                 <div className="flex flex-col gap-3 pb-2">
                   {messages.map((msg) => {
+                    const isConnBroadcast =
+                      msg.is_system === true || msg.content === SYSTEM_CONNECTED_MESSAGE_CONTENT;
+                    if (isConnBroadcast) {
+                      return (
+                        <div key={msg.id} className="flex w-full justify-center py-0.5">
+                          <div className="max-w-[min(92%,420px)] rounded-xl border border-emerald-500/30 bg-emerald-500/[0.14] px-4 py-2.5 text-center text-xs leading-relaxed text-emerald-50/95 shadow-[0_0_20px_rgba(16,185,129,0.12)]">
+                            {p.systemConnectedBroadcast}
+                          </div>
+                        </div>
+                      );
+                    }
                     const mine = msg.sender_id === userId;
                     return (
                       <div

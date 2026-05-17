@@ -12,11 +12,7 @@ export function IntentSnippet({ intentId, label }: { intentId: string | null; la
   const [mustHaves, setMustHaves] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!intentId) {
-      setText(null);
-      setMustHaves(null);
-      return;
-    }
+    if (!intentId) return;
     let cancelled = false;
     void (async () => {
       const supabase = createClient();

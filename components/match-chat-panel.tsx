@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { listMatchMessages, listMergedMatchMessages, sendMatchMessage } from "@/actions/matches";
+import { SYSTEM_CONNECTED_MESSAGE_CONTENT } from "@/lib/system-messages";
 import type { MessageRow } from "@/actions/matches";
 import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ type Props = {
 export function MatchChatPanel({ matchId, userId }: Props) {
   const { strings } = useLanguage();
   const c = strings.console;
+  const mp = strings.messagesPage;
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -84,12 +86,21 @@ export function MatchChatPanel({ matchId, userId }: Props) {
         {messages.length === 0 ? (
           <p className="text-slate-500">{c.noMessages}</p>
         ) : (
-          messages.map((msg) => (
-            <div key={msg.id} className="rounded-lg bg-white/[0.04] px-3 py-2">
-              <p className="text-[11px] text-slate-500">{msg.sender_id === userId ? c.chatYou : c.chatPeer}</p>
-              <p className="text-slate-200">{msg.content}</p>
-            </div>
-          ))
+          messages.map((msg) =>
+            msg.is_system === true || msg.content === SYSTEM_CONNECTED_MESSAGE_CONTENT ? (
+              <div
+                key={msg.id}
+                className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-center text-xs text-emerald-100/95"
+              >
+                {mp.systemConnectedBroadcast}
+              </div>
+            ) : (
+              <div key={msg.id} className="rounded-lg bg-white/[0.04] px-3 py-2">
+                <p className="text-[11px] text-slate-500">{msg.sender_id === userId ? c.chatYou : c.chatPeer}</p>
+                <p className="text-slate-200">{msg.content}</p>
+              </div>
+            ),
+          )
         )}
       </div>
 
@@ -121,6 +132,7 @@ type MergedProps = {
 export function MergedMatchChatPanel({ matchIds, sendOnMatchId, userId }: MergedProps) {
   const { strings } = useLanguage();
   const c = strings.console;
+  const mp = strings.messagesPage;
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -194,12 +206,21 @@ export function MergedMatchChatPanel({ matchIds, sendOnMatchId, userId }: Merged
         {messages.length === 0 ? (
           <p className="text-slate-500">{c.noMessages}</p>
         ) : (
-          messages.map((msg) => (
-            <div key={msg.id} className="rounded-lg bg-white/[0.04] px-3 py-2">
-              <p className="text-[11px] text-slate-500">{msg.sender_id === userId ? c.chatYou : c.chatPeer}</p>
-              <p className="text-slate-200">{msg.content}</p>
-            </div>
-          ))
+          messages.map((msg) =>
+            msg.is_system === true || msg.content === SYSTEM_CONNECTED_MESSAGE_CONTENT ? (
+              <div
+                key={msg.id}
+                className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-center text-xs text-emerald-100/95"
+              >
+                {mp.systemConnectedBroadcast}
+              </div>
+            ) : (
+              <div key={msg.id} className="rounded-lg bg-white/[0.04] px-3 py-2">
+                <p className="text-[11px] text-slate-500">{msg.sender_id === userId ? c.chatYou : c.chatPeer}</p>
+                <p className="text-slate-200">{msg.content}</p>
+              </div>
+            ),
+          )
         )}
       </div>
 

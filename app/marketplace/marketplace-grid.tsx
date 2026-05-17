@@ -49,8 +49,10 @@ export function MarketplaceGrid({
     const listing = listings.find((l) => l.id === connectToIntentId);
     if (!listing || listing.user_id === currentUserId || pending.has(listing.id)) return;
     resumedConnectRef.current = true;
-    setCtx({ receiverUserId: listing.user_id, receiverIntentId: listing.id });
-    setConnectOpen(true);
+    queueMicrotask(() => {
+      setCtx({ receiverUserId: listing.user_id, receiverIntentId: listing.id });
+      setConnectOpen(true);
+    });
     router.replace("/square", { scroll: false });
   }, [connectToIntentId, currentUserId, listings, pending, router]);
 

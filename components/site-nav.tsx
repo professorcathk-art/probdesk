@@ -3,18 +3,24 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { UserRound } from "lucide-react";
+import { MessageCircle, UserRound } from "lucide-react";
 import { getMessengerUnreadThreadCount } from "@/actions/messenger";
 import { useLanguage } from "@/components/language-provider";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-function MessagesNavLink({ label, messengerUnreadInitial }: { label: string; messengerUnreadInitial: number }) {
+function MessagesNavLink({
+  ariaLabel,
+  messengerUnreadInitial,
+}: {
+  ariaLabel: string;
+  messengerUnreadInitial: number;
+}) {
   const pathname = usePathname();
   const [unread, setUnread] = useState(messengerUnreadInitial);
 
   useEffect(() => {
-    setUnread(messengerUnreadInitial);
+    queueMicrotask(() => setUnread(messengerUnreadInitial));
   }, [messengerUnreadInitial]);
 
   useEffect(() => {
@@ -32,19 +38,18 @@ function MessagesNavLink({ label, messengerUnreadInitial }: { label: string; mes
   return (
     <Link
       href="/messages"
+      aria-label={ariaLabel}
       className={cn(
         buttonVariants({ variant: "ghost" }),
-        "relative min-h-11 px-3 text-slate-200 hover:bg-white/5 hover:text-white sm:min-h-8 sm:px-2.5",
+        "relative inline-flex h-11 min-h-11 w-11 shrink-0 items-center justify-center px-0 text-slate-200 hover:bg-white/5 hover:text-white sm:h-9 sm:min-h-8 sm:w-9",
       )}
     >
-      <span>{label}</span>
+      <MessageCircle className="h-[22px] w-[22px]" strokeWidth={1.75} aria-hidden />
       {unread > 0 ? (
         <span
-          className="absolute right-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-sky-500 px-1 text-[10px] font-semibold leading-none text-white shadow-[0_0_12px_rgba(56,189,248,0.45)]"
-          aria-label={`${unread} unread`}
-        >
-          {unread > 99 ? "99+" : unread}
-        </span>
+          className="pointer-events-none absolute right-[10px] top-[10px] h-2 w-2 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.9)] ring-2 ring-slate-950 sm:right-[8px] sm:top-[8px]"
+          aria-hidden
+        />
       ) : null}
     </Link>
   );
@@ -106,7 +111,7 @@ export function SiteNav({
             {strings.nav.explore}
           </Link>
           {isAuthenticated ? (
-            <MessagesNavLink label={strings.nav.messages} messengerUnreadInitial={messengerUnreadInitial} />
+            <MessagesNavLink ariaLabel={strings.nav.messages} messengerUnreadInitial={messengerUnreadInitial} />
           ) : null}
           {isAuthenticated ? (
             <Link

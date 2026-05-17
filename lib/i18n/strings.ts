@@ -99,6 +99,8 @@ export const STRINGS = {
       sending: "Sending…",
       refresh: "Refresh",
       loadThreadError: "Could not load messages.",
+      systemConnectedBroadcast:
+        "You're connected on Vennode — this chat is open. Say hello when you're ready.",
     },
     console: {
       kicker: "Manage",
@@ -491,6 +493,8 @@ export const STRINGS = {
       sending: "傳送中…",
       refresh: "重新整理",
       loadThreadError: "無法載入訊息。",
+      systemConnectedBroadcast:
+        "你們已在 Vennode 成功連結，對話已開啟——準備好時打聲招呼吧。",
     },
     console: {
       kicker: "管理中心",

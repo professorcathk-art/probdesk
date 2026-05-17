@@ -101,9 +101,10 @@ create index if not exists matches_sender_status_idx on public.matches (sender_i
 create table if not exists public.messages (
   id uuid primary key default uuid_generate_v4(),
   match_id uuid not null references public.matches (id) on delete cascade,
-  sender_id uuid not null references public.users (id) on delete cascade,
+  sender_id uuid references public.users (id) on delete cascade,
   content text not null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  is_system boolean not null default false
 );
 
 create index if not exists messages_match_id_idx on public.messages (match_id);
@@ -271,6 +272,39 @@ create policy matches_update_participant on public.matches for update using (
   auth.uid() = sender_id or auth.uid() = receiver_id
 );
 
+-- Auto-insert a system welcome line when a match first becomes Accepted.
+create or replace function public.broadcast_match_connected_message()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if tg_op = 'UPDATE'
+     and new.status = 'Accepted'
+     and old.status is distinct from 'Accepted'
+  then
+    if not exists (
+      select 1
+      from public.messages msg
+      where msg.match_id = new.id
+        and msg.is_system = true
+        and msg.content = 'VENNODE_SYSTEM_CONNECTED'
+    ) then
+      insert into public.messages (match_id, sender_id, content, is_system)
+      values (new.id, new.sender_id, 'VENNODE_SYSTEM_CONNECTED', true);
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_matches_broadcast_connected on public.matches;
+create trigger trg_matches_broadcast_connected
+  after update on public.matches
+  for each row
+  execute function public.broadcast_match_connected_message();
+
 -- Messages only when match is Accepted
 drop policy if exists messages_select on public.messages;
 create policy messages_select on public.messages for select using (
@@ -284,7 +318,8 @@ create policy messages_select on public.messages for select using (
 
 drop policy if exists messages_insert on public.messages;
 create policy messages_insert on public.messages for insert with check (
-  auth.uid() = sender_id
+  coalesce(is_system, false) = false
+  and auth.uid() = sender_id
   and exists (
     select 1 from public.matches m
     where m.id = messages.match_id

@@ -1,8 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import type { MatchRow } from "@/actions/matches";
+import { SYSTEM_CONNECTED_MESSAGE_CONTENT } from "@/lib/system-messages";
+import { STRINGS } from "@/lib/i18n/strings";
+import { createClient } from "@/lib/supabase/server";
 
 export type MessengerThreadDTO = {
   peerId: string;
@@ -19,9 +22,10 @@ export type MessengerThreadDTO = {
 
 type MsgLite = {
   match_id: string;
-  sender_id: string;
+  sender_id: string | null;
   content: string;
   created_at: string;
+  is_system: boolean;
 };
 
 function truncate(text: string, max: number): string {
@@ -76,12 +80,18 @@ async function resolveMatchedIntentTitle(
 function matchHasUnread(
   userId: string,
   matchId: string,
-  latestPeerByMatch: Map<string, MsgLite>,
+  latestPeerMsgByMatch: Map<string, MsgLite>,
+  latestByMatch: Map<string, MsgLite>,
   reads: Map<string, string>,
 ): boolean {
-  const peerMsg = latestPeerByMatch.get(matchId);
-  if (!peerMsg || peerMsg.sender_id === userId) return false;
   const readAt = reads.get(matchId);
+  const latest = latestByMatch.get(matchId);
+  if (latest && (latest.is_system === true || latest.content === SYSTEM_CONNECTED_MESSAGE_CONTENT)) {
+    if (!readAt) return true;
+    return new Date(latest.created_at).getTime() > new Date(readAt).getTime();
+  }
+  const peerMsg = latestPeerMsgByMatch.get(matchId);
+  if (!peerMsg || peerMsg.sender_id === userId) return false;
   if (!readAt) return true;
   return new Date(peerMsg.created_at).getTime() > new Date(readAt).getTime();
 }
@@ -166,7 +176,7 @@ export async function listMessengerThreads(): Promise<{ threads: MessengerThread
 
   const { data: msgRows } = await supabase
     .from("messages")
-    .select("match_id, sender_id, content, created_at")
+    .select("match_id, sender_id, content, created_at, is_system")
     .in("match_id", allMatchIds)
     .order("created_at", { ascending: false })
     .limit(800);
@@ -175,7 +185,11 @@ export async function listMessengerThreads(): Promise<{ threads: MessengerThread
   const latestPeerMsgByMatch = new Map<string, MsgLite>();
   for (const row of (msgRows ?? []) as MsgLite[]) {
     if (!latestByMatch.has(row.match_id)) latestByMatch.set(row.match_id, row);
-    if (row.sender_id !== user.id && !latestPeerMsgByMatch.has(row.match_id)) {
+    if (
+      row.sender_id !== null &&
+      row.sender_id !== user.id &&
+      !latestPeerMsgByMatch.has(row.match_id)
+    ) {
       latestPeerMsgByMatch.set(row.match_id, row);
     }
   }
@@ -187,6 +201,10 @@ export async function listMessengerThreads(): Promise<{ threads: MessengerThread
     .in("match_id", allMatchIds);
 
   const reads = new Map((readRows ?? []).map((r) => [r.match_id as string, r.last_read_at as string]));
+
+  const jar = await cookies();
+  const lang = jar.get("VENNODE_LANG")?.value === "zh" ? "zh" : "en";
+  const connectionPreview = STRINGS[lang].messagesPage.systemConnectedBroadcast;
 
   const threads: MessengerThreadDTO[] = [];
 
@@ -203,7 +221,12 @@ export async function listMessengerThreads(): Promise<{ threads: MessengerThread
         const t = new Date(lm.created_at).getTime();
         if (t > lastActivity) {
           lastActivity = t;
-          lastPreview = truncate(lm.content, 72);
+          lastPreview = truncate(
+            lm.is_system === true || lm.content === SYSTEM_CONNECTED_MESSAGE_CONTENT
+              ? connectionPreview
+              : lm.content,
+            72,
+          );
         }
       }
     }
@@ -214,7 +237,7 @@ export async function listMessengerThreads(): Promise<{ threads: MessengerThread
 
     let unread = false;
     for (const mid of matchIds) {
-      if (matchHasUnread(user.id, mid, latestPeerMsgByMatch, reads)) {
+      if (matchHasUnread(user.id, mid, latestPeerMsgByMatch, latestByMatch, reads)) {
         unread = true;
         break;
       }

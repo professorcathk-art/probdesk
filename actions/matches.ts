@@ -26,9 +26,10 @@ export type MatchRow = {
 
 export type MessageRow = {
   id: string;
-  sender_id: string;
+  sender_id: string | null;
   content: string;
   created_at: string;
+  is_system: boolean;
 };
 
 type CreditRpcResult = {
@@ -382,10 +383,16 @@ export async function sendMatchMessage(matchId: string, content: string) {
     return { ok: false as const, message: "Not a participant." };
   }
 
+  const trimmed = content.trim();
+  if (trimmed.startsWith("VENNODE_SYSTEM_")) {
+    return { ok: false as const, message: "Invalid message." };
+  }
+
   const { error } = await supabase.from("messages").insert({
     match_id: matchId,
     sender_id: user.id,
-    content: content.trim(),
+    content: trimmed,
+    is_system: false,
   });
 
   if (error) return { ok: false as const, message: error.message };
@@ -417,7 +424,7 @@ export async function listMatchMessages(matchId: string) {
 
   const { data, error } = await supabase
     .from("messages")
-    .select("id, sender_id, content, created_at")
+    .select("id, sender_id, content, created_at, is_system")
     .eq("match_id", matchId)
     .order("created_at", { ascending: true });
 
@@ -462,7 +469,7 @@ export async function listMergedMatchMessages(matchIds: string[]) {
 
   const { data, error } = await supabase
     .from("messages")
-    .select("id, sender_id, content, created_at")
+    .select("id, sender_id, content, created_at, is_system")
     .in("match_id", ids)
     .order("created_at", { ascending: true });
 
