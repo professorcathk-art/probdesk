@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PROFILE_GENDER_VALUES, type ProfileCoreFieldKey, type ProfileGenderValue } from "@/lib/profile-basics";
+import { PROFILE_CORE_MIN_BIO_LENGTH, PROFILE_GENDER_VALUES, type ProfileCoreFieldKey, type ProfileGenderValue } from "@/lib/profile-basics";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -198,6 +198,16 @@ export function ProfilePageClient({
                 onChange={(e) => setPfBio(e.target.value)}
                 className="min-h-[100px] border-white/10 bg-white/[0.03] text-slate-50"
               />
+              <p className="text-xs leading-relaxed text-slate-500">
+                {p.profileBioMinNote.replace(/\{min\}/g, String(PROFILE_CORE_MIN_BIO_LENGTH))}
+              </p>
+              {pfBio.trim().length > 0 && pfBio.trim().length < PROFILE_CORE_MIN_BIO_LENGTH ? (
+                <p className="text-xs leading-relaxed text-amber-400/95">
+                  {p.profileBioTooShort
+                    .replace(/\{current\}/g, String(pfBio.trim().length))
+                    .replace(/\{min\}/g, String(PROFILE_CORE_MIN_BIO_LENGTH))}
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="pf-loc" className="text-slate-300">

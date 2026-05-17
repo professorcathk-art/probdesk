@@ -227,6 +227,9 @@ export const STRINGS = {
         "Bio must be at least 8 characters (including spaces) before you can use Manage or Explore.",
       coreIssueLocation: "Location is missing or empty.",
       coreIssueIndustry: "Industry / field is missing or empty.",
+      profileBioMinNote:
+        "Minimum {min} characters (including spaces) required to use Manage and Explore.",
+      profileBioTooShort: "{current} / {min} characters — please add a bit more.",
     },
     credits: {
       dailyLimitReached: "Daily Limit Reached",
@@ -272,7 +275,6 @@ export const STRINGS = {
     footer: {
       privacy: "Privacy Policy",
       policy: "Terms & site policy",
-      home: "Home",
       contact: "Contact",
       copyright: "© 2026 Vennode",
     },
@@ -514,6 +516,8 @@ export const STRINGS = {
       coreIssueBio: "簡介至少需要 8 個字元（含空格），才能使用管理中心或探索廣場。",
       coreIssueLocation: "所在地仍未填寫。",
       coreIssueIndustry: "產業／領域仍未填寫。",
+      profileBioMinNote: "至少需要 {min} 個字元（含空格），才能使用管理中心與探索廣場。",
+      profileBioTooShort: "目前 {current} / {min} 個字元——請再補充一些內容。",
     },
     credits: {
       dailyLimitReached: "今日額度已用盡",
@@ -558,7 +562,6 @@ export const STRINGS = {
     footer: {
       privacy: "隱私權政策",
       policy: "條款與網站政策",
-      home: "首頁",
       contact: "聯絡我們",
       copyright: "© 2026 Vennode",
     },

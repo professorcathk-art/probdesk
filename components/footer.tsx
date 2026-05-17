@@ -23,9 +23,6 @@ export function Footer() {
           <Link href="/contact" className="min-h-11 inline-flex items-center hover:text-slate-200 sm:min-h-0">
             {F.contact}
           </Link>
-          <Link href="/" className="min-h-11 inline-flex items-center hover:text-slate-200 sm:min-h-0">
-            {F.home}
-          </Link>
         </nav>
         <p className="text-sm text-slate-500">{F.copyright}</p>
       </div>

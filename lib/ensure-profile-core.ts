@@ -5,7 +5,9 @@ import { validateMandatoryProfileCore } from "@/lib/profile-basics";
 
 /**
  * Runs on the Node server (not Edge middleware) so the Supabase session + RLS match normal pages.
- * Redirects logged-in, onboarding-complete users who lack core profile fields before using app surfaces.
+ * Redirects logged-in, onboarding-complete users who lack core profile fields (display name, bio,
+ * location, industry — bio length ≥ PROFILE_CORE_MIN_BIO_LENGTH) before:
+ * `/square`, `/marketplace`, `/console`, `/admin`.
  */
 export async function ensureProfileCoreCompleteForAppUse() {
   const { user, onboardingStatus } = await getAuthContext();
