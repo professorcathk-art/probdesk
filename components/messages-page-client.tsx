@@ -56,6 +56,12 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
 
   const idsKey = selected ? [...selected.matchIds].sort().join(",") : "";
 
+  const pendingThreadBottomRef = useRef(false);
+
+  useEffect(() => {
+    pendingThreadBottomRef.current = true;
+  }, [idsKey]);
+
   const loadMessages = useCallback(async () => {
     if (!selected) {
       setMessages([]);
@@ -102,8 +108,18 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
   }, [selectedPeerId, threads]);
 
   useLayoutEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, selectedPeerId]);
+    if (!pendingThreadBottomRef.current) return;
+    if (!selected) {
+      pendingThreadBottomRef.current = false;
+      return;
+    }
+    if (messages.length === 0) {
+      pendingThreadBottomRef.current = false;
+      return;
+    }
+    bottomRef.current?.scrollIntoView({ behavior: "auto" });
+    pendingThreadBottomRef.current = false;
+  }, [messages, selected, idsKey]);
 
   function openThread(peerId: string) {
     setSelectedPeerId(peerId);
@@ -122,6 +138,9 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
     }
     setDraft("");
     await loadMessages();
+    requestAnimationFrame(() => {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    });
     router.refresh();
   }
 

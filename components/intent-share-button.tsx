@@ -13,7 +13,7 @@ type Props = {
   size?: "sm" | "icon";
 };
 
-/** Copies `${origin}/square?intent=${intentId}` for growth loop sharing. */
+/** Copies `${origin}/explore/${intentId}` for growth loop sharing (deep link). */
 export function IntentShareButton({ intentId, className, variant = "outline", size = "sm" }: Props) {
   const { strings } = useLanguage();
   const [state, setState] = useState<"idle" | "copied" | "error">("idle");
@@ -21,7 +21,7 @@ export function IntentShareButton({ intentId, className, variant = "outline", si
   async function onShare() {
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const url = `${origin}/square?intent=${encodeURIComponent(intentId)}`;
+      const url = `${origin}/explore/${encodeURIComponent(intentId)}`;
       await navigator.clipboard.writeText(url);
       setState("copied");
       window.setTimeout(() => setState("idle"), 2200);

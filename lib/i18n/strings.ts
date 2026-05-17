@@ -85,6 +85,16 @@ export const STRINGS = {
       mustHavesHeading: "Expectations",
       inviteTargetLabel: "this Explore listing",
     },
+    exploreIntent: {
+      kicker: "Shared listing",
+      headline: "Matched by intent.",
+      subhead: "Someone shared this Explore request with you.",
+      expectationsHeading: "Expectations",
+      startMatching: "Start matching",
+      browseSquare: "Browse Explore — see what others want",
+      ownerCta: "Manage this request",
+      signingInNote: "After you sign in, we’ll take you to send an invite for this listing.",
+    },
     messagesPage: {
       title: "Messages",
       emptyTitle: "No conversations yet",
@@ -303,6 +313,7 @@ export const STRINGS = {
       socialLinkLabel: "Social link (optional)",
       socialLinkDesc:
         "LinkedIn, Instagram, or personal site. Shown only after a mutual match.",
+      socialLinkPlaceholder: "https://linkedin.com/in/your-profile",
       profileSignOut: "Sign out",
     },
     credits: {
@@ -478,6 +489,16 @@ export const STRINGS = {
       empty: "探索廣場目前很安靜——稍後再來看看是否有人公開徵求。",
       mustHavesHeading: "期望",
       inviteTargetLabel: "這則探索廣場徵求",
+    },
+    exploreIntent: {
+      kicker: "分享的徵求",
+      headline: "以意圖相遇",
+      subhead: "有人分享了這則探索廣場徵求給你。",
+      expectationsHeading: "期望",
+      startMatching: "開始尋找",
+      browseSquare: "看看大家都想找誰",
+      ownerCta: "管理這則徵求",
+      signingInNote: "登入後，我們會引導你向對方送出邀請。",
     },
     messagesPage: {
       title: "訊息",
@@ -690,6 +711,7 @@ export const STRINGS = {
       superpowerPublishHint: "公開徵求或完成註冊流程時，此欄至少需要 8 個字（最多 150 字）。",
       socialLinkLabel: "外部連結（選填）",
       socialLinkDesc: "LinkedIn、Instagram 或個人網站；僅在雙方配對成功後顯示。",
+      socialLinkPlaceholder: "https://linkedin.com/in/你的帳號",
       profileSignOut: "登出",
     },
     credits: {

@@ -336,7 +336,7 @@ export function ProfilePageClient({
                 inputMode="url"
                 value={pfSocial}
                 onChange={(e) => setPfSocial(e.target.value)}
-                placeholder="https://"
+                placeholder={p.socialLinkPlaceholder}
                 className="border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500"
               />
             </div>
