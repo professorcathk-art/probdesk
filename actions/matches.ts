@@ -151,18 +151,32 @@ export async function initiateConnection(params: {
     return { ok: false as const, message: DUPLICATE_MATCH_MESSAGE };
   }
 
-  const { data: senderIntent } = await supabase
-    .from("intent_requests")
-    .select("natural_language_input")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  let senderIntentText: string | null = null;
+  if (ctxIntent) {
+    const { data: ctxRow } = await supabase
+      .from("intent_requests")
+      .select("natural_language_input")
+      .eq("id", ctxIntent)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    senderIntentText = ctxRow?.natural_language_input?.trim() ?? null;
+  }
+  if (!senderIntentText) {
+    const { data: latestSenderIntent } = await supabase
+      .from("intent_requests")
+      .select("natural_language_input")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    senderIntentText = latestSenderIntent?.natural_language_input?.trim() ?? null;
+  }
 
-  let match_score = 72;
-  let compatibility_reason =
-    "Overlapping intent and geography — mutual fit depends on pace, proof, and incentive alignment.";
+  const FALLBACK_SCORE_REASON_LOW_SIGNAL =
+    "We could not compute a reliable fit automatically — treat this invite as context-first until you have both reviewed what each side wants.";
+  let match_score: number | null = null;
+  let compatibility_reason = FALLBACK_SCORE_REASON_LOW_SIGNAL;
 
   const { data: senderProfile } = await supabase
     .from("profiles")
@@ -179,7 +193,7 @@ export async function initiateConnection(params: {
     .maybeSingle();
 
   try {
-    if (senderIntent?.natural_language_input) {
+    if (senderIntentText) {
       const senderSnippet = formatProfileMatchingSnippet({
         bio: senderProfile?.bio ?? null,
         industry: senderProfile?.industry ?? null,
@@ -197,8 +211,8 @@ export async function initiateConnection(params: {
         superpower: receiverProfile?.superpower ?? null,
       });
       const vibe = await vibeCheckWith4o({
-        senderIntent: senderIntent.natural_language_input,
-        candidateIntent: receiverIntent.natural_language_input,
+        senderIntent: senderIntentText,
+        candidateIntent: receiverIntent.natural_language_input ?? "",
         senderProfileSnippet: senderSnippet || undefined,
         candidateProfileSnippet: candidateSnippet || undefined,
       });
@@ -206,7 +220,9 @@ export async function initiateConnection(params: {
       compatibility_reason = vibe.compatibility_reason;
     }
   } catch {
-    /* keep defaults */
+    match_score = 34;
+    compatibility_reason =
+      "Fit scoring was unavailable — Vennode defaulted this relationship hint conservatively; judge overlap from both intents.";
   }
 
   let ai_context_sender: Record<string, unknown> = {

@@ -1,27 +1,45 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo } from "react";
-import { DualIntentBlurbs } from "@/components/dual-intent-blurbs";
 import type { MatchRow } from "@/actions/matches";
+import { DualIntentBlurbs } from "@/components/dual-intent-blurbs";
 import { IntentSnippet } from "@/components/intent-snippet";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
 import { SenderPreviewBlock } from "@/components/sender-preview-block";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { useLanguage } from "@/components/language-provider";
+import { cn } from "@/lib/utils";
+
+function isSystemStyleMatch(m: MatchRow): boolean {
+  return Boolean(m.counterparty_intent_id);
+}
+
+function relatesMatchToIntentCard(m: MatchRow, intentId: string, userId: string): boolean {
+  if (isSystemStyleMatch(m)) {
+    return m.intent_request_id === intentId || m.counterparty_intent_id === intentId;
+  }
+  const inbound = m.receiver_id === userId && m.intent_request_id === intentId;
+  const outbound = m.sender_id === userId && m.sender_context_intent_id === intentId;
+  return inbound || outbound;
+}
 
 export function filterMatchesForIntentCard(intentId: string, userId: string, matches: MatchRow[]): MatchRow[] {
+  const okStatus = new Set(["Pending", "Pending_System", "Accepted", "Rejected"]);
   return matches
-    .filter((m) => {
-      if (m.status !== "Pending" && m.status !== "Pending_System") return false;
-      if (m.status === "Pending") {
-        const inbound = m.receiver_id === userId && m.intent_request_id === intentId;
-        const outbound = m.sender_id === userId && m.sender_context_intent_id === intentId;
-        return inbound || outbound;
-      }
-      return m.intent_request_id === intentId || m.counterparty_intent_id === intentId;
-    })
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    .filter((m) => okStatus.has(m.status))
+    .filter((m) => relatesMatchToIntentCard(m, intentId, userId))
+    .sort((a, b) => {
+      const rank = (x: MatchRow) => {
+        if (x.status === "Pending" || x.status === "Pending_System") return 0;
+        if (x.status === "Accepted") return 1;
+        return 2;
+      };
+      const dr = rank(a) - rank(b);
+      if (dr !== 0) return dr;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 }
 
 function truncateText(s: string | null | undefined, max: number): string {
@@ -43,6 +61,7 @@ export function IntentCardRequestsList({
 }) {
   const { strings } = useLanguage();
   const d = strings.console.intentDashboard;
+  const c = strings.console;
 
   const rows = useMemo(() => filterMatchesForIntentCard(intentId, userId, matches), [intentId, userId, matches]);
 
@@ -57,11 +76,17 @@ export function IntentCardRequestsList({
   return (
     <ul className="flex flex-col gap-4">
       {rows.map((m) => {
-        const isInbound = m.status === "Pending" && m.receiver_id === userId && m.intent_request_id === intentId;
-        const isOutbound = m.status === "Pending" && m.sender_id === userId && m.sender_context_intent_id === intentId;
-        const isSystem = m.status === "Pending_System";
+        const systemMatch = isSystemStyleMatch(m);
+        const inboundListing =
+          !systemMatch && m.receiver_id === userId && m.intent_request_id === intentId;
+        const outboundFromCard =
+          !systemMatch && m.sender_id === userId && m.sender_context_intent_id === intentId;
 
-        const sourceLabel = isInbound ? d.tagSourceInbound : isOutbound ? d.tagSourceOutbound : d.tagSourceAi;
+        const sourceLabel = inboundListing ? d.tagSourceInbound : outboundFromCard ? d.tagSourceOutbound : d.tagSourceAi;
+
+        const pendingInbound = m.status === "Pending" && inboundListing;
+        const pendingOutbound = m.status === "Pending" && outboundFromCard;
+        const pendingSystem = m.status === "Pending_System";
 
         const isSender = userId === m.sender_id;
         const myAck = isSender ? m.system_ack_sender : m.system_ack_receiver;
@@ -69,7 +94,12 @@ export function IntentCardRequestsList({
 
         let statusLabel: string = d.tagStatusPending;
         let statusSub: string | null = null;
-        if (m.status === "Pending_System") {
+
+        if (m.status === "Accepted") {
+          statusLabel = d.tagStatusAccepted;
+        } else if (m.status === "Rejected") {
+          statusLabel = d.tagStatusDeclined;
+        } else if (pendingSystem) {
           if (myAck && peerAck) {
             statusLabel = d.tagStatusPendingMutualReady;
           } else if (myAck && !peerAck) {
@@ -80,11 +110,13 @@ export function IntentCardRequestsList({
           } else {
             statusLabel = d.tagStatusPendingMutual;
           }
-        } else if (isOutbound) {
+        } else if (pendingOutbound) {
           statusLabel = d.tagStatusAwaitingTheirReply;
         }
 
         const preview = m.ai_context_sender as { headline?: string; summary?: string } | undefined;
+
+        const showAnonymousPreview = outboundFromCard || systemMatch;
 
         return (
           <li key={m.id} className="rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-xl md:p-5">
@@ -108,10 +140,11 @@ export function IntentCardRequestsList({
                 <LockedAvatarPreview size="sm" />
               </div>
               <div className="min-w-0 flex-1 space-y-3">
-                {!isInbound ? (
+                {showAnonymousPreview ? (
                   <div>
                     <p className="text-sm font-medium text-slate-100">{d.peerAnonymous}</p>
-                    {(isOutbound || isSystem) && (preview?.summary || m.compatibility_reason) ? (
+                    {(pendingOutbound || pendingSystem || m.status !== "Pending") &&
+                    (preview?.summary || m.compatibility_reason) ? (
                       <p className="mt-1 text-xs leading-relaxed text-slate-500">
                         {truncateText(preview?.summary ?? m.compatibility_reason ?? "", 220)}
                       </p>
@@ -119,71 +152,87 @@ export function IntentCardRequestsList({
                   </div>
                 ) : null}
 
-                {isOutbound && m.introductory_context?.trim() ? (
+                {outboundFromCard && m.introductory_context?.trim() ? (
                   <p className="text-xs leading-relaxed text-slate-400">
                     <span className="font-medium text-slate-500">{d.yourInviteNote}: </span>
                     {truncateText(m.introductory_context, 200)}
                   </p>
                 ) : null}
 
-                {(isOutbound || isSystem) && m.compatibility_reason ? (
+                {(outboundFromCard || systemMatch) && m.compatibility_reason ? (
                   <p className="text-xs leading-relaxed text-slate-400">
                     <span className="font-medium text-slate-500">{d.matchContext}: </span>
                     {truncateText(m.compatibility_reason, 280)}
                   </p>
                 ) : null}
 
-                {isInbound ? (
+                {inboundListing ? (
                   <>
                     <SenderPreviewBlock match={m} />
-                    <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:flex-wrap">
-                      <Button
-                        size="sm"
-                        className="min-h-11 w-full touch-manipulation border border-emerald-400/35 bg-emerald-500/15 text-emerald-50 hover:bg-emerald-500/25 sm:w-auto sm:min-h-10"
-                        onClick={() => onRespond(m.id, "Accepted")}
-                      >
-                        {d.accept}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="min-h-11 w-full touch-manipulation text-slate-400 hover:bg-white/5 sm:w-auto sm:min-h-10"
-                        onClick={() => onRespond(m.id, "Rejected")}
-                      >
-                        {d.decline}
-                      </Button>
-                    </div>
+                    {pendingInbound ? (
+                      <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:flex-wrap">
+                        <Button
+                          size="sm"
+                          className="min-h-11 w-full touch-manipulation border border-emerald-400/35 bg-emerald-500/15 text-emerald-50 hover:bg-emerald-500/25 sm:w-auto sm:min-h-10"
+                          onClick={() => onRespond(m.id, "Accepted")}
+                        >
+                          {d.accept}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="min-h-11 w-full touch-manipulation text-slate-400 hover:bg-white/5 sm:w-auto sm:min-h-10"
+                          onClick={() => onRespond(m.id, "Rejected")}
+                        >
+                          {d.decline}
+                        </Button>
+                      </div>
+                    ) : null}
                   </>
                 ) : null}
 
-                {isOutbound ? (
+                {outboundFromCard ? (
                   <div className="pt-1">
                     <IntentSnippet intentId={m.intent_request_id} label={d.theirListing} />
                   </div>
                 ) : null}
 
-                {isSystem ? (
+                {systemMatch ? (
                   <>
                     <DualIntentBlurbs idA={m.intent_request_id} idB={m.counterparty_intent_id} />
-                    <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:flex-wrap">
-                      <Button
-                        size="sm"
-                        className="min-h-11 w-full touch-manipulation border border-emerald-400/35 bg-emerald-500/15 text-emerald-50 hover:bg-emerald-500/25 disabled:opacity-50 sm:w-auto sm:min-h-10"
-                        disabled={Boolean(myAck && !peerAck)}
-                        onClick={() => onRespond(m.id, "Accepted")}
-                      >
-                        {myAck && !peerAck ? d.waitingOnPeer : d.confirmMutualInterest}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="min-h-11 w-full touch-manipulation text-slate-400 hover:bg-white/5 sm:w-auto sm:min-h-10"
-                        onClick={() => onRespond(m.id, "Rejected")}
-                      >
-                        {d.decline}
-                      </Button>
-                    </div>
+                    {pendingSystem ? (
+                      <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:flex-wrap">
+                        <Button
+                          size="sm"
+                          className="min-h-11 w-full touch-manipulation border border-emerald-400/35 bg-emerald-500/15 text-emerald-50 hover:bg-emerald-500/25 disabled:opacity-50 sm:w-auto sm:min-h-10"
+                          disabled={Boolean(myAck && !peerAck)}
+                          onClick={() => onRespond(m.id, "Accepted")}
+                        >
+                          {myAck && !peerAck ? d.waitingOnPeer : d.confirmMutualInterest}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="min-h-11 w-full touch-manipulation text-slate-400 hover:bg-white/5 sm:w-auto sm:min-h-10"
+                          onClick={() => onRespond(m.id, "Rejected")}
+                        >
+                          {d.decline}
+                        </Button>
+                      </div>
+                    ) : null}
                   </>
+                ) : null}
+
+                {m.status === "Accepted" ? (
+                  <Link
+                    href={`/messages?matchId=${encodeURIComponent(m.id)}`}
+                    className={cn(
+                      buttonVariants({ variant: "default", size: "sm" }),
+                      "galaxy-btn-glow inline-flex min-h-11 w-full justify-center border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 sm:w-auto sm:min-h-10",
+                    )}
+                  >
+                    {c.messagePeerCta}
+                  </Link>
                 ) : null}
               </div>
             </div>

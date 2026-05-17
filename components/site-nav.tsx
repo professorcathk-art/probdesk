@@ -111,9 +111,6 @@ export function SiteNav({
             {strings.nav.explore}
           </Link>
           {isAuthenticated ? (
-            <MessagesNavLink ariaLabel={strings.nav.messages} messengerUnreadInitial={messengerUnreadInitial} />
-          ) : null}
-          {isAuthenticated ? (
             <Link
               href="/console"
               className={cn(
@@ -123,6 +120,9 @@ export function SiteNav({
             >
               {strings.nav.manage}
             </Link>
+          ) : null}
+          {isAuthenticated ? (
+            <MessagesNavLink ariaLabel={strings.nav.messages} messengerUnreadInitial={messengerUnreadInitial} />
           ) : null}
           {!isAuthenticated ? (
             <Link

@@ -124,8 +124,11 @@ export async function vibeCheckWith4o(params: {
         {
           role: "system",
           content:
-            "You compare two high-intent networking requests and optional profile snippets (bio, industry, skills, languages, readiness). " +
-            "Score synergy 1-100. Write exactly two polished sentences explaining compatibility for a premium product UI.",
+            "You evaluate whether someone REACHING OUT (sender intent text — what they say they want) meaningfully aligns with an Explore LISTING (candidate intent — what the listing owner published they want). " +
+            "Use optional profile snippets for grounding only — penalize spam, nonsense repetition, empty fluff, or obvious mismatched domains (romantic vs hiring vs fundraising vs mentorship). " +
+            "Scoring calibration: unrelated or contradictory topics or spam-like bios → 1–35; weak or speculative overlap → 36–55; moderate plausible overlap → 56–72; strong overlap → 73–88; exceptional mutual fit → 89–100. " +
+            "Do NOT output scores above 55 unless there is substantive topical overlap between sender intent and listing intent. Be conservative. " +
+            "Return JSON only. compatibility_reason: exactly two concise sentences for a premium UI.",
         },
         {
           role: "user",
@@ -152,7 +155,15 @@ export async function vibeCheckWith4o(params: {
   };
   const raw = data.choices?.[0]?.message?.content;
   if (!raw) throw new Error("AIML vibe check returned empty content");
-  return JSON.parse(raw) as VibeResult;
+  const parsed = JSON.parse(raw) as VibeResult;
+  let score = Math.round(Number(parsed.match_score));
+  if (!Number.isFinite(score)) score = 42;
+  score = Math.max(1, Math.min(100, score));
+  const compatibility_reason =
+    typeof parsed.compatibility_reason === "string" && parsed.compatibility_reason.trim().length > 0
+      ? parsed.compatibility_reason.trim()
+      : "Overlap could not be summarized cleanly — treat this as a tentative signal.";
+  return { match_score: score, compatibility_reason };
 }
 
 export async function generateFollowUpQuestions(persona: Record<string, unknown>): Promise<string[]> {

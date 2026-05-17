@@ -29,7 +29,7 @@ export function ExploreIntentLanding({ listing, viewerUserId }: Props) {
       ? "/console"
       : `/square?connectTo=${encodeURIComponent(listing.id)}`;
 
-  const primaryLabel = isOwner ? x.ownerCta : x.startMatching;
+  const primaryLabel = isOwner ? x.ownerCta : x.sendInvite;
 
   return (
     <div className="relative min-h-screen text-slate-50">

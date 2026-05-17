@@ -170,15 +170,18 @@ export function ConsoleClient({
   const [freshMatchesModal, setFreshMatchesModal] = useState<SuggestionCard[] | null>(null);
   const [freshMatchesIntentId, setFreshMatchesIntentId] = useState<string | null>(null);
 
-  const outboundPending = useMemo(
-    () => matches.filter((m) => m.status === "Pending" && m.sender_id === userId),
-    [matches, userId],
-  );
-
   const outboundInvitesToOthers = useMemo(() => {
     const mine = new Set(intents.map((i) => i.id));
-    return outboundPending.filter((m) => Boolean(m.intent_request_id) && !mine.has(m.intent_request_id!));
-  }, [outboundPending, intents]);
+    return matches
+      .filter(
+        (m) =>
+          m.sender_id === userId &&
+          Boolean(m.intent_request_id) &&
+          !mine.has(m.intent_request_id!) &&
+          (m.status === "Pending" || m.status === "Accepted" || m.status === "Rejected"),
+      )
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [matches, userId, intents]);
 
   const activeConnections = useMemo(() => matches.filter((m) => m.status === "Accepted"), [matches]);
 
@@ -528,14 +531,30 @@ export function ConsoleClient({
                 </Card>
               ) : (
                 <ul className="grid gap-4">
-                  {outboundInvitesToOthers.map((m) => (
+                  {outboundInvitesToOthers.map((m) => {
+                    const statusBadge =
+                      m.status === "Accepted"
+                        ? {
+                            label: t.intentDashboard.tagStatusAccepted,
+                            className: "border-emerald-400/35 bg-emerald-500/10 text-emerald-100",
+                          }
+                        : m.status === "Rejected"
+                          ? {
+                              label: t.intentDashboard.tagStatusDeclined,
+                              className: "border-slate-500/40 text-slate-400",
+                            }
+                          : {
+                              label: t.statusPendingBadge,
+                              className: "border-amber-400/35 text-amber-100",
+                            };
+                    return (
                     <li key={m.id}>
                       <Card className="border-white/10 bg-white/[0.035] backdrop-blur-xl">
                         <CardHeader className="space-y-3">
                           <div className="flex flex-wrap items-center gap-2">
                             <CardTitle className="text-base text-slate-100">{t.outboundLine}</CardTitle>
-                            <Badge variant="outline" className="border-amber-400/35 text-amber-100">
-                              {t.statusPendingBadge}
+                            <Badge variant="outline" className={statusBadge.className}>
+                              {statusBadge.label}
                             </Badge>
                           </div>
                         </CardHeader>
@@ -545,10 +564,27 @@ export function ConsoleClient({
                             <p className="mt-2 text-sm leading-relaxed text-slate-200">{m.introductory_context}</p>
                           </div>
                           <IntentSnippet intentId={m.intent_request_id} label={t.outboundListingLabel} />
+                          {typeof m.match_score === "number" ? (
+                            <p className="text-xs tabular-nums text-slate-500">
+                              {t.matchFitScore}: {m.match_score}
+                            </p>
+                          ) : null}
+                          {m.status === "Accepted" ? (
+                            <Link
+                              href={`/messages?matchId=${encodeURIComponent(m.id)}`}
+                              className={cn(
+                                buttonVariants({ variant: "default", size: "sm" }),
+                                "galaxy-btn-glow inline-flex w-full justify-center border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 sm:w-auto",
+                              )}
+                            >
+                              {t.messagePeerCta}
+                            </Link>
+                          ) : null}
                         </CardContent>
                       </Card>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
             </section>
