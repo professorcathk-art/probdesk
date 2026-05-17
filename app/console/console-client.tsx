@@ -65,6 +65,7 @@ type Props = {
     maxActiveIntents: number;
     unlimitedIntents: boolean;
   };
+  profileReadyForInvites?: boolean;
 };
 
 function DualIntentBlurbs({ idA, idB }: { idA: string | null; idB: string | null }) {
@@ -105,6 +106,7 @@ export function ConsoleClient({
   initialConsoleTab = "intents",
   initialConsoleCue = null,
   quotaSnapshot,
+  profileReadyForInvites = true,
 }: Props) {
   const router = useRouter();
   const { strings } = useLanguage();
@@ -279,6 +281,10 @@ export function ConsoleClient({
   }
 
   function openConnect(card: SuggestionCard) {
+    if (!profileReadyForInvites) {
+      router.push(`/profile?required=profile&after=${encodeURIComponent("/console")}`);
+      return;
+    }
     if (outOfCredits) {
       setCreditsTeaserOpen(true);
       return;
@@ -956,6 +962,7 @@ export function ConsoleClient({
           receiverIntentId={connectCtx.receiverIntentId}
           headline={connectCtx.headline}
           onInviteSent={() => void refreshCredits()}
+          profileIncompleteResumeAfter="/console"
         />
       ) : null}
     </div>

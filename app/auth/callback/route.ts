@@ -5,6 +5,7 @@ import { parseRedirectAfterCookie, REDIRECT_AFTER_COOKIE } from "@/lib/redirect-
 import { validateMandatoryProfileCore } from "@/lib/profile-basics";
 import { sanitizeInternalRedirect } from "@/lib/sanitize-redirect";
 import { getSiteOrigin } from "@/lib/site-url";
+import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
 
 function appendDeletedCookieHeaders(res: NextResponse) {
   res.cookies.set(ENTRY_COOKIE, "", { path: "/", maxAge: 0, sameSite: "lax" });
@@ -33,6 +34,11 @@ export async function GET(request: Request) {
 
   if (!user) {
     return NextResponse.redirect(`${site}/login?error=no_session`);
+  }
+
+  const ensured = await ensurePublicUserRowsForSession(supabase, user);
+  if (!ensured.ok) {
+    return NextResponse.redirect(`${site}/login?error=${encodeURIComponent(ensured.message)}`);
   }
 
   const { data: row } = await supabase.from("users").select("onboarding_status").eq("id", user.id).single();

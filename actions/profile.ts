@@ -2,9 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { PROFILE_CORE_MIN_BIO_LENGTH, PROFILE_SUPERPOWER_MAX, parseProfileGender } from "@/lib/profile-basics";
+import {
+  PROFILE_CORE_MIN_BIO_LENGTH,
+  PROFILE_SUPERPOWER_MAX,
+  parseProfileGender,
+  validateProfileBasicsForPublish,
+} from "@/lib/profile-basics";
 import { parseIntentLevel } from "@/lib/profile-intent-level";
 import { normalizeProfileTags } from "@/lib/profile-tags";
+import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
+import { isAdminEmail } from "@/lib/admin-emails";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -34,6 +41,9 @@ export async function uploadProfileAvatar(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, message: "Not authenticated" };
+
+  const ensuredUpload = await ensurePublicUserRowsForSession(supabase, user);
+  if (!ensuredUpload.ok) return { ok: false as const, message: ensuredUpload.message };
 
   const file = formData.get("avatar");
   if (!file || !(file instanceof File)) {
@@ -99,6 +109,28 @@ export type ProfileIdentity = {
   social_link: string | null;
 };
 
+/** Used before opening Explore/Manage invite UI — same bar as publishing a listing (gender, intent level, superpower, etc.). */
+export async function getProfileBasicsGateForInvites(): Promise<{ ok: true } | { ok: false }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false };
+
+  if (isAdminEmail(user.email ?? undefined)) return { ok: true };
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("display_name, bio, location, industry, intent_level, superpower, gender, skills_tags, languages")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) return { ok: false };
+
+  const gate = validateProfileBasicsForPublish(data ?? {});
+  return gate.ok ? { ok: true } : { ok: false };
+}
+
 export async function getMyProfileIdentity(): Promise<ProfileIdentity | { error: string }> {
   const supabase = await createClient();
   const {
@@ -150,6 +182,9 @@ export async function updateMyProfileIdentity(fields: {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, message: "Not authenticated" };
+
+  const ensuredProfile = await ensurePublicUserRowsForSession(supabase, user);
+  if (!ensuredProfile.ok) return { ok: false as const, message: ensuredProfile.message };
 
   const chRaw = fields.preferred_contact_channel?.trim() ?? "";
   const detRaw = fields.preferred_contact_detail?.trim() ?? "";

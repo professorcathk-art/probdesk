@@ -5,6 +5,7 @@ import { getAuthContext } from "@/lib/auth-context";
 import { ensureProfileCoreCompleteForAppUse } from "@/lib/ensure-profile-core";
 import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
 import { ConsoleClient } from "./console-client";
+import { getProfileBasicsGateForInvites } from "@/actions/profile";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,8 @@ export default async function ConsolePage({
       ? { activeIntentCount: 0, maxActiveIntents: MAX_ACTIVE_INTENTS_PER_USER, unlimitedIntents: false }
       : quotaRes;
 
+  const inviteGate = await getProfileBasicsGateForInvites();
+
   return (
     <ConsoleClient
       key={`${initialConsoleTab}-${initialConsoleCue ?? ""}`}
@@ -57,6 +60,7 @@ export default async function ConsolePage({
       initialConsoleTab={initialConsoleTab}
       initialConsoleCue={initialConsoleCue}
       quotaSnapshot={quotaSnapshot}
+      profileReadyForInvites={inviteGate.ok}
     />
   );
 }

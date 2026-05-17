@@ -82,7 +82,7 @@ export const STRINGS = {
       connect: "Send invite",
       pending: "Pending",
       empty: "Explore is quiet — check back when people publish public requests.",
-      mustHavesHeading: "Must-haves",
+      mustHavesHeading: "Expectations",
       inviteTargetLabel: "this Explore listing",
     },
     messagesPage: {
@@ -193,11 +193,11 @@ export const STRINGS = {
       locationPlaceholderEdit: "City or region",
       locationHintEdit:
         "Saved with your request. Leave blank to reuse parsed location from text, then previous value, then profile.",
-      mustHavesLabel: "Must-Haves & Expectations",
+      mustHavesLabel: "Expectations",
       mustHavesDesc:
-        "What are your dealbreakers? For example: must be based in Hong Kong, must have SaaS experience, non-smoker.",
+        "What are you hoping for in a match? For example: based in Hong Kong, SaaS experience, non-smoker.",
       mustHavesPlaceholder: "Optional — e.g. HK-based, SaaS experience, non-smoker",
-      mustHavesCardHeading: "Must-haves",
+      mustHavesCardHeading: "Expectations",
       cancel: "Cancel",
       createBusy: "Creating…",
       createSubmit: "Create request",
@@ -476,7 +476,7 @@ export const STRINGS = {
       connect: "發送邀請",
       pending: "等待中",
       empty: "探索廣場目前很安靜——稍後再來看看是否有人公開徵求。",
-      mustHavesHeading: "必備條件",
+      mustHavesHeading: "期望",
       inviteTargetLabel: "這則探索廣場徵求",
     },
     messagesPage: {
@@ -585,10 +585,10 @@ export const STRINGS = {
       locationPlaceholderEdit: "城市或區域",
       locationHintEdit:
         "與徵求一併儲存。留白則依序使用：內文解析、先前數值、個人檔案地區。",
-      mustHavesLabel: "期望要求／必備條件",
-      mustHavesDesc: "對方必須具備什麼條件？例如：「必須在香港」、「懂 React」、「不抽菸」。",
+      mustHavesLabel: "期望",
+      mustHavesDesc: "你對理想對象有什麼期待？例如：希望在香港、熟悉 React、不抽菸。",
       mustHavesPlaceholder: "選填——例如：在香港、具備 SaaS 經驗、不抽菸",
-      mustHavesCardHeading: "必備條件",
+      mustHavesCardHeading: "期望",
       cancel: "取消",
       createBusy: "建立中…",
       createSubmit: "建立徵求",

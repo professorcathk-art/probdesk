@@ -12,9 +12,15 @@ type Props = {
   user: { id: string } | null;
   squareListings: MarketplaceListing[];
   squarePendingIntentIds: string[];
+  profileReadyForInvites?: boolean;
 };
 
-export function LandingPageBody({ user, squareListings, squarePendingIntentIds }: Props) {
+export function LandingPageBody({
+  user,
+  squareListings,
+  squarePendingIntentIds,
+  profileReadyForInvites = true,
+}: Props) {
   const { strings } = useLanguage();
   const L = strings.landing;
 
@@ -85,6 +91,7 @@ export function LandingPageBody({ user, squareListings, squarePendingIntentIds }
           listings={squareListings}
           currentUserId={user?.id ?? null}
           pendingIntentIds={squarePendingIntentIds}
+          profileReadyForInvites={profileReadyForInvites}
         />
       </section>
 

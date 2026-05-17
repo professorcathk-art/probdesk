@@ -15,6 +15,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useConnectionCredits } from "@/hooks/use-connection-credits";
 import { cn } from "@/lib/utils";
 
+function exploreInviteResumeAfter(exploreBasePath: "/square" | "/marketplace", intentId: string) {
+  return `${exploreBasePath}?connectTo=${encodeURIComponent(intentId)}`;
+}
+
 type Props = {
   listings: MarketplaceListing[];
   currentUserId: string | null;
@@ -22,6 +26,9 @@ type Props = {
   highlightIntentId?: string;
   /** Open connect modal once after auth + optional profile gate (matches intent id). */
   connectToIntentId?: string;
+  exploreBasePath?: "/square" | "/marketplace";
+  /** Publish-level profile complete — required before sending Explore invites. */
+  profileReadyForInvites?: boolean;
 };
 
 export function MarketplaceGrid({
@@ -30,6 +37,8 @@ export function MarketplaceGrid({
   pendingIntentIds,
   highlightIntentId,
   connectToIntentId,
+  exploreBasePath = "/square",
+  profileReadyForInvites = true,
 }: Props) {
   const router = useRouter();
   const { strings } = useLanguage();
@@ -44,17 +53,37 @@ export function MarketplaceGrid({
 
   const { refresh: refreshCredits, outOfCredits } = useConnectionCredits(currentUserId);
 
+  function redirectToCompleteProfileForInvite(intentId: string) {
+    const after = exploreInviteResumeAfter(exploreBasePath, intentId);
+    router.push(`/profile?required=profile&after=${encodeURIComponent(after)}`);
+  }
+
   useEffect(() => {
     if (!connectToIntentId || !currentUserId || resumedConnectRef.current) return;
     const listing = listings.find((l) => l.id === connectToIntentId);
     if (!listing || listing.user_id === currentUserId || pending.has(listing.id)) return;
+    if (!profileReadyForInvites) {
+      resumedConnectRef.current = true;
+      router.replace(
+        `/profile?required=profile&after=${encodeURIComponent(exploreInviteResumeAfter(exploreBasePath, connectToIntentId))}`,
+      );
+      return;
+    }
     resumedConnectRef.current = true;
     queueMicrotask(() => {
       setCtx({ receiverUserId: listing.user_id, receiverIntentId: listing.id });
       setConnectOpen(true);
     });
-    router.replace("/square", { scroll: false });
-  }, [connectToIntentId, currentUserId, listings, pending, router]);
+    router.replace(exploreBasePath, { scroll: false });
+  }, [
+    connectToIntentId,
+    currentUserId,
+    exploreBasePath,
+    listings,
+    pending,
+    profileReadyForInvites,
+    router,
+  ]);
 
   useEffect(() => {
     if (!highlightIntentId || listings.every((l) => l.id !== highlightIntentId)) return;
@@ -117,6 +146,10 @@ export function MarketplaceGrid({
                       router.push(`/login?flow=pending_connect&connectIntent=${encodeURIComponent(item.id)}`);
                       return;
                     }
+                    if (!profileReadyForInvites) {
+                      redirectToCompleteProfileForInvite(item.id);
+                      return;
+                    }
                     if (currentUserId === item.user_id || pending.has(item.id)) return;
                     if (outOfCredits) {
                       setCreditsTeaserOpen(true);
@@ -151,6 +184,7 @@ export function MarketplaceGrid({
           receiverIntentId={ctx.receiverIntentId}
           headline={mp.inviteTargetLabel}
           onInviteSent={() => void refreshCredits()}
+          profileIncompleteResumeAfter={exploreInviteResumeAfter(exploreBasePath, ctx.receiverIntentId)}
         />
       ) : null}
     </>

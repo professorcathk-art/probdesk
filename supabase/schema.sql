@@ -200,6 +200,8 @@ drop policy if exists users_select_own on public.users;
 create policy users_select_own on public.users for select using (auth.uid() = id);
 drop policy if exists users_update_own on public.users;
 create policy users_update_own on public.users for update using (auth.uid() = id);
+drop policy if exists users_insert_own on public.users;
+create policy users_insert_own on public.users for insert with check (auth.uid() = id);
 
 -- profiles: own row; peer profiles only after mutual acceptance
 drop policy if exists profiles_select_own on public.profiles;

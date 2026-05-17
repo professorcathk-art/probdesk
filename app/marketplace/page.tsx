@@ -3,6 +3,7 @@ import { getSquarePendingIntentIdsForCurrentUser } from "@/actions/matches";
 import { listMarketplaceListings } from "@/actions/marketplace";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { MarketplaceFeed } from "@/components/marketplace-feed";
+import { getProfileBasicsGateForInvites } from "@/actions/profile";
 import { getAuthContext } from "@/lib/auth-context";
 import { ensureProfileCoreCompleteForAppUse } from "@/lib/ensure-profile-core";
 import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
@@ -32,6 +33,8 @@ export default async function MarketplacePage({
       ? quotaRes
       : { activeIntentCount: 0, maxActiveIntents: MAX_ACTIVE_INTENTS_PER_USER, unlimitedIntents: false };
 
+  const inviteGate = user ? await getProfileBasicsGateForInvites() : { ok: true as const };
+
   return (
     <div className="relative min-h-screen text-slate-50">
       <GalaxyBackdrop />
@@ -42,6 +45,8 @@ export default async function MarketplacePage({
           pendingIntentIds={pendingIntentIds}
           highlightIntentId={intentHighlight}
           connectToIntentId={connectToIntentId}
+          exploreBasePath="/marketplace"
+          profileReadyForInvites={inviteGate.ok}
           loadError={"error" in res ? res.error : null}
           quotaSnapshot={user?.id ? quotaSnapshot : null}
         />

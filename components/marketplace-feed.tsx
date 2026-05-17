@@ -15,6 +15,10 @@ type Props = {
   highlightIntentId?: string | null;
   /** Resume “send invite” after profile completion (intent row id). */
   connectToIntentId?: string | null;
+  /** Pathname for return URLs (`/square` or `/marketplace`). */
+  exploreBasePath?: "/square" | "/marketplace";
+  /** False when logged-in user has not completed publish-level profile (gender, intent level, etc.). */
+  profileReadyForInvites?: boolean;
   loadError?: string | null;
   quotaSnapshot?: {
     activeIntentCount: number;
@@ -29,6 +33,8 @@ export function MarketplaceFeed({
   pendingIntentIds,
   highlightIntentId,
   connectToIntentId = null,
+  exploreBasePath = "/square",
+  profileReadyForInvites = true,
   loadError,
   quotaSnapshot = null,
 }: Props) {
@@ -64,6 +70,8 @@ export function MarketplaceFeed({
         pendingIntentIds={pendingIntentIds}
         highlightIntentId={highlightIntentId ?? undefined}
         connectToIntentId={connectToIntentId ?? undefined}
+        exploreBasePath={exploreBasePath}
+        profileReadyForInvites={profileReadyForInvites}
       />
     </>
   );

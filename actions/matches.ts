@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sanitizeProfilePreview, vibeCheckWith4o } from "@/lib/aiml";
 import { formatProfileMatchingSnippet } from "@/lib/profile-matching-snippet";
 import { DUPLICATE_MATCH_MESSAGE, BLOCKING_MATCH_STATUSES, hasBlockingMatchBetween } from "@/lib/match-blocking";
+import { validateProfileBasicsForPublish } from "@/lib/profile-basics";
 import { isAdminEmail } from "@/lib/admin-emails";
 
 export type MatchRow = {
@@ -41,7 +42,8 @@ type CreditRpcResult = {
 export type InitiateConnectionResult =
   | { ok: true }
   | { ok: false; message: string }
-  | { ok: false; error: "OUT_OF_CREDITS" };
+  | { ok: false; error: "OUT_OF_CREDITS" }
+  | { ok: false; error: "PROFILE_INCOMPLETE" };
 
 export async function getConnectionCreditsRemaining(): Promise<
   { credits: number; unlimited: boolean } | { error: string }
@@ -84,6 +86,21 @@ export async function initiateConnection(params: {
   if (!user) return { ok: false as const, message: "Not authenticated" };
 
   const adminUser = isAdminEmail(user.email ?? undefined);
+
+  const { data: inviteGateProfile } = await supabase
+    .from("profiles")
+    .select(
+      "display_name, bio, location, industry, intent_level, superpower, gender, skills_tags, languages",
+    )
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!adminUser) {
+    const inviteGate = validateProfileBasicsForPublish(inviteGateProfile ?? {});
+    if (!inviteGate.ok) {
+      return { ok: false as const, error: "PROFILE_INCOMPLETE" as const };
+    }
+  }
 
   const { data: receiverIntent, error: intentError } = await supabase
     .from("intent_requests")

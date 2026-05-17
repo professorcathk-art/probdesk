@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   Dialog,
@@ -24,6 +25,8 @@ type Props = {
   receiverIntentId: string;
   headline: string;
   onInviteSent?: () => void;
+  /** After completing profile, return here (internal path + query). Used when server returns PROFILE_INCOMPLETE. */
+  profileIncompleteResumeAfter?: string;
 };
 
 export function ConnectModal({
@@ -33,7 +36,9 @@ export function ConnectModal({
   receiverIntentId,
   headline,
   onInviteSent,
+  profileIncompleteResumeAfter,
 }: Props) {
+  const router = useRouter();
   const { strings } = useLanguage();
   const cm = strings.connectModal;
 
@@ -54,6 +59,12 @@ export function ConnectModal({
     });
     setBusy(false);
     if (!res.ok) {
+      if ("error" in res && res.error === "PROFILE_INCOMPLETE") {
+        const after = profileIncompleteResumeAfter ?? "/square";
+        router.push(`/profile?required=profile&after=${encodeURIComponent(after)}`);
+        onOpenChange(false);
+        return;
+      }
       if ("error" in res && res.error === "OUT_OF_CREDITS") {
         setCreditsModalOpen(true);
         return;

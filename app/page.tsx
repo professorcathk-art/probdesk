@@ -1,5 +1,6 @@
 import { getSquarePendingIntentIdsForCurrentUser } from "@/actions/matches";
 import { listMarketplaceListings } from "@/actions/marketplace";
+import { getProfileBasicsGateForInvites } from "@/actions/profile";
 import { LandingGalaxyScene } from "@/components/landing-galaxy-scene";
 import { LandingPageBody } from "@/components/landing-page-body";
 import { getAuthContext } from "@/lib/auth-context";
@@ -18,6 +19,12 @@ export default async function Home() {
     squarePendingIntentIds = "error" in pendingRes ? [] : pendingRes.intentIds;
   }
 
+  let profileReadyForInvites = true;
+  if (user) {
+    const gate = await getProfileBasicsGateForInvites();
+    profileReadyForInvites = gate.ok;
+  }
+
   return (
     <div className="relative min-h-screen text-slate-50">
       <LandingGalaxyScene />
@@ -25,6 +32,7 @@ export default async function Home() {
         user={user}
         squareListings={squareListings}
         squarePendingIntentIds={squarePendingIntentIds}
+        profileReadyForInvites={profileReadyForInvites}
       />
     </div>
   );

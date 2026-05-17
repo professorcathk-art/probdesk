@@ -4,7 +4,6 @@ import type { MarketplaceListing } from "@/actions/marketplace";
 import { ConnectModal } from "@/components/connect-modal";
 import { CreditsLimitModal } from "@/components/credits-limit-modal";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
-import { IntentMustHavesCallout } from "@/components/intent-must-haves-callout";
 import { useLanguage } from "@/components/language-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -26,6 +25,8 @@ type Props = {
   listings: MarketplaceListing[];
   currentUserId: string | null;
   pendingIntentIds: string[];
+  /** Publish-level profile complete — required before sending Explore invites from the marquee. */
+  profileReadyForInvites?: boolean;
 };
 
 /** Enough cards so the marquee feels continuous for small Square feeds. */
@@ -40,7 +41,12 @@ function marqueeSequence(items: MarketplaceListing[]): MarketplaceListing[] {
   return out;
 }
 
-export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds }: Props) {
+export function LandingSquareMarquee({
+  listings,
+  currentUserId,
+  pendingIntentIds,
+  profileReadyForInvites = true,
+}: Props) {
   const router = useRouter();
   const { strings } = useLanguage();
   const L = strings.landing;
@@ -51,6 +57,14 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
   const seq = useMemo(() => marqueeSequence(listings), [listings]);
 
   const { refresh: refreshCredits, outOfCredits } = useConnectionCredits(currentUserId);
+
+  function inviteResumeAfter(intentId: string) {
+    return `/square?connectTo=${encodeURIComponent(intentId)}`;
+  }
+
+  function redirectToCompleteProfileForInvite(intentId: string) {
+    router.push(`/profile?required=profile&after=${encodeURIComponent(inviteResumeAfter(intentId))}`);
+  }
 
   const [preview, setPreview] = useState<MarketplaceListing | null>(null);
   const [connectOpen, setConnectOpen] = useState(false);
@@ -83,7 +97,6 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
           </Badge>
         </div>
         <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-slate-100">{item.natural_language_input}</p>
-        <IntentMustHavesCallout compact heading={mp.mustHavesHeading} body={item.must_haves ?? ""} />
       </button>
     ));
   }
@@ -139,7 +152,6 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
                 {preview.location_filter ?? mp.locationUnknown}
               </Badge>
               <p className="text-sm leading-relaxed text-slate-200">{preview.natural_language_input}</p>
-              <IntentMustHavesCallout heading={mp.mustHavesHeading} body={preview.must_haves ?? ""} />
             </div>
           ) : null}
           <DialogFooter className="gap-2 sm:flex-col sm:space-x-0">
@@ -165,6 +177,10 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
                   router.push(
                     `/login?flow=pending_connect&connectIntent=${encodeURIComponent(preview.id)}`,
                   );
+                  return;
+                }
+                if (!profileReadyForInvites) {
+                  redirectToCompleteProfileForInvite(preview.id);
                   return;
                 }
                 if (preview.user_id === currentUserId || pending.has(preview.id)) return;
@@ -211,6 +227,7 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
           receiverIntentId={connectCtx.receiverIntentId}
           headline={mp.inviteTargetLabel}
           onInviteSent={() => void refreshCredits()}
+          profileIncompleteResumeAfter={inviteResumeAfter(connectCtx.receiverIntentId)}
         />
       ) : null}
     </>

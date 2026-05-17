@@ -14,6 +14,7 @@ import { parseIntentLevel } from "@/lib/profile-intent-level";
 import { normalizeProfileTags } from "@/lib/profile-tags";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
+import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
 
 function vectorLiteral(vec: number[]): string {
   return `[${vec.join(",")}]`;
@@ -24,10 +25,10 @@ function normalizeMustHaves(raw: string | null | undefined): string | null {
   return t ? t : null;
 }
 
-/** Include must-haves in the embedding text so vector search respects constraints. */
+/** Include expectations text in the embedding so vector search respects constraints. */
 function intentEmbeddingSource(main: string, mustHaves: string | null): string {
   if (!mustHaves) return main;
-  return `${main}\n\nMust-haves: ${mustHaves}`;
+  return `${main}\n\nExpectations: ${mustHaves}`;
 }
 
 export type IntentLimitErrorCode = "MAX_ACTIVE_INTENTS";
@@ -90,6 +91,9 @@ export async function bootstrapIntentFromLanding(naturalLanguageInput: string) {
   if (userError || !user) {
     return { ok: false as const, message: "Not authenticated" };
   }
+
+  const ensured = await ensurePublicUserRowsForSession(supabase, user);
+  if (!ensured.ok) return { ok: false as const, message: ensured.message };
 
   if (!isAdminEmail(user.email ?? undefined)) {
     const active = await countActiveIntentsForUser(supabase, user.id);
@@ -189,6 +193,9 @@ export async function completeOnboarding(params: {
   if (userError || !user) {
     return { ok: false as const, message: "Not authenticated" };
   }
+
+  const ensuredOnboarding = await ensurePublicUserRowsForSession(supabase, user);
+  if (!ensuredOnboarding.ok) return { ok: false as const, message: ensuredOnboarding.message };
 
   const basics = validateProfileBasicsForPublish({
     display_name: params.profile.display_name,
@@ -523,6 +530,9 @@ export async function createConsoleIntent(
   if (userError || !user) {
     return { ok: false as const, message: "Not authenticated" };
   }
+
+  const ensuredCreate = await ensurePublicUserRowsForSession(supabase, user);
+  if (!ensuredCreate.ok) return { ok: false as const, message: ensuredCreate.message };
 
   const { count: existingCount, error: countErr } = await supabase
     .from("intent_requests")
