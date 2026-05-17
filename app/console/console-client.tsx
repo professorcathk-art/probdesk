@@ -22,6 +22,7 @@ import { IntentShareButton } from "@/components/intent-share-button";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
 import { IntentSnippet } from "@/components/intent-snippet";
 import { PeerIdentityCard } from "@/components/peer-identity-card";
+import { IntentMustHavesCallout } from "@/components/intent-must-haves-callout";
 import { SenderPreviewBlock } from "@/components/sender-preview-block";
 import { useLanguage } from "@/components/language-provider";
 import { MergedMatchChatPanel } from "@/components/match-chat-panel";
@@ -146,6 +147,7 @@ export function ConsoleClient({
   const [createOpen, setCreateOpen] = useState(false);
   const [createDraft, setCreateDraft] = useState("");
   const [createLocation, setCreateLocation] = useState("");
+  const [createMustHaves, setCreateMustHaves] = useState("");
   const [createBusy, setCreateBusy] = useState(false);
   const openedFromLandingHandoffRef = useRef(false);
 
@@ -163,6 +165,7 @@ export function ConsoleClient({
     openedFromLandingHandoffRef.current = true;
     /* eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate create dialog from landing draft once on mount */
     setCreateDraft(raw);
+    setCreateMustHaves("");
     setCreateLocation("");
     setCreateOpen(true);
   }, []);
@@ -170,6 +173,7 @@ export function ConsoleClient({
   const [editIntent, setEditIntent] = useState<IntentRow | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [editLocation, setEditLocation] = useState("");
+  const [editMustHaves, setEditMustHaves] = useState("");
   const [editBusy, setEditBusy] = useState(false);
 
   const [postCreateDiscovering, setPostCreateDiscovering] = useState(false);
@@ -278,7 +282,11 @@ export function ConsoleClient({
   async function onCreateIntent() {
     setCreateBusy(true);
     setError(null);
-    const res = await createConsoleIntent(createDraft, createLocation.trim() || undefined);
+    const res = await createConsoleIntent(
+      createDraft,
+      createLocation.trim() || undefined,
+      createMustHaves.trim() || undefined,
+    );
     setCreateBusy(false);
     if (!res.ok) {
       setError(localizeConsoleFailure(res));
@@ -289,6 +297,7 @@ export function ConsoleClient({
     const newIntentId = res.intentId;
     setCreateDraft("");
     setCreateLocation("");
+    setCreateMustHaves("");
     setCreateOpen(false);
     setPostCreateDiscovering(true);
     setError(null);
@@ -307,7 +316,12 @@ export function ConsoleClient({
     if (!editIntent) return;
     setEditBusy(true);
     setError(null);
-    const res = await updateConsoleIntent(editIntent.id, editDraft, editLocation.trim() || undefined);
+    const res = await updateConsoleIntent(
+      editIntent.id,
+      editDraft,
+      editLocation.trim() || undefined,
+      editMustHaves.trim() || undefined,
+    );
     setEditBusy(false);
     if (!res.ok) {
       setError(res.message);
@@ -321,6 +335,7 @@ export function ConsoleClient({
     setEditIntent(i);
     setEditDraft(i.natural_language_input);
     setEditLocation(i.location_filter ?? "");
+    setEditMustHaves(i.must_haves ?? "");
   }
 
   return (
@@ -364,6 +379,7 @@ export function ConsoleClient({
                 onClick={() => {
                   setCreateDraft("");
                   setCreateLocation("");
+                  setCreateMustHaves("");
                   setCreateOpen(true);
                 }}
               >
@@ -387,6 +403,11 @@ export function ConsoleClient({
                         <div className="min-w-0 flex-1">
                           <CardTitle className="text-base text-slate-100">{t.intentCardTitle}</CardTitle>
                           <CardDescription className="text-slate-300">{intent.natural_language_input}</CardDescription>
+                          <IntentMustHavesCallout
+                            className="mt-3"
+                            heading={t.mustHavesCardHeading}
+                            body={intent.must_haves ?? ""}
+                          />
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline" className="border-white/15 text-slate-200">
@@ -763,6 +784,19 @@ export function ConsoleClient({
             className="min-h-[140px] border-white/10 bg-white/[0.03] text-slate-50"
           />
           <div className="space-y-2">
+            <Label htmlFor="create-intent-must-haves" className="text-slate-300">
+              {t.mustHavesLabel}
+            </Label>
+            <p className="text-xs text-slate-500">{t.mustHavesDesc}</p>
+            <Textarea
+              id="create-intent-must-haves"
+              value={createMustHaves}
+              onChange={(e) => setCreateMustHaves(e.target.value)}
+              placeholder={t.mustHavesPlaceholder}
+              className="min-h-[88px] border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-600"
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="create-intent-location" className="text-slate-300">
               {t.locationOptional}
             </Label>
@@ -806,6 +840,19 @@ export function ConsoleClient({
             placeholder={t.minChars}
             className="min-h-[140px] border-white/10 bg-white/[0.03] text-slate-50"
           />
+          <div className="space-y-2">
+            <Label htmlFor="edit-intent-must-haves" className="text-slate-300">
+              {t.mustHavesLabel}
+            </Label>
+            <p className="text-xs text-slate-500">{t.mustHavesDesc}</p>
+            <Textarea
+              id="edit-intent-must-haves"
+              value={editMustHaves}
+              onChange={(e) => setEditMustHaves(e.target.value)}
+              placeholder={t.mustHavesPlaceholder}
+              className="min-h-[88px] border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-600"
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="edit-intent-location" className="text-slate-300">
               {t.locationLabelEdit}

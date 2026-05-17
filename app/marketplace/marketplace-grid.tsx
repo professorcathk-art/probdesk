@@ -7,6 +7,7 @@ import { ConnectModal } from "@/components/connect-modal";
 import { CreditsLimitModal } from "@/components/credits-limit-modal";
 import { IntentShareButton } from "@/components/intent-share-button";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
+import { IntentMustHavesCallout } from "@/components/intent-must-haves-callout";
 import { useLanguage } from "@/components/language-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -79,6 +80,7 @@ export function MarketplaceGrid({ listings, currentUserId, pendingIntentIds, hig
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm leading-relaxed text-slate-200">{item.natural_language_input}</p>
+                <IntentMustHavesCallout heading={mp.mustHavesHeading} body={item.must_haves ?? ""} />
                 <Button
                   className={cn(
                     "w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 disabled:opacity-60",

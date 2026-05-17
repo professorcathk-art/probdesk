@@ -4,6 +4,7 @@ import type { MarketplaceListing } from "@/actions/marketplace";
 import { ConnectModal } from "@/components/connect-modal";
 import { CreditsLimitModal } from "@/components/credits-limit-modal";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
+import { IntentMustHavesCallout } from "@/components/intent-must-haves-callout";
 import { useLanguage } from "@/components/language-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -82,6 +83,7 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
           </Badge>
         </div>
         <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-slate-100">{item.natural_language_input}</p>
+        <IntentMustHavesCallout compact heading={mp.mustHavesHeading} body={item.must_haves ?? ""} />
       </button>
     ));
   }
@@ -137,6 +139,7 @@ export function LandingSquareMarquee({ listings, currentUserId, pendingIntentIds
                 {preview.location_filter ?? mp.locationUnknown}
               </Badge>
               <p className="text-sm leading-relaxed text-slate-200">{preview.natural_language_input}</p>
+              <IntentMustHavesCallout heading={mp.mustHavesHeading} body={preview.must_haves ?? ""} />
             </div>
           ) : null}
           <DialogFooter className="gap-2 sm:flex-col sm:space-x-0">

@@ -61,7 +61,8 @@ create table if not exists public.intent_requests (
   embedding vector(1536),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  enrichment jsonb default '{}'::jsonb
+  enrichment jsonb default '{}'::jsonb,
+  must_haves text
 );
 
 create index if not exists intent_requests_user_id_idx on public.intent_requests (user_id);

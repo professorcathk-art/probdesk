@@ -19,6 +19,17 @@ function vectorLiteral(vec: number[]): string {
   return `[${vec.join(",")}]`;
 }
 
+function normalizeMustHaves(raw: string | null | undefined): string | null {
+  const t = raw?.trim() ?? "";
+  return t ? t : null;
+}
+
+/** Include must-haves in the embedding text so vector search respects constraints. */
+function intentEmbeddingSource(main: string, mustHaves: string | null): string {
+  if (!mustHaves) return main;
+  return `${main}\n\nMust-haves: ${mustHaves}`;
+}
+
 export type IntentLimitErrorCode = "MAX_ACTIVE_INTENTS";
 
 async function countActiveIntentsForUser(
@@ -66,6 +77,7 @@ export type IntentRow = {
   status: string;
   is_marketplace_public: boolean;
   extracted_persona: Record<string, unknown> | null;
+  must_haves: string | null;
 };
 
 export async function bootstrapIntentFromLanding(naturalLanguageInput: string) {
@@ -285,7 +297,7 @@ export async function listMyIntents(): Promise<{ intents: IntentRow[] } | { erro
 
   const { data, error } = await supabase
     .from("intent_requests")
-    .select("id, natural_language_input, location_filter, status, is_marketplace_public, extracted_persona")
+    .select("id, natural_language_input, location_filter, status, is_marketplace_public, extracted_persona, must_haves")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -497,7 +509,11 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   return { ok: true, suggestions };
 }
 
-export async function createConsoleIntent(naturalLanguageInput: string, locationFilterInput?: string | null) {
+export async function createConsoleIntent(
+  naturalLanguageInput: string,
+  locationFilterInput?: string | null,
+  mustHavesInput?: string | null,
+) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -544,12 +560,14 @@ export async function createConsoleIntent(naturalLanguageInput: string, location
     return { ok: false as const, message: "Request is too short." };
   }
 
+  const must_haves = normalizeMustHaves(mustHavesInput);
+
   let parsed: Awaited<ReturnType<typeof parseIntentWithMini>>;
   let embedding: number[];
 
   try {
     parsed = await parseIntentWithMini(trimmed);
-    embedding = await embedTextSmall(trimmed);
+    embedding = await embedTextSmall(intentEmbeddingSource(trimmed, must_haves));
   } catch (e) {
     const msg = e instanceof Error ? e.message : "AI pipeline failed";
     return { ok: false as const, message: msg };
@@ -581,11 +599,13 @@ export async function createConsoleIntent(naturalLanguageInput: string, location
     embedding: vectorLiteral(embedding),
     status: "active",
     is_marketplace_public: false,
+    must_haves,
   }).select("id").single();
 
   if (error || !inserted) return { ok: false as const, message: error?.message ?? "Insert failed" };
 
   revalidatePath("/console");
+  revalidatePath("/square");
   return { ok: true as const, intentId: inserted.id as string };
 }
 
@@ -593,6 +613,7 @@ export async function updateConsoleIntent(
   intentId: string,
   naturalLanguageInput: string,
   locationFilterInput?: string | null,
+  mustHavesInput?: string | null,
 ) {
   const supabase = await createClient();
   const {
@@ -604,6 +625,8 @@ export async function updateConsoleIntent(
   if (trimmed.length < 12) {
     return { ok: false as const, message: "Request is too short." };
   }
+
+  const must_haves = normalizeMustHaves(mustHavesInput);
 
   const { data: existing } = await supabase
     .from("intent_requests")
@@ -617,7 +640,7 @@ export async function updateConsoleIntent(
 
   try {
     parsed = await parseIntentWithMini(trimmed);
-    embedding = await embedTextSmall(trimmed);
+    embedding = await embedTextSmall(intentEmbeddingSource(trimmed, must_haves));
   } catch (e) {
     const msg = e instanceof Error ? e.message : "AI pipeline failed";
     return { ok: false as const, message: msg };
@@ -650,6 +673,7 @@ export async function updateConsoleIntent(
       extracted_persona: parsed.extracted_persona,
       location_filter,
       embedding: vectorLiteral(embedding),
+      must_haves,
       updated_at: new Date().toISOString(),
     })
     .eq("id", intentId)
@@ -658,5 +682,6 @@ export async function updateConsoleIntent(
   if (error) return { ok: false as const, message: error.message };
 
   revalidatePath("/console");
+  revalidatePath("/square");
   return { ok: true as const };
 }

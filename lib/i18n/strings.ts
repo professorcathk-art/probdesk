@@ -81,6 +81,7 @@ export const STRINGS = {
       connect: "Send invite",
       pending: "Pending",
       empty: "Explore is quiet — check back when people publish public requests.",
+      mustHavesHeading: "Must-haves",
     },
     console: {
       kicker: "Manage",
@@ -172,6 +173,11 @@ export const STRINGS = {
       locationPlaceholderEdit: "City or region",
       locationHintEdit:
         "Saved with your request. Leave blank to reuse parsed location from text, then previous value, then profile.",
+      mustHavesLabel: "Must-Haves & Expectations",
+      mustHavesDesc:
+        "What are your dealbreakers? For example: must be based in Hong Kong, must have SaaS experience, non-smoker.",
+      mustHavesPlaceholder: "Optional — e.g. HK-based, SaaS experience, non-smoker",
+      mustHavesCardHeading: "Must-haves",
       cancel: "Cancel",
       createBusy: "Creating…",
       createSubmit: "Create request",
@@ -216,6 +222,7 @@ export const STRINGS = {
       peerProfileTitle: "Profile",
       peerProfileSubtitle: "Shown according to privacy rules.",
       peerProfileBio: "Bio",
+      peerProfileGender: "Gender",
       peerProfileSkills: "Interests & traits",
       peerProfileLanguages: "Languages",
       peerProfileIntentLevel: "Intent level",
@@ -250,14 +257,14 @@ export const STRINGS = {
       coreIssueLocation: "Location is missing or empty.",
       coreIssueIndustry: "Industry / field is missing or empty.",
       coreIssueSkillsTags:
-        "Add at least one keyword for interests or traits (use commas or Enter between items; saving also commits anything left in the box).",
+        "Add at least one keyword for interests or traits (use commas or Enter between items).",
       coreIssueLanguages: "Add at least one language you speak (press Enter after each).",
       profileBioMinNote:
         "Minimum {min} characters (including spaces) required to use Manage and Explore.",
       profileBioTooShort: "{current} / {min} characters — please add a bit more.",
       skillsTraitsLabel: "Interests & traits",
       skillsTraitsDesc:
-        "Up to 5 keywords — hobbies or personality traits (for example running, design, introvert). Use commas or press Enter between items; saving also commits anything left in the box.",
+        "Up to 5 keywords — hobbies or personality traits (for example running, design, introvert). Use commas or press Enter between items.",
       skillsTraitsPlaceholder: "Keywords — commas or Enter between items",
       languagesLabel: "Languages spoken",
       languagesDesc: "At least one required — e.g. English, Mandarin, Cantonese.",
@@ -440,6 +447,7 @@ export const STRINGS = {
       connect: "發送邀請",
       pending: "等待中",
       empty: "探索廣場目前很安靜——稍後再來看看是否有人公開徵求。",
+      mustHavesHeading: "必備條件",
     },
     console: {
       kicker: "管理中心",
@@ -529,6 +537,10 @@ export const STRINGS = {
       locationPlaceholderEdit: "城市或區域",
       locationHintEdit:
         "與徵求一併儲存。留白則依序使用：內文解析、先前數值、個人檔案地區。",
+      mustHavesLabel: "期望要求／必備條件",
+      mustHavesDesc: "對方必須具備什麼條件？例如：「必須在香港」、「懂 React」、「不抽菸」。",
+      mustHavesPlaceholder: "選填——例如：在香港、具備 SaaS 經驗、不抽菸",
+      mustHavesCardHeading: "必備條件",
       cancel: "取消",
       createBusy: "建立中…",
       createSubmit: "建立徵求",
@@ -573,6 +585,7 @@ export const STRINGS = {
       peerProfileTitle: "個人檔案",
       peerProfileSubtitle: "依隱私規則顯示。",
       peerProfileBio: "簡介",
+      peerProfileGender: "性別",
       peerProfileSkills: "興趣與特質",
       peerProfileLanguages: "語言",
       peerProfileIntentLevel: "交流步調",
@@ -605,14 +618,13 @@ export const STRINGS = {
       coreIssueBio: "簡介至少需要 20 個字元（含空格），才能使用管理中心或探索廣場。",
       coreIssueLocation: "尚未填寫所在地。",
       coreIssueIndustry: "尚未填寫產業／領域。",
-      coreIssueSkillsTags:
-        "請至少新增一個興趣或特質關鍵字（可用逗號或 Enter 分隔；儲存時也會一併收下輸入框內尚未確認的文字）。",
+      coreIssueSkillsTags: "請至少新增一個興趣或特質關鍵字（可用逗號或 Enter 分隔）。",
       coreIssueLanguages: "請至少新增一種會使用的語言，輸入後按 Enter。",
       profileBioMinNote: "至少需要 {min} 個字元（含空格），才能使用管理中心與探索廣場。",
       profileBioTooShort: "目前 {current} / {min} 個字元——請再補充一些內容。",
       skillsTraitsLabel: "興趣與特質",
       skillsTraitsDesc:
-        "最多 5 個關鍵字，可為嗜好或性格特質（例如：慢跑、設計、內向）。可用逗號分隔或按 Enter；儲存時也會把輸入框內尚未確認的文字一併收下。",
+        "最多 5 個關鍵字，可為嗜好或性格特質（例如：慢跑、設計、內向）。可用逗號分隔或按 Enter。",
       skillsTraitsPlaceholder: "關鍵字——逗號或 Enter 分隔",
       languagesLabel: "使用語言",
       languagesDesc: "至少填寫一種——例如：英文、國語、廣東話。",

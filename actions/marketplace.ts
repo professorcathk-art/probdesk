@@ -9,6 +9,7 @@ export type MarketplaceListing = {
   extracted_persona: Record<string, unknown> | null;
   user_id: string;
   is_demo_listing?: boolean;
+  must_haves?: string | null;
 };
 
 export async function listMarketplaceListings(): Promise<
@@ -20,7 +21,7 @@ export async function listMarketplaceListings(): Promise<
     const { data, error } = await supabase
       .from("intent_requests")
       .select(
-        "id, natural_language_input, location_filter, extracted_persona, user_id, is_demo_listing",
+        "id, natural_language_input, location_filter, extracted_persona, user_id, is_demo_listing, must_haves",
       )
       .eq("is_marketplace_public", true)
       .eq("status", "active")
