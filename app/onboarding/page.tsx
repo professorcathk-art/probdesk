@@ -73,7 +73,6 @@ export default function OnboardingPage() {
   const [profile, setProfile] = useState({
     display_name: "",
     industry: "",
-    intent_level: "",
     superpower: "",
     location: "",
     bio: "",
@@ -264,22 +263,6 @@ export default function OnboardingPage() {
                     onChange={(e) => setProfile({ ...profile, industry: e.target.value })}
                     className="border-white/10 bg-white/[0.03] text-slate-50"
                   />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label className="text-slate-200">{pr.intentLevelLabel}</Label>
-                  <p className="text-xs leading-relaxed text-slate-500">{pr.intentLevelDesc}</p>
-                  <select
-                    value={profile.intent_level}
-                    onChange={(e) => setProfile({ ...profile, intent_level: e.target.value })}
-                    className={cn(
-                      "h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-slate-50 outline-none focus-visible:border-sky-400/40 focus-visible:ring-2 focus-visible:ring-sky-500/30",
-                    )}
-                  >
-                    <option value="">{pr.intentLevelUnset}</option>
-                    <option value="casual_open">{pr.intentCasual}</option>
-                    <option value="intentional_seeking">{pr.intentIntentional}</option>
-                    <option value="focused_commit">{pr.intentFocused}</option>
-                  </select>
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label className="text-slate-200">{pr.superpowerLabel}</Label>

@@ -81,6 +81,17 @@ function genderLabel(
   return displayGenderLabel(value, cx) ?? value;
 }
 
+function ReqStar({ sr }: { sr: string }) {
+  return (
+    <>
+      <span className="text-rose-400/95" aria-hidden="true">
+        *
+      </span>
+      <span className="sr-only">{`, ${sr}`}</span>
+    </>
+  );
+}
+
 export function ProfilePageClient({
   profileAvatarUrl,
   profileIdentity,
@@ -108,7 +119,6 @@ export function ProfilePageClient({
   const [pfContactDet, setPfContactDet] = useState(profileIdentity.preferred_contact_detail ?? "");
   const [pfSkills, setPfSkills] = useState<string[]>(profileIdentity.skills_tags ?? []);
   const [pfLangs, setPfLangs] = useState<string[]>(profileIdentity.languages ?? []);
-  const [pfIntent, setPfIntent] = useState(profileIdentity.intent_level ?? "");
   const [pfSocial, setPfSocial] = useState(profileIdentity.social_link ?? "");
   const [pfBusy, setPfBusy] = useState(false);
   const [pfNote, setPfNote] = useState<string | null>(null);
@@ -127,7 +137,6 @@ export function ProfilePageClient({
     setPfContactDet(profileIdentity.preferred_contact_detail ?? "");
     setPfSkills(profileIdentity.skills_tags ?? []);
     setPfLangs(profileIdentity.languages ?? []);
-    setPfIntent(profileIdentity.intent_level ?? "");
     setPfSocial(profileIdentity.social_link ?? "");
   }, [
     profileIdentity.display_name,
@@ -141,7 +150,6 @@ export function ProfilePageClient({
     profileIdentity.preferred_contact_detail,
     profileIdentity.skills_tags,
     profileIdentity.languages,
-    profileIdentity.intent_level,
     profileIdentity.social_link,
   ]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -164,7 +172,6 @@ export function ProfilePageClient({
       preferred_contact_detail: pfContactDet,
       skills_tags,
       languages,
-      intent_level: pfIntent,
       social_link: pfSocial,
     });
     setPfBusy(false);
@@ -226,15 +233,28 @@ export function ProfilePageClient({
           <CardHeader>
             <CardTitle className="text-slate-100">{t.profileCardTitle}</CardTitle>
             <CardDescription className="text-slate-400">{t.profileCardDesc}</CardDescription>
+            <p className="mt-2 text-xs leading-relaxed text-slate-500">{p.requiredStarLegend}</p>
           </CardHeader>
           <CardContent className="space-y-4">
             {pfNote ? <p className="text-sm text-emerald-400/95">{pfNote}</p> : null}
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void saveProfile();
+              }}
+            >
             <div className="space-y-2">
               <Label htmlFor="pf-name" className="text-slate-300">
-                {t.profileDisplayName}
+                <span className="inline-flex flex-wrap items-baseline gap-x-1">
+                  <span>{t.profileDisplayName}</span>
+                  <ReqStar sr={p.requiredSr} />
+                </span>
               </Label>
               <Input
                 id="pf-name"
+                required
+                aria-required
                 value={pfName}
                 onChange={(e) => setPfName(e.target.value)}
                 className="border-white/10 bg-white/[0.03] text-slate-50"
@@ -242,10 +262,16 @@ export function ProfilePageClient({
             </div>
             <div className="space-y-2">
               <Label htmlFor="pf-bio" className="text-slate-300">
-                {t.profileBio}
+                <span className="inline-flex flex-wrap items-baseline gap-x-1">
+                  <span>{t.profileBio}</span>
+                  <ReqStar sr={p.requiredSr} />
+                </span>
               </Label>
               <Textarea
                 id="pf-bio"
+                required
+                aria-required
+                minLength={PROFILE_CORE_MIN_BIO_LENGTH}
                 value={pfBio}
                 onChange={(e) => setPfBio(e.target.value)}
                 className="min-h-[100px] border-white/10 bg-white/[0.03] text-slate-50"
@@ -263,10 +289,15 @@ export function ProfilePageClient({
             </div>
             <div className="space-y-2">
               <Label htmlFor="pf-loc" className="text-slate-300">
-                {t.profileLocation}
+                <span className="inline-flex flex-wrap items-baseline gap-x-1">
+                  <span>{t.profileLocation}</span>
+                  <ReqStar sr={p.requiredSr} />
+                </span>
               </Label>
               <Input
                 id="pf-loc"
+                required
+                aria-required
                 value={pfLoc}
                 onChange={(e) => setPfLoc(e.target.value)}
                 className="border-white/10 bg-white/[0.03] text-slate-50"
@@ -274,10 +305,15 @@ export function ProfilePageClient({
             </div>
             <div className="space-y-2">
               <Label htmlFor="pf-ind" className="text-slate-300">
-                {t.profileIndustry}
+                <span className="inline-flex flex-wrap items-baseline gap-x-1">
+                  <span>{t.profileIndustry}</span>
+                  <ReqStar sr={p.requiredSr} />
+                </span>
               </Label>
               <Input
                 id="pf-ind"
+                required
+                aria-required
                 value={pfInd}
                 onChange={(e) => setPfInd(e.target.value)}
                 className="border-white/10 bg-white/[0.03] text-slate-50"
@@ -285,10 +321,16 @@ export function ProfilePageClient({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-slate-300">{p.skillsTraitsLabel}</Label>
+              <Label className="text-slate-300">
+                <span className="inline-flex flex-wrap items-baseline gap-x-1">
+                  <span>{p.skillsTraitsLabel}</span>
+                  <ReqStar sr={p.requiredSr} />
+                </span>
+              </Label>
               <p className="text-xs leading-relaxed text-slate-500">{p.skillsTraitsDesc}</p>
               <TagInputField
                 ref={skillsRef}
+                required
                 tags={pfSkills}
                 onChange={setPfSkills}
                 maxTags={5}
@@ -297,30 +339,16 @@ export function ProfilePageClient({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="pf-intent" className="text-slate-300">
-                {p.intentLevelLabel}
+              <Label className="text-slate-300">
+                <span className="inline-flex flex-wrap items-baseline gap-x-1">
+                  <span>{p.languagesLabel}</span>
+                  <ReqStar sr={p.requiredSr} />
+                </span>
               </Label>
-              <p className="text-xs leading-relaxed text-slate-500">{p.intentLevelDesc}</p>
-              <select
-                id="pf-intent"
-                value={pfIntent}
-                onChange={(e) => setPfIntent(e.target.value)}
-                className={cn(
-                  "h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-slate-50 outline-none focus-visible:border-sky-400/40 focus-visible:ring-2 focus-visible:ring-sky-500/30",
-                )}
-              >
-                <option value="">{p.intentLevelUnset}</option>
-                <option value="casual_open">{p.intentCasual}</option>
-                <option value="intentional_seeking">{p.intentIntentional}</option>
-                <option value="focused_commit">{p.intentFocused}</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-slate-300">{p.languagesLabel}</Label>
               <p className="text-xs leading-relaxed text-slate-500">{p.languagesDesc}</p>
               <TagInputField
                 ref={langsRef}
+                required
                 tags={pfLangs}
                 onChange={setPfLangs}
                 maxTags={5}
@@ -346,13 +374,19 @@ export function ProfilePageClient({
 
             <div className="space-y-2">
               <Label htmlFor="pf-super" className="text-slate-300">
-                {p.superpowerLabel}
+                <span className="inline-flex flex-wrap items-baseline gap-x-1">
+                  <span>{p.superpowerLabel}</span>
+                  <ReqStar sr={p.requiredSr} />
+                </span>
               </Label>
               <p className="text-xs leading-relaxed text-slate-500">{p.superpowerDesc}</p>
               <Textarea
                 id="pf-super"
-                value={pfSuper}
+                required
+                aria-required
+                minLength={PROFILE_SUPERPOWER_MIN_PUBLISH}
                 maxLength={PROFILE_SUPERPOWER_MAX}
+                value={pfSuper}
                 onChange={(e) => setPfSuper(e.target.value)}
                 placeholder={p.superpowerPlaceholder}
                 className="min-h-[88px] border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500"
@@ -367,10 +401,15 @@ export function ProfilePageClient({
 
             <div className="space-y-2">
               <Label htmlFor="pf-gender" className="text-slate-300">
-                {t.profileGender}
+                <span className="inline-flex flex-wrap items-baseline gap-x-1">
+                  <span>{t.profileGender}</span>
+                  <ReqStar sr={p.requiredSr} />
+                </span>
               </Label>
               <select
                 id="pf-gender"
+                required
+                aria-required
                 value={pfGender}
                 onChange={(e) => setPfGender(e.target.value)}
                 className={cn(
@@ -388,7 +427,10 @@ export function ProfilePageClient({
 
             <div className="space-y-2">
               <Label htmlFor="pf-age-group" className="text-slate-300">
-                {p.ageGroupLabel}
+                <span className="inline-flex flex-wrap items-baseline gap-x-1">
+                  <span>{p.ageGroupLabel}</span>
+                  <span className="font-normal text-slate-500">({p.optionalMark})</span>
+                </span>
               </Label>
               <p className="text-xs leading-relaxed text-slate-500">{p.ageGroupHelp}</p>
               <select
@@ -409,7 +451,10 @@ export function ProfilePageClient({
             </div>
 
             <div className="space-y-3 rounded-xl border border-white/10 bg-black/25 p-4">
-              <p className="text-sm font-medium text-white">{ob.contactSectionTitle}</p>
+              <p className="text-sm font-medium text-white">
+                <span>{ob.contactSectionTitle}</span>
+                <span className="font-normal text-slate-500"> ({p.optionalMark})</span>
+              </p>
               <p className="text-xs leading-relaxed text-slate-500">{ob.contactPrivacyNote}</p>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
@@ -447,13 +492,13 @@ export function ProfilePageClient({
             </div>
 
             <Button
-              type="button"
+              type="submit"
               disabled={pfBusy}
               className="galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
-              onClick={() => void saveProfile()}
             >
               {pfBusy ? t.profileSaving : t.profileSave}
             </Button>
+            </form>
 
             <div className="border-t border-white/10 pt-6">
               <Button

@@ -10,7 +10,6 @@ export function buildProfileEmbeddingText(p: {
   industry: string | null;
   superpower: string | null;
   gender: string | null;
-  intent_level: string | null;
   skills_tags: string[];
   languages: string[];
   age_group?: string | null;
@@ -20,7 +19,6 @@ export function buildProfileEmbeddingText(p: {
   if (p.bio?.trim()) chunks.push(p.bio.trim());
   if (p.industry?.trim()) chunks.push(`Industry: ${p.industry.trim()}`);
   if (p.superpower?.trim()) chunks.push(`Offers: ${p.superpower.trim()}`);
-  if (p.intent_level?.trim()) chunks.push(`Intent level: ${p.intent_level.trim()}`);
   if (p.gender?.trim()) chunks.push(`Gender: ${p.gender.trim()}`);
   const raw = p.age_group?.trim();
   const ageBand =

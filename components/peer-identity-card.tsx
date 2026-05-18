@@ -22,7 +22,6 @@ type PeerRow = {
   gender: string | null;
   skills_tags: string[] | null;
   languages: string[] | null;
-  intent_level: string | null;
   superpower: string | null;
   social_link: string | null;
   preferred_contact_channel: string | null;
@@ -75,26 +74,6 @@ function peerGenderLabel(
   }
 }
 
-function intentLevelLabel(
-  pr: {
-    intentCasual: string;
-    intentIntentional: string;
-    intentFocused: string;
-  },
-  key: string | null,
-): string {
-  switch (key) {
-    case "casual_open":
-      return pr.intentCasual;
-    case "intentional_seeking":
-      return pr.intentIntentional;
-    case "focused_commit":
-      return pr.intentFocused;
-    default:
-      return key ?? "";
-  }
-}
-
 export function PeerIdentityCard({
   peerUserId,
   showViewProfileButton = false,
@@ -106,7 +85,6 @@ export function PeerIdentityCard({
 }) {
   const { strings } = useLanguage();
   const t = strings.console;
-  const p = strings.profilePage;
   const ob = strings.onboarding;
 
   const [peer, setPeer] = useState<PeerRow | null>(null);
@@ -119,7 +97,7 @@ export function PeerIdentityCard({
       const { data } = await supabase
         .from("profiles")
         .select(
-          "display_name, industry, avatar_url, bio, location, gender, skills_tags, languages, intent_level, superpower, social_link, preferred_contact_channel, preferred_contact_detail",
+          "display_name, industry, avatar_url, bio, location, gender, skills_tags, languages, superpower, social_link, preferred_contact_channel, preferred_contact_detail",
         )
         .eq("user_id", peerUserId)
         .maybeSingle();
@@ -150,12 +128,6 @@ export function PeerIdentityCard({
           {peer.location ? <p className="mt-1 text-slate-500">{peer.location}</p> : null}
         </div>
       </div>
-      {peer.intent_level ? (
-        <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.peerProfileIntentLevel}</p>
-          <p className="mt-2 text-slate-200">{intentLevelLabel(p, peer.intent_level)}</p>
-        </div>
-      ) : null}
       {peer.superpower?.trim() ? (
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.peerProfileSuperpower}</p>
@@ -242,9 +214,6 @@ export function PeerIdentityCard({
           <p className="mt-2 text-base font-semibold text-white">{peer?.display_name ?? t.peerFallbackName}</p>
           <p className="text-sm text-slate-400">{peer?.industry ?? ""}</p>
           {peer?.location ? <p className="mt-1 text-sm text-slate-500">{peer.location}</p> : null}
-          {peer?.intent_level ? (
-            <p className="mt-2 text-xs text-slate-500">{intentLevelLabel(p, peer.intent_level)}</p>
-          ) : null}
           {peer?.superpower?.trim() ? (
             <p className="mt-1 line-clamp-2 text-xs text-slate-400">{peer.superpower.trim()}</p>
           ) : null}

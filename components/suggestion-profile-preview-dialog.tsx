@@ -14,19 +14,6 @@ import { useLanguage } from "@/components/language-provider";
 import { displayGenderLabel } from "@/lib/display-gender";
 import { displayProfileAgeGroup } from "@/lib/display-age-group";
 
-function intentLevelLabel(slug: string | null, pr: { intentCasual: string; intentIntentional: string; intentFocused: string }): string | null {
-  switch (slug?.trim()) {
-    case "casual_open":
-      return pr.intentCasual;
-    case "intentional_seeking":
-      return pr.intentIntentional;
-    case "focused_commit":
-      return pr.intentFocused;
-    default:
-      return slug?.trim() || null;
-  }
-}
-
 export function SuggestionProfilePreviewDialog({
   peerUserId,
   open,
@@ -127,12 +114,6 @@ export function SuggestionProfilePreviewDialog({
               <p className="text-slate-300">
                 <span className="text-slate-500">{pr.languagesLabel}: </span>
                 {preview.languages.join(", ")}
-              </p>
-            ) : null}
-            {intentLevelLabel(preview.intent_level, pr) ? (
-              <p className="text-slate-300">
-                <span className="text-slate-500">{pr.intentLevelLabel}: </span>
-                {intentLevelLabel(preview.intent_level, pr)}
               </p>
             ) : null}
             <p className="text-xs leading-relaxed text-sky-300/85">{c.previewProfileFooter}</p>

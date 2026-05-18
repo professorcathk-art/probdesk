@@ -103,6 +103,9 @@ export async function vibeCheckWith4o(params: {
   /** Listing regions — tie-breakers unless expectations demand geography */
   senderLocationPreference?: string | null;
   candidateLocation?: string | null;
+  /** Optional gender markers from profiles (helps romance-style complementary checks). */
+  senderGender?: string | null;
+  candidateGender?: string | null;
 }): Promise<VibeResult> {
   const reqLine = (label: string, text: string | null | undefined) => {
     const t = text?.trim();
@@ -115,13 +118,19 @@ export async function vibeCheckWith4o(params: {
   if (sl) geoParts.push(`Sender geographic note on their listing: ${sl}`);
   if (cl) geoParts.push(`Candidate listing region: ${cl}`);
 
+  const genderParts: string[] = [];
+  const sg = params.senderGender?.trim();
+  const cg = params.candidateGender?.trim();
+  if (sg) genderParts.push(`Sender profile gender field (if stated): ${sg}`);
+  if (cg) genderParts.push(`Candidate profile gender field (if stated): ${cg}`);
+
   const model = process.env.AIML_VIBE_MODEL ?? "gpt-4o";
   const res = await fetch(`${base()}/chat/completions`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({
       model,
-      temperature: 0.35,
+      temperature: 0.25,
       response_format: {
         type: "json_schema",
         json_schema: {
@@ -141,12 +150,16 @@ export async function vibeCheckWith4o(params: {
         {
           role: "system",
           content:
-            "You evaluate whether someone REACHING OUT (sender intent text — what they say they want) meaningfully aligns with an Explore LISTING (candidate intent — what the listing owner published they want). " +
-            "Treat **requirements / expectations / must-haves** as primary signals: check mutual feasibility (does each side's constraints fit what the other offers?). " +
-            "Geography is secondary — use it as a tie-breaker or when expectations explicitly require overlap (e.g. must meet in person weekly); do NOT downgrade a strong topical fit solely because cities differ unless constraints conflict. " +
-            "Use optional profile snippets for grounding only — penalize spam, nonsense repetition, empty fluff, or obvious mismatched domains (romantic vs hiring vs fundraising vs mentorship). " +
-            "Scoring calibration: unrelated or contradictory topics or spam-like bios → 1–35; weak or speculative overlap → 36–55; moderate plausible overlap → 56–72; strong overlap → 73–88; exceptional mutual fit → 89–100. " +
-            "Do NOT output scores above 55 unless there is substantive topical overlap between sender intent and listing intent. Be conservative. " +
+            "Vennode pairs people by **complementary fit**, not by making two parallel asks sound alike. " +
+            "**Sender intent** = what the sender is SEEKING from the network (their demand / request). " +
+            "**Candidate listing text** = what the candidate published they want OR (when stubbed) proxy text for profile-only discovery — treat profile snippets as evidence of what they **bring / offer** (supply) and who they are. " +
+            "A strong match means the candidate plausibly **satisfies** what the sender seeks (or strongly fills the role implied by the sender's ask), OR there is clear mutual complementarity (each side's ask is answered by the other's offer/provenance). " +
+            "**Penalize heavily (typically 1–40)** when both sides read like the **same kind of demand** with no complementary posture — e.g. two people both primarily stating 'I want a boyfriend/girlfriend/partner' without evidence one is offering what the other seeks (mirror listings). Similar wording between two asks is NOT a positive signal by itself. " +
+            "Use optional gender markers only when the asks are explicitly romance-oriented and complementary logic applies; never infer orientation beyond text; respect non-binary / undisclosed. " +
+            "Treat **must-haves / expectations** as hard-ish constraints when they conflict; geography is secondary unless constraints require co-location. " +
+            "Penalize spam, nonsense, empty fluff, or category mismatches (hiring vs romance vs fundraising vs mentorship). " +
+            "Scoring: mirror-demand / low complementarity → 1–40; weak speculative bridge → 41–55; plausible complementary fit → 56–72; strong → 73–88; exceptional → 89–100. " +
+            "Do NOT score above 55 for mere semantic similarity between two parallel requests. Be conservative. " +
             "Return JSON only. compatibility_reason: exactly two concise sentences for a premium UI.",
         },
         {
@@ -156,6 +169,7 @@ export async function vibeCheckWith4o(params: {
             (geoParts.length > 0
               ? `\n\nGeographic context (secondary):\n${geoParts.join("\n")}`
               : "") +
+            (genderParts.length > 0 ? `\n\nProfile gender markers (optional):\n${genderParts.join("\n")}` : "") +
             (params.senderProfileSnippet?.trim()
               ? `\n\nSender profile context:\n${params.senderProfileSnippet.trim()}`
               : "") +
@@ -184,7 +198,7 @@ export async function vibeCheckWith4o(params: {
   const compatibility_reason =
     typeof parsed.compatibility_reason === "string" && parsed.compatibility_reason.trim().length > 0
       ? parsed.compatibility_reason.trim()
-      : "Overlap could not be summarized cleanly — treat this as a tentative signal.";
+      : "Fit could not be summarized cleanly — verify complementary demand/supply before inviting.";
   return { match_score: score, compatibility_reason };
 }
 
@@ -252,7 +266,6 @@ export async function sanitizeProfilePreview(profile: {
   superpower: string | null;
   skills_tags?: string[] | null;
   languages?: string[] | null;
-  intent_level?: string | null;
 }): Promise<Record<string, unknown>> {
   const model = process.env.AIML_SANITIZE_MODEL ?? "gpt-4o-mini";
   const res = await fetch(`${base()}/chat/completions`, {

@@ -10,7 +10,6 @@ import {
 } from "@/lib/aiml";
 import { formatProfileMatchingSnippet } from "@/lib/profile-matching-snippet";
 import { validateProfileBasicsForPublish } from "@/lib/profile-basics";
-import { parseIntentLevel } from "@/lib/profile-intent-level";
 import { normalizeProfileTags } from "@/lib/profile-tags";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
@@ -173,7 +172,6 @@ export async function completeOnboarding(params: {
   profile: {
     display_name?: string;
     industry?: string;
-    intent_level?: string;
     superpower?: string;
     location?: string;
     bio?: string;
@@ -202,7 +200,6 @@ export async function completeOnboarding(params: {
     bio: params.profile.bio,
     location: params.profile.location,
     industry: params.profile.industry,
-    intent_level: params.profile.intent_level,
     superpower: params.profile.superpower,
     gender: params.profile.gender,
     skills_tags: params.profile.skills_tags ?? [],
@@ -239,11 +236,6 @@ export async function completeOnboarding(params: {
 
   const genderTrim = params.profile.gender?.trim() ?? "";
 
-  const intent_level = parseIntentLevel(params.profile.intent_level ?? "");
-  if (!intent_level) {
-    return { ok: false as const, code: "PROFILE_INCOMPLETE" as const };
-  }
-
   const superpowerTrim = params.profile.superpower?.trim() ?? "";
 
   const skillTags = normalizeProfileTags(params.profile.skills_tags ?? [], 5);
@@ -254,7 +246,6 @@ export async function completeOnboarding(params: {
       user_id: user.id,
       display_name: params.profile.display_name ?? null,
       industry: params.profile.industry ?? null,
-      intent_level,
       superpower: superpowerTrim || null,
       location: params.profile.location ?? null,
       bio: params.profile.bio ?? null,
@@ -279,7 +270,6 @@ export async function completeOnboarding(params: {
     industry: params.profile.industry ?? null,
     superpower: superpowerTrim || null,
     gender: genderTrim || null,
-    intent_level,
     skills_tags: skillTags,
     languages: langTags,
   });
@@ -334,7 +324,7 @@ export async function setIntentMarketplacePublic(intentId: string, isPublic: boo
   if (isPublic) {
     const { data: prof, error: profErr } = await supabase
       .from("profiles")
-      .select("display_name, bio, location, industry, intent_level, superpower, gender, skills_tags, languages")
+      .select("display_name, bio, location, industry, superpower, gender, skills_tags, languages")
       .eq("user_id", user.id)
       .maybeSingle();
     if (profErr) return { ok: false as const, message: profErr.message };
@@ -466,8 +456,8 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   }
 
   /**
-   * Semantic-first against other intents, then fill remaining slots with profile.embedding matches.
-   * `match_intents` / `match_profiles` are SECURITY DEFINER and return peer preview columns for the UI.
+   * Hybrid discovery: embedding RPC proposes candidates; `vibeCheckWith4o` re-ranks by **complementary**
+   * demand/supply fit (sender's ask vs candidate listing + profile offer signals), not mere similarity between two parallel asks.
    */
   const MATCH_TIERS = [
     { key: "semantic_primary", maxDistance: 0.55, requireLocationMatch: false },
@@ -491,7 +481,6 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     peer_skills_tags: string[] | null;
     peer_languages: string[] | null;
     peer_industry: string | null;
-    peer_intent_level: string | null;
     peer_superpower: string | null;
   };
 
@@ -505,7 +494,6 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     languages: string[] | null;
     location: string | null;
     industry: string | null;
-    intent_level: string | null;
     superpower: string | null;
     distance: number;
     similarity: number;
@@ -620,12 +608,12 @@ export async function computeHybridSuggestions(intentId: string): Promise<
 
   const { data: senderProf } = await supabase
     .from("profiles")
-    .select("bio, industry, skills_tags, languages, intent_level, superpower")
+    .select("bio, industry, skills_tags, languages, superpower, gender")
     .eq("user_id", user.id)
     .maybeSingle();
 
   const PROFILE_ONLY_INTENT_STUB =
-    "(Profile similarity — they have not published a separate Explore request; fit is from their profile.)";
+    "(Profile-only discovery — they have not published a separate Explore listing; judge complementary fit from their profile signals vs your intent.)";
 
   const scored = await Promise.all(
     pool.map(async (entry) => {
@@ -634,7 +622,6 @@ export async function computeHybridSuggestions(intentId: string): Promise<
         industry: senderProf?.industry ?? null,
         skills_tags: senderProf?.skills_tags ?? null,
         languages: senderProf?.languages ?? null,
-        intent_level: senderProf?.intent_level ?? null,
         superpower: senderProf?.superpower ?? null,
       });
 
@@ -646,7 +633,6 @@ export async function computeHybridSuggestions(intentId: string): Promise<
             industry: row.peer_industry ?? null,
             skills_tags: row.peer_skills_tags ?? null,
             languages: row.peer_languages ?? null,
-            intent_level: row.peer_intent_level ?? null,
             superpower: row.peer_superpower ?? null,
           }) || undefined;
         try {
@@ -659,6 +645,8 @@ export async function computeHybridSuggestions(intentId: string): Promise<
             candidateMustHaves: mustByIntentId.get(row.intent_id) ?? null,
             senderLocationPreference: intent.location_filter,
             candidateLocation: row.location_filter,
+            senderGender: senderProf?.gender ?? null,
+            candidateGender: row.peer_gender ?? null,
           });
           return {
             card: {
@@ -707,7 +695,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
               peer_languages: row.peer_languages,
               match_score: Math.round((row.similarity ?? 0) * 100),
               compatibility_reason:
-                "Strong semantic overlap on goals and constraints — worth a careful intro if incentives align.",
+                "Semantic retrieval surfaced this listing — confirm complementary fit (demand vs what they offer) before inviting.",
             },
             logMeta: {
               candidate_intent_id: row.intent_id,
@@ -728,7 +716,6 @@ export async function computeHybridSuggestions(intentId: string): Promise<
           industry: row.industry ?? null,
           skills_tags: row.skills_tags ?? null,
           languages: row.languages ?? null,
-          intent_level: row.intent_level ?? null,
           superpower: row.superpower ?? null,
         }) || undefined;
       try {
@@ -741,6 +728,8 @@ export async function computeHybridSuggestions(intentId: string): Promise<
           candidateMustHaves: null,
           senderLocationPreference: intent.location_filter,
           candidateLocation: row.location,
+          senderGender: senderProf?.gender ?? null,
+          candidateGender: row.gender ?? null,
         });
         return {
           card: {
@@ -789,7 +778,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
             peer_languages: row.languages,
             match_score: Math.round((row.similarity ?? 0) * 100),
             compatibility_reason:
-              "Profile signals overlap with what you're looking for — worth a careful intro if incentives align.",
+              "Profile surfaced by similarity — judge whether they offer what your intent seeks before inviting.",
           },
           logMeta: {
             candidate_intent_id: null,
@@ -879,7 +868,7 @@ export async function createConsoleIntent(
   if ((existingCount ?? 0) === 0) {
     const { data: prof, error: profErr } = await supabase
       .from("profiles")
-      .select("display_name, bio, location, industry, intent_level, superpower, gender, skills_tags, languages")
+      .select("display_name, bio, location, industry, superpower, gender, skills_tags, languages")
       .eq("user_id", user.id)
       .maybeSingle();
     if (profErr) return { ok: false as const, message: profErr.message };

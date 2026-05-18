@@ -16,10 +16,12 @@ type Props = {
   onChange: (next: string[]) => void;
   maxTags: number;
   placeholder: string;
+  /** Forwarded to the tag entry input for accessibility. */
+  required?: boolean;
 };
 
 export const TagInputField = forwardRef<TagInputFieldHandle, Props>(function TagInputField(
-  { tags, onChange, maxTags, placeholder },
+  { tags, onChange, maxTags, placeholder, required = false },
   ref,
 ) {
   const [draft, setDraft] = useState("");
@@ -62,6 +64,7 @@ export const TagInputField = forwardRef<TagInputFieldHandle, Props>(function Tag
       <Input
         value={draft}
         disabled={tags.length >= maxTags}
+        aria-required={required}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") {

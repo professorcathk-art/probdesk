@@ -31,7 +31,6 @@ create table if not exists public.profiles (
   preferred_contact_detail text,
   gender text,
   skills_tags text[] not null default '{}'::text[],
-  intent_level text,
   superpower text,
   languages text[] not null default '{}'::text[],
   social_link text,
@@ -54,6 +53,8 @@ alter table public.profiles
     gender is null
     or gender in ('woman', 'man', 'non_binary', 'prefer_not_say', 'other')
   );
+
+alter table public.profiles add column if not exists age_group text;
 
 create table if not exists public.intent_requests (
   id uuid primary key default uuid_generate_v4(),
@@ -201,10 +202,10 @@ returns table (
   peer_display_name text,
   peer_bio text,
   peer_gender text,
+  peer_age_group text,
   peer_skills_tags text[],
   peer_languages text[],
   peer_industry text,
-  peer_intent_level text,
   peer_superpower text
 )
 language sql
@@ -223,10 +224,10 @@ as $$
     p.display_name as peer_display_name,
     p.bio as peer_bio,
     p.gender as peer_gender,
+    p.age_group as peer_age_group,
     p.skills_tags as peer_skills_tags,
     p.languages as peer_languages,
     p.industry as peer_industry,
-    p.intent_level as peer_intent_level,
     p.superpower as peer_superpower
   from public.intent_requests ir
   left join public.profiles p on p.user_id = ir.user_id
@@ -256,11 +257,11 @@ returns table (
   display_name text,
   bio text,
   gender text,
+  age_group text,
   skills_tags text[],
   languages text[],
   location text,
   industry text,
-  intent_level text,
   superpower text,
   distance float,
   similarity float
@@ -275,11 +276,11 @@ as $$
     pr.display_name,
     pr.bio,
     pr.gender,
+    pr.age_group,
     pr.skills_tags,
     pr.languages,
     pr.location,
     pr.industry,
-    pr.intent_level,
     pr.superpower,
     (pr.embedding <=> target_embedding)::float as distance,
     (1 - (pr.embedding <=> target_embedding))::float as similarity

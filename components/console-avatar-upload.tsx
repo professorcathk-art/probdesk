@@ -87,7 +87,10 @@ export function ConsoleAvatarUpload({ initialUrl }: { initialUrl: string | null 
           </div>
         )}
         <div>
-          <p className="text-sm font-medium text-white">{p.avatarPhoto}</p>
+          <p className="text-sm font-medium text-white">
+            <span>{p.avatarPhoto}</span>
+            <span className="ml-2 font-normal text-slate-500">({p.optionalMark})</span>
+          </p>
           <p className="text-xs text-slate-500">{p.avatarHint}</p>
           {err ? <p className="mt-1 text-xs text-red-400">{err}</p> : null}
         </div>

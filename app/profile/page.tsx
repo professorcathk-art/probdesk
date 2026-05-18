@@ -45,7 +45,6 @@ export default async function ProfilePage({
           preferred_contact_detail: null,
           skills_tags: [],
           languages: [],
-          intent_level: null,
           social_link: null,
           album_storage_paths: [],
         }

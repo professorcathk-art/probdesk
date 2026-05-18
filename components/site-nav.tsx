@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { MessageCircle, UserRound } from "lucide-react";
 import { getMessengerUnreadThreadCount } from "@/actions/messenger";
@@ -38,7 +38,6 @@ function MessagesNavLink({
   return (
     <Link
       href="/messages"
-      prefetch={false}
       aria-label={ariaLabel}
       className={cn(
         buttonVariants({ variant: "ghost" }),
@@ -68,55 +67,63 @@ export function SiteNav({
   const { lang, setLang, strings } = useLanguage();
   const [mobileLogoHidden, setMobileLogoHidden] = useState(false);
   const lastScrollYRef = useRef(0);
+  const logoHiddenEmittedRef = useRef(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
     lastScrollYRef.current = window.scrollY;
+    logoHiddenEmittedRef.current = false;
 
-    const applyScroll = () => {
+    const flushLogoVisibility = () => {
       if (!mq.matches) {
-        setMobileLogoHidden(false);
+        if (logoHiddenEmittedRef.current) {
+          logoHiddenEmittedRef.current = false;
+          startTransition(() => setMobileLogoHidden(false));
+        }
         return;
       }
       const y = window.scrollY;
-      const last = lastScrollYRef.current;
-      if (y < 10) {
-        setMobileLogoHidden(false);
-      } else if (y > last && y > 40) {
-        setMobileLogoHidden(true);
-      } else if (y < last) {
-        setMobileLogoHidden(false);
-      }
+      const prevY = lastScrollYRef.current;
       lastScrollYRef.current = y;
+      let nextHidden = logoHiddenEmittedRef.current;
+      if (y < 8) nextHidden = false;
+      else if (y > prevY && y > 44) nextHidden = true;
+      else if (y < prevY) nextHidden = false;
+      if (nextHidden !== logoHiddenEmittedRef.current) {
+        logoHiddenEmittedRef.current = nextHidden;
+        startTransition(() => setMobileLogoHidden(nextHidden));
+      }
     };
 
-    applyScroll();
-    window.addEventListener("scroll", applyScroll, { passive: true });
+    let raf = 0 as number | undefined;
+    const onScroll = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        raf = undefined;
+        flushLogoVisibility();
+      });
+    };
+
+    flushLogoVisibility();
+    window.addEventListener("scroll", onScroll, { passive: true });
     const onMq = () => {
       lastScrollYRef.current = window.scrollY;
-      applyScroll();
+      flushLogoVisibility();
     };
     mq.addEventListener("change", onMq);
     return () => {
-      window.removeEventListener("scroll", applyScroll);
+      window.removeEventListener("scroll", onScroll);
       mq.removeEventListener("change", onMq);
+      if (raf) cancelAnimationFrame(raf);
     };
   }, []);
 
   return (
     <header className="sticky top-0 z-[200] isolate touch-manipulation border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
-      <div
-        className={cn(
-          "overflow-hidden border-b border-white/10 transition-[max-height,opacity] duration-200 ease-out md:hidden",
-          mobileLogoHidden ? "pointer-events-none max-h-0 border-b-0 opacity-0" : "max-h-14 opacity-100",
-        )}
-      >
-        <div className="flex justify-center px-3 py-2.5">
-          <Link
-            href="/"
-            prefetch={false}
-            className="flex touch-manipulation items-center justify-center py-1"
-          >
+      {/* Mobile: centered logo row — toggled with display:none (no height animation) for smooth scroll */}
+      <div className={cn("md:hidden", mobileLogoHidden ? "hidden" : "block")}>
+        <div className="flex justify-center px-4 pb-2 pt-2.5">
+          <Link href="/" className="flex touch-manipulation items-center justify-center py-1">
             <span className="font-[family-name:var(--font-heading)] text-base font-semibold tracking-tight text-white">
               Vennode
             </span>
@@ -124,19 +131,22 @@ export function SiteNav({
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-3 sm:gap-4 sm:px-6 sm:py-4">
+      <div className="mx-auto flex w-full max-w-6xl items-center gap-2 px-4 py-3 md:justify-between md:gap-4 md:px-6 md:py-4">
         <Link
           href="/"
-          prefetch={false}
           className="hidden min-h-11 min-w-0 shrink-0 touch-manipulation items-center md:flex md:min-h-10"
         >
           <span className="font-[family-name:var(--font-heading)] text-base font-semibold tracking-tight text-white">
             Vennode
           </span>
         </Link>
-        <nav className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-1 overflow-x-auto overscroll-x-contain py-0.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] sm:gap-2 md:max-w-none md:flex-wrap md:overflow-visible md:py-0 [&::-webkit-scrollbar]:hidden">
+        <nav
+          className={cn(
+            "flex min-w-0 flex-1 flex-wrap items-center justify-center gap-1 overflow-x-auto overscroll-x-contain py-0.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] sm:gap-2 md:flex-nowrap md:justify-end md:overflow-visible md:py-0 [&::-webkit-scrollbar]:hidden",
+          )}
+        >
           <div
-            className="mr-0.5 flex shrink-0 touch-manipulation items-center rounded-full border border-white/10 bg-black/30 p-0.5 text-[11px] font-medium text-slate-300 sm:mr-1"
+            className="mr-0 flex shrink-0 touch-manipulation items-center rounded-full border border-white/10 bg-black/30 p-0.5 text-[11px] font-medium text-slate-300 sm:mr-1"
             role="group"
             aria-label={strings.nav.langToggle}
           >
@@ -163,7 +173,6 @@ export function SiteNav({
           </div>
           <Link
             href="/square"
-            prefetch={false}
             className={cn(
               buttonVariants({ variant: "ghost" }),
               "touch-manipulation shrink-0 whitespace-nowrap min-h-11 px-3 text-slate-200 hover:bg-white/5 hover:text-white sm:min-h-8 sm:px-2.5",
@@ -174,7 +183,6 @@ export function SiteNav({
           {isAuthenticated ? (
             <Link
               href="/console"
-              prefetch={false}
               className={cn(
                 buttonVariants({ variant: "ghost" }),
                 "touch-manipulation shrink-0 whitespace-nowrap min-h-11 px-3 text-slate-200 hover:bg-white/5 hover:text-white sm:min-h-8 sm:px-2.5",
@@ -189,7 +197,6 @@ export function SiteNav({
           {!isAuthenticated ? (
             <Link
               href="/login?flow=enter"
-              prefetch={false}
               className={cn(
                 buttonVariants({ variant: "default", size: "lg" }),
                 "galaxy-btn-glow touch-manipulation shrink-0 whitespace-nowrap min-h-11 border border-sky-400/35 bg-sky-500/15 px-4 text-sky-50 hover:bg-sky-500/25 sm:min-h-8 sm:px-2.5",
@@ -200,7 +207,6 @@ export function SiteNav({
           ) : (
             <Link
               href="/profile"
-              prefetch={false}
               aria-label={strings.profilePage.title}
               className={cn(
                 "flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/[0.04] text-slate-300 transition-colors hover:border-white/25 hover:bg-white/[0.07] sm:h-9 sm:w-9",

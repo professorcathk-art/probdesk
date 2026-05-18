@@ -95,7 +95,7 @@ export async function initiateConnection(params: {
   const { data: inviteGateProfile } = await supabase
     .from("profiles")
     .select(
-      "display_name, bio, location, industry, intent_level, superpower, gender, skills_tags, languages",
+      "display_name, bio, location, industry, superpower, gender, skills_tags, languages",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -216,14 +216,14 @@ export async function initiateConnection(params: {
   const { data: senderProfile } = await supabase
     .from("profiles")
     .select(
-      "display_name, industry, location, bio, superpower, skills_tags, languages, intent_level",
+      "display_name, industry, location, bio, superpower, skills_tags, languages, gender",
     )
     .eq("user_id", user.id)
     .maybeSingle();
 
   const { data: receiverProfile } = await supabase
     .from("profiles")
-    .select("bio, industry, skills_tags, languages, intent_level, superpower, location, gender")
+    .select("bio, industry, skills_tags, languages, superpower, location, gender")
     .eq("user_id", receiverId)
     .maybeSingle();
 
@@ -234,7 +234,6 @@ export async function initiateConnection(params: {
         industry: senderProfile?.industry ?? null,
         skills_tags: senderProfile?.skills_tags ?? null,
         languages: senderProfile?.languages ?? null,
-        intent_level: senderProfile?.intent_level ?? null,
         superpower: senderProfile?.superpower ?? null,
       });
       const candidateSnippet = formatProfileMatchingSnippet({
@@ -242,12 +241,11 @@ export async function initiateConnection(params: {
         industry: receiverProfile?.industry ?? null,
         skills_tags: receiverProfile?.skills_tags ?? null,
         languages: receiverProfile?.languages ?? null,
-        intent_level: receiverProfile?.intent_level ?? null,
         superpower: receiverProfile?.superpower ?? null,
       });
       const candidateIntentText =
         receiverIntent?.natural_language_input?.trim() ||
-        "(Profile discovery — they did not publish a separate Explore listing; fit uses profile similarity.)";
+        "(Profile-only invite — they did not publish a separate Explore listing; judge complementary fit from their profile vs your intent.)";
       const vibe = await vibeCheckWith4o({
         senderIntent: senderIntentText,
         candidateIntent: candidateIntentText,
@@ -257,6 +255,8 @@ export async function initiateConnection(params: {
         candidateMustHaves: receiverIntent?.must_haves ?? null,
         senderLocationPreference,
         candidateLocation: receiverIntent?.location_filter ?? receiverProfile?.location ?? null,
+        senderGender: senderProfile?.gender ?? null,
+        candidateGender: receiverProfile?.gender ?? null,
       });
       match_score = vibe.match_score;
       compatibility_reason = vibe.compatibility_reason;
@@ -295,7 +295,6 @@ export async function initiateConnection(params: {
         superpower: senderProfile.superpower,
         skills_tags: senderProfile.skills_tags,
         languages: senderProfile.languages,
-        intent_level: senderProfile.intent_level,
       });
     }
   } catch {

@@ -1,5 +1,3 @@
-import { parseIntentLevel } from "@/lib/profile-intent-level";
-
 /** Values persisted in `profiles.gender` (migration 050). */
 export const PROFILE_GENDER_VALUES = ["woman", "man", "non_binary", "prefer_not_say", "other"] as const;
 export type ProfileGenderValue = (typeof PROFILE_GENDER_VALUES)[number];
@@ -15,7 +13,6 @@ export type ProfileBasicsInput = {
   bio?: string | null;
   location?: string | null;
   industry?: string | null;
-  intent_level?: string | null;
   superpower?: string | null;
   gender?: string | null;
   skills_tags?: string[] | null;
@@ -89,7 +86,7 @@ export function getProfileCoreFieldIssues(row: ProfileCoreInput): ProfileCoreFie
 
 /** Publish / Explore listing / first console intent (server validation). */
 export const PROFILE_BASICS_INCOMPLETE_MSG =
-  "Complete your profile: display name, bio (at least 20 characters), location, industry, intent level, a short what-you-offer line (8-150 characters), gender, at least one keyword (interests or traits), and at least one spoken language.";
+  "Complete your profile: display name, bio (at least 20 characters), location, industry, a short what-you-offer line (8-150 characters), gender, at least one keyword (interests or traits), and at least one spoken language.";
 
 export function validateProfileBasicsForPublish(
   input: ProfileBasicsInput,
@@ -100,7 +97,6 @@ export function validateProfileBasicsForPublish(
   const industry = input.industry?.trim() ?? "";
   const superpower = input.superpower?.trim() ?? "";
   const gender = input.gender?.trim() ?? "";
-  const intent_level = parseIntentLevel(input.intent_level);
   const tagCount = nonEmptyTags(input.skills_tags);
   const langCount = nonEmptyTags(input.languages);
 
@@ -108,7 +104,6 @@ export function validateProfileBasicsForPublish(
     !display_name ||
     !location ||
     !industry ||
-    !intent_level ||
     superpower.length < PROFILE_SUPERPOWER_MIN_PUBLISH ||
     superpower.length > PROFILE_SUPERPOWER_MAX ||
     bio.length < PROFILE_CORE_MIN_BIO_LENGTH ||

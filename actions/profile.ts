@@ -2,13 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import {
-  PROFILE_CORE_MIN_BIO_LENGTH,
-  PROFILE_SUPERPOWER_MAX,
-  parseProfileGender,
-  validateProfileBasicsForPublish,
-} from "@/lib/profile-basics";
-import { parseIntentLevel } from "@/lib/profile-intent-level";
+import { parseProfileGender, validateProfileBasicsForPublish } from "@/lib/profile-basics";
 import { normalizeProfileTags } from "@/lib/profile-tags";
 import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
 import { isAdminEmail } from "@/lib/admin-emails";
@@ -122,7 +116,6 @@ export type SuggestionProfilePreview = {
   superpower: string | null;
   skills_tags: string[];
   languages: string[];
-  intent_level: string | null;
 };
 
 /** Preview during AI discovery — excludes name, avatar, album, social & contact. */
@@ -152,7 +145,7 @@ export async function getSuggestionProfilePreview(
 
   const { data: row, error } = await svc
     .from("profiles")
-    .select("bio, gender, age_group, location, industry, superpower, skills_tags, languages, intent_level")
+    .select("bio, gender, age_group, location, industry, superpower, skills_tags, languages")
     .eq("user_id", peerUserId)
     .maybeSingle();
 
@@ -169,7 +162,6 @@ export async function getSuggestionProfilePreview(
       superpower: row.superpower as string | null,
       skills_tags: Array.isArray(row.skills_tags) ? (row.skills_tags as string[]) : [],
       languages: Array.isArray(row.languages) ? (row.languages as string[]) : [],
-      intent_level: row.intent_level as string | null,
     },
   };
 }
@@ -306,12 +298,11 @@ export type ProfileIdentity = {
   preferred_contact_detail: string | null;
   skills_tags: string[];
   languages: string[];
-  intent_level: string | null;
   social_link: string | null;
   album_storage_paths: string[];
 };
 
-/** Used before opening Explore/Manage invite UI — same bar as publishing a listing (gender, intent level, superpower, etc.). */
+/** Used before opening Explore/Manage invite UI — same bar as publishing a listing (gender, superpower, etc.). */
 export async function getProfileBasicsGateForInvites(): Promise<{ ok: true } | { ok: false }> {
   const supabase = await createClient();
   const {
@@ -323,7 +314,7 @@ export async function getProfileBasicsGateForInvites(): Promise<{ ok: true } | {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("display_name, bio, location, industry, intent_level, superpower, gender, skills_tags, languages")
+    .select("display_name, bio, location, industry, superpower, gender, skills_tags, languages")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -343,7 +334,7 @@ export async function getMyProfileIdentity(): Promise<ProfileIdentity | { error:
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "display_name, bio, location, industry, superpower, gender, age_group, preferred_contact_channel, preferred_contact_detail, skills_tags, languages, intent_level, social_link, album_storage_paths",
+      "display_name, bio, location, industry, superpower, gender, age_group, preferred_contact_channel, preferred_contact_detail, skills_tags, languages, social_link, album_storage_paths",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -361,7 +352,6 @@ export async function getMyProfileIdentity(): Promise<ProfileIdentity | { error:
     preferred_contact_detail: data?.preferred_contact_detail ?? null,
     skills_tags: Array.isArray(data?.skills_tags) ? (data!.skills_tags as string[]) : [],
     languages: Array.isArray(data?.languages) ? (data!.languages as string[]) : [],
-    intent_level: data?.intent_level ?? null,
     social_link: data?.social_link ?? null,
     album_storage_paths: Array.isArray(data?.album_storage_paths) ? (data!.album_storage_paths as string[]) : [],
   };
@@ -379,7 +369,6 @@ export async function updateMyProfileIdentity(fields: {
   preferred_contact_detail?: string;
   skills_tags: string[];
   languages: string[];
-  intent_level: string;
   social_link: string;
 }) {
   const supabase = await createClient();
@@ -403,9 +392,25 @@ export async function updateMyProfileIdentity(fields: {
     return { ok: false as const, message: "Invalid contact method." };
   }
 
-  const genderRaw = fields.gender?.trim() ?? "";
-  const genderResolved = genderRaw ? parseProfileGender(genderRaw) : null;
-  if (genderRaw && !genderResolved) {
+  const skills_tags = normalizeProfileTags(fields.skills_tags ?? [], MAX_TAGS);
+  const languages = normalizeProfileTags(fields.languages ?? [], MAX_TAGS);
+
+  const basics = validateProfileBasicsForPublish({
+    display_name: fields.display_name,
+    bio: fields.bio,
+    location: fields.location,
+    industry: fields.industry,
+    superpower: fields.superpower,
+    gender: fields.gender,
+    skills_tags,
+    languages,
+  });
+  if (!basics.ok) {
+    return { ok: false as const, message: basics.message };
+  }
+
+  const genderResolved = parseProfileGender(fields.gender.trim());
+  if (!genderResolved) {
     return { ok: false as const, message: "Invalid gender selection." };
   }
 
@@ -415,35 +420,7 @@ export async function updateMyProfileIdentity(fields: {
     return { ok: false as const, message: "Invalid age group." };
   }
 
-  const skills_tags = normalizeProfileTags(fields.skills_tags ?? [], MAX_TAGS);
-  const languages = normalizeProfileTags(fields.languages ?? [], MAX_TAGS);
-
-  if (fields.bio.trim().length < PROFILE_CORE_MIN_BIO_LENGTH) {
-    return {
-      ok: false as const,
-      message: `Bio must be at least ${PROFILE_CORE_MIN_BIO_LENGTH} characters.`,
-    };
-  }
-  if (skills_tags.length === 0) {
-    return { ok: false as const, message: "Add at least one keyword (interest or trait)." };
-  }
-  if (languages.length === 0) {
-    return { ok: false as const, message: "Add at least one language." };
-  }
-
-  const ilRaw = fields.intent_level?.trim() ?? "";
-  const intent_level = ilRaw ? parseIntentLevel(ilRaw) : null;
-  if (ilRaw && !intent_level) {
-    return { ok: false as const, message: "Invalid intent level." };
-  }
-
   const superTrim = fields.superpower?.trim() ?? "";
-  if (superTrim.length > PROFILE_SUPERPOWER_MAX) {
-    return {
-      ok: false as const,
-      message: `What you offer must be at most ${PROFILE_SUPERPOWER_MAX} characters.`,
-    };
-  }
 
   const socialParsed = parseSocialLink(fields.social_link ?? "");
   if (fields.social_link?.trim() && !socialParsed) {
@@ -466,7 +443,6 @@ export async function updateMyProfileIdentity(fields: {
         preferred_contact_detail: hasPair ? detRaw : null,
         skills_tags,
         languages,
-        intent_level,
         social_link: socialParsed,
         updated_at: new Date().toISOString(),
       },
@@ -483,7 +459,6 @@ export async function updateMyProfileIdentity(fields: {
     superpower: superTrim || null,
     gender: genderResolved,
     age_group: ageResolved,
-    intent_level,
     skills_tags,
     languages,
   });
