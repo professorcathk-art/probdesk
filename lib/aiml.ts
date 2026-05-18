@@ -139,10 +139,10 @@ export async function vibeCheckWith4o(params: {
             type: "object",
             additionalProperties: false,
             properties: {
-              match_score: { type: "integer", minimum: 1, maximum: 100 },
-              compatibility_reason: { type: "string" },
+              score: { type: "integer", minimum: 0, maximum: 100 },
+              reason: { type: "string" },
             },
-            required: ["match_score", "compatibility_reason"],
+            required: ["score", "reason"],
           },
         },
       },
@@ -150,22 +150,16 @@ export async function vibeCheckWith4o(params: {
         {
           role: "system",
           content:
-            "Vennode pairs people by **complementary fit**, not by making two parallel asks sound alike. " +
-            "**Sender intent** = what the sender is SEEKING from the network (their demand / request). " +
-            "**Candidate listing text** = what the candidate published they want OR (when stubbed) proxy text for profile-only discovery — treat profile snippets as evidence of what they **bring / offer** (supply) and who they are. " +
-            "A strong match means the candidate plausibly **satisfies** what the sender seeks (or strongly fills the role implied by the sender's ask), OR there is clear mutual complementarity (each side's ask is answered by the other's offer/provenance). " +
-            "**Penalize heavily (typically 1–40)** when both sides read like the **same kind of demand** with no complementary posture — e.g. two people both primarily stating 'I want a boyfriend/girlfriend/partner' without evidence one is offering what the other seeks (mirror listings). Similar wording between two asks is NOT a positive signal by itself. " +
-            "Use optional gender markers only when the asks are explicitly romance-oriented and complementary logic applies; never infer orientation beyond text; respect non-binary / undisclosed. " +
-            "Treat **must-haves / expectations** as hard-ish constraints when they conflict; geography is secondary unless constraints require co-location. " +
-            "Penalize spam, nonsense, empty fluff, or category mismatches (hiring vs romance vs fundraising vs mentorship). " +
-            "Scoring: mirror-demand / low complementarity → 1–40; weak speculative bridge → 41–55; plausible complementary fit → 56–72; strong → 73–88; exceptional → 89–100. " +
-            "Do NOT score above 55 for mere semantic similarity between two parallel requests. Be conservative. " +
-            "Return JSON only. compatibility_reason: exactly two concise sentences for a premium UI.",
+            "You are Vennode's Complementary Matching Engine. Evaluate the mutual fit between the Sender's Demand and the Candidate's Supply (what they offer via profile superpower/bio vs what they ask in their listing text when present). " +
+            "CRITICAL RULE: Penalize **parallel demands**. If both sides are simply asking for the same thing (e.g. both want a technical co-founder, or both want a boyfriend/girlfriend) but neither offers what the other needs, the score MUST be low (typically below 40). " +
+            "High scores require complementary posture: skills/resources vs stated needs (business/co-founders), requirements vs capabilities (hiring), stated preferences and constraints vs plausible fit (romance — use gender markers only when romance is clearly implied in the text; do not invent orientation). " +
+            "Input data may include: Sender intent & must-haves; Candidate intent/listing (if any); Candidate superpower/bio/profile snippet; geography as a secondary constraint. " +
+            "Respond strictly as JSON with integer `score` (0–100) and a single-sentence `reason` explaining complementary fit or mismatch. Be conservative.",
         },
         {
           role: "user",
           content:
-            `${reqLine("Sender intent", params.senderIntent)}\n\n${reqLine("Candidate intent / listing", params.candidateIntent)}\n\n${reqLine("Sender requirements / expectations", params.senderMustHaves)}\n\n${reqLine("Candidate requirements / expectations", params.candidateMustHaves)}` +
+            `Input data provided:\n\n${reqLine("Sender intent", params.senderIntent)}\n\n${reqLine("Candidate intent / listing", params.candidateIntent)}\n\n${reqLine("Sender requirements / expectations", params.senderMustHaves)}\n\n${reqLine("Candidate requirements / expectations", params.candidateMustHaves)}` +
             (geoParts.length > 0
               ? `\n\nGeographic context (secondary):\n${geoParts.join("\n")}`
               : "") +
@@ -191,13 +185,15 @@ export async function vibeCheckWith4o(params: {
   };
   const raw = data.choices?.[0]?.message?.content;
   if (!raw) throw new Error("AIML vibe check returned empty content");
-  const parsed = JSON.parse(raw) as VibeResult;
-  let score = Math.round(Number(parsed.match_score));
+  const parsed = JSON.parse(raw) as Record<string, unknown>;
+  const rawScore = parsed.score ?? parsed.match_score;
+  const rawReason = parsed.reason ?? parsed.compatibility_reason;
+  let score = Math.round(Number(rawScore));
   if (!Number.isFinite(score)) score = 42;
-  score = Math.max(1, Math.min(100, score));
+  score = Math.max(0, Math.min(100, score));
   const compatibility_reason =
-    typeof parsed.compatibility_reason === "string" && parsed.compatibility_reason.trim().length > 0
-      ? parsed.compatibility_reason.trim()
+    typeof rawReason === "string" && rawReason.trim().length > 0
+      ? rawReason.trim()
       : "Fit could not be summarized cleanly — verify complementary demand/supply before inviting.";
   return { match_score: score, compatibility_reason };
 }

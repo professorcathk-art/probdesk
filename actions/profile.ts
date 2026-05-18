@@ -452,13 +452,9 @@ export async function updateMyProfileIdentity(fields: {
   if (error) return { ok: false as const, message: error.message };
 
   await syncProfileEmbedding(supabase, user.id, {
-    display_name: fields.display_name.trim() || null,
     bio: fields.bio.trim() || null,
-    location: fields.location.trim() || null,
     industry: fields.industry.trim() || null,
     superpower: superTrim || null,
-    gender: genderResolved,
-    age_group: ageResolved,
     skills_tags,
     languages,
   });

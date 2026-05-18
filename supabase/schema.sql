@@ -1,4 +1,4 @@
--- Vennode (vennode.com) — Supabase setup: pgvector, tables, RLS, match_intents RPC
+-- Vennode (vennode.com) — pgvector, split embeddings (demand vs supply), match_profiles RPC
 -- Run in Supabase SQL Editor or via migration tooling.
 
 -- -----------------------------------------------------------------------------
@@ -38,7 +38,8 @@ create table if not exists public.profiles (
   daily_credits integer not null default 5,
   last_credit_reset timestamptz not null default now(),
   match_quality_alert_sent boolean not null default false,
-  embedding vector(1536)
+  embedding vector(1536),
+  supply_embedding vector(1536)
 );
 
 create index if not exists profiles_embedding_ivfflat
@@ -67,6 +68,7 @@ create table if not exists public.intent_requests (
   is_marketplace_public boolean not null default false,
   is_demo_listing boolean not null default false,
   embedding vector(1536),
+  demand_embedding vector(1536),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   enrichment jsonb default '{}'::jsonb,
@@ -81,6 +83,18 @@ create index if not exists intent_requests_status_marketplace_idx
 -- IVFFLAT index for cosine similarity (create after you have enough rows for lists parameter tuning)
 create index if not exists intent_requests_embedding_ivfflat
   on public.intent_requests using ivfflat (embedding vector_cosine_ops)
+  with (lists = 100);
+
+alter table public.intent_requests add column if not exists demand_embedding vector(1536);
+
+create index if not exists intent_requests_demand_embedding_ivfflat
+  on public.intent_requests using ivfflat (demand_embedding vector_cosine_ops)
+  with (lists = 100);
+
+alter table public.profiles add column if not exists supply_embedding vector(1536);
+
+create index if not exists profiles_supply_embedding_ivfflat
+  on public.profiles using ivfflat (supply_embedding vector_cosine_ops)
   with (lists = 100);
 
 create table if not exists public.matches (
@@ -178,76 +192,14 @@ create trigger on_auth_user_created
   for each row execute function public.handle_new_auth_user();
 
 -- -----------------------------------------------------------------------------
--- RPC: semantic match by embedding + optional exact location + cosine distance cap
+-- RPC: Phase 14 — `target_embedding` is the sender's **demand** vector; ranked against `profiles.supply_embedding` only.
 -- Cosine distance (<=>): lower is more similar. p_threshold is MAX distance allowed.
--- similarity column = 1 - distance (higher is closer). Example: distance 0.55 → similarity 0.45.
--- p_require_location_match: SQL default true for direct RPC callers; the app tries semantic-wide tiers first (false), then same-city fallback (true).
+-- similarity = 1 - distance (higher is closer).
 -- -----------------------------------------------------------------------------
-create or replace function public.match_intents(
-  target_embedding vector(1536),
-  p_location text,
-  p_threshold float default 0.5,
-  p_limit int default 20,
-  p_exclude_user_id uuid default null,
-  p_require_location_match boolean default true
-)
-returns table (
-  intent_id uuid,
-  owner_user_id uuid,
-  natural_language_input text,
-  extracted_persona jsonb,
-  location_filter text,
-  distance float,
-  similarity float,
-  peer_display_name text,
-  peer_bio text,
-  peer_gender text,
-  peer_age_group text,
-  peer_skills_tags text[],
-  peer_languages text[],
-  peer_industry text,
-  peer_superpower text
-)
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select
-    ir.id as intent_id,
-    ir.user_id as owner_user_id,
-    ir.natural_language_input,
-    ir.extracted_persona,
-    ir.location_filter,
-    (ir.embedding <=> target_embedding)::float as distance,
-    (1 - (ir.embedding <=> target_embedding))::float as similarity,
-    p.display_name as peer_display_name,
-    p.bio as peer_bio,
-    p.gender as peer_gender,
-    p.age_group as peer_age_group,
-    p.skills_tags as peer_skills_tags,
-    p.languages as peer_languages,
-    p.industry as peer_industry,
-    p.superpower as peer_superpower
-  from public.intent_requests ir
-  left join public.profiles p on p.user_id = ir.user_id
-  where ir.status = 'active'
-    and ir.embedding is not null
-    and ir.location_filter is not null
-    and (
-      not coalesce(p_require_location_match, true)
-      or lower(trim(ir.location_filter)) = lower(trim(p_location))
-    )
-    and (p_exclude_user_id is null or ir.user_id <> p_exclude_user_id)
-    and (ir.embedding <=> target_embedding) <= p_threshold
-  order by ir.embedding <=> target_embedding asc
-  limit greatest(1, least(p_limit, 100));
-$$;
-
 create or replace function public.match_profiles(
   target_embedding vector(1536),
   p_location text,
-  p_threshold float default 0.5,
+  p_threshold float default 0.55,
   p_limit int default 20,
   p_exclude_user_id uuid default null,
   p_require_location_match boolean default true
@@ -263,6 +215,8 @@ returns table (
   location text,
   industry text,
   superpower text,
+  linked_intent_id uuid,
+  linked_natural_language_input text,
   distance float,
   similarity float
 )
@@ -282,11 +236,21 @@ as $$
     pr.location,
     pr.industry,
     pr.superpower,
-    (pr.embedding <=> target_embedding)::float as distance,
-    (1 - (pr.embedding <=> target_embedding))::float as similarity
+    li.id as linked_intent_id,
+    li.natural_language_input as linked_natural_language_input,
+    (pr.supply_embedding <=> target_embedding)::float as distance,
+    (1 - (pr.supply_embedding <=> target_embedding))::float as similarity
   from public.profiles pr
   inner join public.users u on u.id = pr.user_id
-  where pr.embedding is not null
+  left join lateral (
+    select ir.id, ir.natural_language_input
+    from public.intent_requests ir
+    where ir.user_id = pr.user_id
+      and ir.status = 'active'
+    order by ir.updated_at desc nulls last, ir.created_at desc
+    limit 1
+  ) li on true
+  where pr.supply_embedding is not null
     and pr.location is not null
     and length(trim(pr.location)) > 0
     and u.onboarding_status = 'complete'
@@ -295,8 +259,8 @@ as $$
       or lower(trim(pr.location)) = lower(trim(p_location))
     )
     and (p_exclude_user_id is null or pr.user_id <> p_exclude_user_id)
-    and (pr.embedding <=> target_embedding) <= p_threshold
-  order by pr.embedding <=> target_embedding asc
+    and (pr.supply_embedding <=> target_embedding) <= p_threshold
+  order by pr.supply_embedding <=> target_embedding asc
   limit greatest(1, least(p_limit, 100));
 $$;
 
@@ -471,7 +435,6 @@ grant select on public.intent_requests to anon;
 grant select, insert, update on public.matches to authenticated;
 grant select, insert on public.messages to authenticated;
 grant select, insert, update on public.match_message_reads to authenticated;
-grant execute on function public.match_intents(vector(1536), text, float, int, uuid, boolean) to authenticated;
 grant execute on function public.match_profiles(vector(1536), text, float, int, uuid, boolean) to authenticated;
 
 -- -----------------------------------------------------------------------------

@@ -18,16 +18,11 @@ import { logPairingScoreEvent } from "@/lib/pairing-score-log";
 import { BLOCKING_MATCH_STATUSES } from "@/lib/match-blocking";
 import { vectorLiteral } from "@/lib/vector-literal";
 import { syncProfileEmbedding } from "@/lib/sync-profile-embedding";
+import { buildDemandEmbeddingText } from "@/lib/demand-supply-embedding";
 
 function normalizeMustHaves(raw: string | null | undefined): string | null {
   const t = raw?.trim() ?? "";
   return t ? t : null;
-}
-
-/** Include expectations text in the embedding so vector search respects constraints. */
-function intentEmbeddingSource(main: string, mustHaves: string | null): string {
-  if (!mustHaves) return main;
-  return `${main}\n\nExpectations: ${mustHaves}`;
 }
 
 export type IntentLimitErrorCode = "MAX_ACTIVE_INTENTS";
@@ -115,7 +110,7 @@ export async function bootstrapIntentFromLanding(naturalLanguageInput: string) {
 
   try {
     parsed = await parseIntentWithMini(trimmed);
-    embedding = await embedTextSmall(trimmed);
+    embedding = await embedTextSmall(buildDemandEmbeddingText(trimmed, null));
   } catch (e) {
     const msg = e instanceof Error ? e.message : "AI pipeline failed";
     return { ok: false as const, message: msg };
@@ -134,6 +129,7 @@ export async function bootstrapIntentFromLanding(naturalLanguageInput: string) {
       extracted_persona: parsed.extracted_persona,
       location_filter,
       embedding: vectorLiteral(embedding),
+      demand_embedding: vectorLiteral(embedding),
       status: "active",
       is_marketplace_public: false,
     })
@@ -264,12 +260,9 @@ export async function completeOnboarding(params: {
   }
 
   await syncProfileEmbedding(supabase, user.id, {
-    display_name: params.profile.display_name ?? null,
     bio: params.profile.bio ?? null,
-    location: params.profile.location ?? null,
     industry: params.profile.industry ?? null,
     superpower: superpowerTrim || null,
-    gender: genderTrim || null,
     skills_tags: skillTags,
     languages: langTags,
   });
@@ -416,7 +409,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
 
   const { data: intentRow, error } = await supabase
     .from("intent_requests")
-    .select("id, natural_language_input, location_filter, embedding, must_haves")
+    .select("id, natural_language_input, location_filter, demand_embedding, embedding, must_haves")
     .eq("id", intentId)
     .eq("user_id", user.id)
     .single();
@@ -440,8 +433,12 @@ export async function computeHybridSuggestions(intentId: string): Promise<
 
   const intent = { ...intentRow, location_filter: locationForRpc };
 
-  if (!intent.embedding) {
-    return { ok: false, message: "This intent could not be processed — please create a new one." };
+  const demandVec = intentRow.demand_embedding ?? intentRow.embedding;
+  if (!demandVec) {
+    return {
+      ok: false,
+      message: "This intent is missing vectors — edit and save the request once to refresh embeddings.",
+    };
   }
 
   const { data: blockRows } = await supabase
@@ -456,35 +453,17 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   }
 
   /**
-   * Hybrid discovery: embedding RPC proposes candidates; `vibeCheckWith4o` re-ranks by **complementary**
-   * demand/supply fit (sender's ask vs candidate listing + profile offer signals), not mere similarity between two parallel asks.
+   * Phase 14 retrieval: sender **demand_embedding** vs candidate **supply_embedding** only (no parallel demand↔demand).
+   * `match_profiles` RPC returns up to 20 rows; each is re-ranked by the complementary LLM.
    */
   const MATCH_TIERS = [
-    { key: "semantic_primary", maxDistance: 0.55, requireLocationMatch: false },
-    { key: "semantic_relaxed", maxDistance: 0.66, requireLocationMatch: false },
-    { key: "semantic_wide", maxDistance: 0.76, requireLocationMatch: false },
-    { key: "same_city_boost_fallback", maxDistance: 0.72, requireLocationMatch: true },
+    { key: "demand_supply_primary", maxDistance: 0.55, requireLocationMatch: false },
+    { key: "demand_supply_relaxed", maxDistance: 0.66, requireLocationMatch: false },
+    { key: "demand_supply_wide", maxDistance: 0.76, requireLocationMatch: false },
+    { key: "demand_supply_same_city", maxDistance: 0.72, requireLocationMatch: true },
   ] as const;
 
-  type IntentRpcRow = {
-    intent_id: string;
-    owner_user_id: string;
-    natural_language_input: string;
-    extracted_persona: Record<string, unknown> | null;
-    location_filter: string | null;
-    distance: number;
-    similarity: number;
-    peer_display_name: string | null;
-    peer_bio: string | null;
-    peer_gender: string | null;
-    peer_age_group: string | null;
-    peer_skills_tags: string[] | null;
-    peer_languages: string[] | null;
-    peer_industry: string | null;
-    peer_superpower: string | null;
-  };
-
-  type ProfileRpcRow = {
+  type SupplyRpcRow = {
     user_id: string;
     display_name: string | null;
     bio: string | null;
@@ -495,21 +474,14 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     location: string | null;
     industry: string | null;
     superpower: string | null;
+    linked_intent_id: string | null;
+    linked_natural_language_input: string | null;
     distance: number;
     similarity: number;
   };
 
-  function dedupeBestIntentByOwner(rows: IntentRpcRow[]): IntentRpcRow[] {
-    const best = new Map<string, IntentRpcRow>();
-    for (const r of rows) {
-      const cur = best.get(r.owner_user_id);
-      if (!cur || r.distance < cur.distance) best.set(r.owner_user_id, r);
-    }
-    return [...best.values()].sort((a, b) => a.distance - b.distance);
-  }
-
-  function dedupeBestProfileByUser(rows: ProfileRpcRow[]): ProfileRpcRow[] {
-    const best = new Map<string, ProfileRpcRow>();
+  function dedupeBestProfileByUser(rows: SupplyRpcRow[]): SupplyRpcRow[] {
+    const best = new Map<string, SupplyRpcRow>();
     for (const r of rows) {
       const cur = best.get(r.user_id);
       if (!cur || r.distance < cur.distance) best.set(r.user_id, r);
@@ -517,18 +489,18 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     return [...best.values()].sort((a, b) => a.distance - b.distance);
   }
 
-  let intentRpcRows: IntentRpcRow[] = [];
-  let intentTier: (typeof MATCH_TIERS)[number]["key"] = MATCH_TIERS[0].key;
-  let intentAppliedMax = MATCH_TIERS[0].maxDistance as number;
-  let intentAppliedReq = MATCH_TIERS[0].requireLocationMatch as boolean;
+  let supplyRows: SupplyRpcRow[] = [];
+  let appliedTier: (typeof MATCH_TIERS)[number]["key"] = MATCH_TIERS[0].key;
+  let appliedMax = MATCH_TIERS[0].maxDistance as number;
+  let appliedReq = MATCH_TIERS[0].requireLocationMatch as boolean;
   let rpcError: { message: string } | null = null;
 
   for (const tier of MATCH_TIERS) {
-    const { data, error: tierErr } = await supabase.rpc("match_intents", {
-      target_embedding: intent.embedding as unknown as string,
+    const { data, error: tierErr } = await supabase.rpc("match_profiles", {
+      target_embedding: demandVec as unknown as string,
       p_location: intent.location_filter,
       p_threshold: tier.maxDistance,
-      p_limit: 24,
+      p_limit: 20,
       p_exclude_user_id: user.id,
       p_require_location_match: tier.requireLocationMatch,
     });
@@ -536,12 +508,12 @@ export async function computeHybridSuggestions(intentId: string): Promise<
       rpcError = tierErr;
       break;
     }
-    const next = (data ?? []) as IntentRpcRow[];
+    const next = (data ?? []) as SupplyRpcRow[];
     if (next.length > 0) {
-      intentRpcRows = next;
-      intentTier = tier.key;
-      intentAppliedMax = tier.maxDistance;
-      intentAppliedReq = tier.requireLocationMatch;
+      supplyRows = next;
+      appliedTier = tier.key;
+      appliedMax = tier.maxDistance;
+      appliedReq = tier.requireLocationMatch;
       break;
     }
   }
@@ -550,59 +522,15 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     return { ok: false, message: rpcError.message };
   }
 
-  const POOL = 6;
-  const intentPick = dedupeBestIntentByOwner(intentRpcRows)
-    .filter((r) => !blocking.has(r.owner_user_id))
-    .slice(0, POOL);
-  const intentOwners = new Set(intentPick.map((r) => r.owner_user_id));
+  const POOL_SIZE = 20;
+  const poolRows = dedupeBestProfileByUser(supplyRows)
+    .filter((r) => !blocking.has(r.user_id))
+    .slice(0, POOL_SIZE);
 
-  let profilePick: ProfileRpcRow[] = [];
-  let profileTier: (typeof MATCH_TIERS)[number]["key"] = MATCH_TIERS[0].key;
-  let profileAppliedMax = MATCH_TIERS[0].maxDistance as number;
-  let profileAppliedReq = MATCH_TIERS[0].requireLocationMatch as boolean;
-
-  if (intentPick.length < POOL) {
-    let profileRpcErr: { message: string } | null = null;
-    for (const tier of MATCH_TIERS) {
-      const { data, error: pErr } = await supabase.rpc("match_profiles", {
-        target_embedding: intent.embedding as unknown as string,
-        p_location: intent.location_filter,
-        p_threshold: tier.maxDistance,
-        p_limit: 24,
-        p_exclude_user_id: user.id,
-        p_require_location_match: tier.requireLocationMatch,
-      });
-      if (pErr) {
-        profileRpcErr = pErr;
-        break;
-      }
-      const next = (data ?? []) as ProfileRpcRow[];
-      const filtered = dedupeBestProfileByUser(next).filter(
-        (r) => !intentOwners.has(r.user_id) && !blocking.has(r.user_id),
-      );
-      if (filtered.length > 0) {
-        profileTier = tier.key;
-        profileAppliedMax = tier.maxDistance;
-        profileAppliedReq = tier.requireLocationMatch;
-        profilePick = filtered.slice(0, POOL - intentPick.length);
-        break;
-      }
-    }
-    if (profileRpcErr && intentPick.length === 0) {
-      return { ok: false, message: profileRpcErr.message };
-    }
-  }
-
-  type Unified =
-    | { kind: "intent"; row: IntentRpcRow }
-    | { kind: "profile"; row: ProfileRpcRow };
-
-  const pool: Unified[] = [...intentPick.map((row) => ({ kind: "intent" as const, row })), ...profilePick.map((row) => ({ kind: "profile" as const, row }))];
-
-  const poolIntentIds = intentPick.map((r) => r.intent_id);
+  const linkedIds = poolRows.map((r) => r.linked_intent_id).filter((id): id is string => Boolean(id));
   const { data: poolMustRows } =
-    poolIntentIds.length > 0
-      ? await supabase.from("intent_requests").select("id, must_haves").in("id", poolIntentIds)
+    linkedIds.length > 0
+      ? await supabase.from("intent_requests").select("id, must_haves").in("id", linkedIds)
       : { data: [] as { id: string; must_haves: string | null }[] };
   const mustByIntentId = new Map((poolMustRows ?? []).map((r) => [r.id as string, r.must_haves as string | null]));
 
@@ -612,11 +540,11 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const PROFILE_ONLY_INTENT_STUB =
-    "(Profile-only discovery — they have not published a separate Explore listing; judge complementary fit from their profile signals vs your intent.)";
+  const PROFILE_ONLY_STUB =
+    "(No active Explore listing on file — infer complementary fit from profile supply vs your demand.)";
 
   const scored = await Promise.all(
-    pool.map(async (entry) => {
+    poolRows.map(async (row) => {
       const senderSnippet = formatProfileMatchingSnippet({
         bio: senderProf?.bio ?? null,
         industry: senderProf?.industry ?? null,
@@ -624,92 +552,6 @@ export async function computeHybridSuggestions(intentId: string): Promise<
         languages: senderProf?.languages ?? null,
         superpower: senderProf?.superpower ?? null,
       });
-
-      if (entry.kind === "intent") {
-        const row = entry.row;
-        const candidateSnippet =
-          formatProfileMatchingSnippet({
-            bio: row.peer_bio ?? null,
-            industry: row.peer_industry ?? null,
-            skills_tags: row.peer_skills_tags ?? null,
-            languages: row.peer_languages ?? null,
-            superpower: row.peer_superpower ?? null,
-          }) || undefined;
-        try {
-          const vibe = await vibeCheckWith4o({
-            senderIntent: intent.natural_language_input,
-            candidateIntent: row.natural_language_input,
-            senderProfileSnippet: senderSnippet || undefined,
-            candidateProfileSnippet: candidateSnippet,
-            senderMustHaves: intent.must_haves,
-            candidateMustHaves: mustByIntentId.get(row.intent_id) ?? null,
-            senderLocationPreference: intent.location_filter,
-            candidateLocation: row.location_filter,
-            senderGender: senderProf?.gender ?? null,
-            candidateGender: row.peer_gender ?? null,
-          });
-          return {
-            card: {
-              intent_id: row.intent_id,
-              owner_user_id: row.owner_user_id,
-              natural_language_input: row.natural_language_input,
-              extracted_persona: row.extracted_persona,
-              location_filter: row.location_filter,
-              distance: row.distance,
-              similarity: row.similarity,
-              discovery_source: "intent" as const,
-              peer_display_name: row.peer_display_name,
-              peer_bio: row.peer_bio,
-              peer_gender: row.peer_gender,
-              peer_age_group: row.peer_age_group,
-              peer_skills_tags: row.peer_skills_tags,
-              peer_languages: row.peer_languages,
-              match_score: vibe.match_score,
-              compatibility_reason: vibe.compatibility_reason,
-            },
-            logMeta: {
-              candidate_intent_id: row.intent_id,
-              similarity: row.similarity,
-              rpc_threshold: intentAppliedMax,
-              tier: intentTier,
-              require_location_match: intentAppliedReq,
-              discovery_source: "intent" as const,
-            },
-          };
-        } catch {
-          return {
-            card: {
-              intent_id: row.intent_id,
-              owner_user_id: row.owner_user_id,
-              natural_language_input: row.natural_language_input,
-              extracted_persona: row.extracted_persona,
-              location_filter: row.location_filter,
-              distance: row.distance,
-              similarity: row.similarity,
-              discovery_source: "intent" as const,
-              peer_display_name: row.peer_display_name,
-              peer_bio: row.peer_bio,
-              peer_gender: row.peer_gender,
-              peer_age_group: row.peer_age_group,
-              peer_skills_tags: row.peer_skills_tags,
-              peer_languages: row.peer_languages,
-              match_score: Math.round((row.similarity ?? 0) * 100),
-              compatibility_reason:
-                "Semantic retrieval surfaced this listing — confirm complementary fit (demand vs what they offer) before inviting.",
-            },
-            logMeta: {
-              candidate_intent_id: row.intent_id,
-              similarity: row.similarity,
-              rpc_threshold: intentAppliedMax,
-              tier: intentTier,
-              require_location_match: intentAppliedReq,
-              discovery_source: "intent" as const,
-            },
-          };
-        }
-      }
-
-      const row = entry.row;
       const candidateSnippet =
         formatProfileMatchingSnippet({
           bio: row.bio ?? null,
@@ -718,14 +560,19 @@ export async function computeHybridSuggestions(intentId: string): Promise<
           languages: row.languages ?? null,
           superpower: row.superpower ?? null,
         }) || undefined;
+
+      const candidateIntentText = row.linked_natural_language_input?.trim() || PROFILE_ONLY_STUB;
+      const candidateMustHaves = row.linked_intent_id ? mustByIntentId.get(row.linked_intent_id) ?? null : null;
+      const discovery_source = row.linked_intent_id ? ("intent" as const) : ("profile" as const);
+
       try {
         const vibe = await vibeCheckWith4o({
           senderIntent: intent.natural_language_input,
-          candidateIntent: PROFILE_ONLY_INTENT_STUB,
+          candidateIntent: candidateIntentText,
           senderProfileSnippet: senderSnippet || undefined,
           candidateProfileSnippet: candidateSnippet,
           senderMustHaves: intent.must_haves,
-          candidateMustHaves: null,
+          candidateMustHaves,
           senderLocationPreference: intent.location_filter,
           candidateLocation: row.location,
           senderGender: senderProf?.gender ?? null,
@@ -733,14 +580,14 @@ export async function computeHybridSuggestions(intentId: string): Promise<
         });
         return {
           card: {
-            intent_id: null,
+            intent_id: row.linked_intent_id,
             owner_user_id: row.user_id,
-            natural_language_input: row.bio?.trim() || PROFILE_ONLY_INTENT_STUB,
+            natural_language_input: candidateIntentText,
             extracted_persona: null,
             location_filter: row.location,
             distance: row.distance,
             similarity: row.similarity,
-            discovery_source: "profile" as const,
+            discovery_source,
             peer_display_name: row.display_name,
             peer_bio: row.bio,
             peer_gender: row.gender,
@@ -751,25 +598,25 @@ export async function computeHybridSuggestions(intentId: string): Promise<
             compatibility_reason: vibe.compatibility_reason,
           },
           logMeta: {
-            candidate_intent_id: null,
+            candidate_intent_id: row.linked_intent_id,
             similarity: row.similarity,
-            rpc_threshold: profileAppliedMax,
-            tier: profileTier,
-            require_location_match: profileAppliedReq,
-            discovery_source: "profile" as const,
+            rpc_threshold: appliedMax,
+            tier: appliedTier,
+            require_location_match: appliedReq,
+            discovery_source,
           },
         };
       } catch {
         return {
           card: {
-            intent_id: null,
+            intent_id: row.linked_intent_id,
             owner_user_id: row.user_id,
-            natural_language_input: row.bio?.trim() || PROFILE_ONLY_INTENT_STUB,
+            natural_language_input: candidateIntentText,
             extracted_persona: null,
             location_filter: row.location,
             distance: row.distance,
             similarity: row.similarity,
-            discovery_source: "profile" as const,
+            discovery_source,
             peer_display_name: row.display_name,
             peer_bio: row.bio,
             peer_gender: row.gender,
@@ -778,15 +625,15 @@ export async function computeHybridSuggestions(intentId: string): Promise<
             peer_languages: row.languages,
             match_score: Math.round((row.similarity ?? 0) * 100),
             compatibility_reason:
-              "Profile surfaced by similarity — judge whether they offer what your intent seeks before inviting.",
+              "Demand↔supply retrieval — confirm fit manually while AI scoring is unavailable.",
           },
           logMeta: {
-            candidate_intent_id: null,
+            candidate_intent_id: row.linked_intent_id,
             similarity: row.similarity,
-            rpc_threshold: profileAppliedMax,
-            tier: profileTier,
-            require_location_match: profileAppliedReq,
-            discovery_source: "profile" as const,
+            rpc_threshold: appliedMax,
+            tier: appliedTier,
+            require_location_match: appliedReq,
+            discovery_source,
           },
         };
       }
@@ -811,12 +658,13 @@ export async function computeHybridSuggestions(intentId: string): Promise<
         compatibility_reason: card.compatibility_reason,
         excluded_reason: index >= 3 ? "not_in_top_3_after_sort" : null,
         meta: {
-          pool_size: pool.length,
+          pool_size: poolRows.length,
           match_tier: logMeta.tier,
           require_location_match: logMeta.require_location_match,
           discovery_source: logMeta.discovery_source,
-          intent_match_tier: intentTier,
-          profile_match_tier: profilePick.length > 0 ? profileTier : null,
+          retrieval_model: "demand_vs_supply_embedding",
+          intent_match_tier: null,
+          profile_match_tier: appliedTier,
         },
       }),
     ),
@@ -888,7 +736,7 @@ export async function createConsoleIntent(
 
   try {
     parsed = await parseIntentWithMini(trimmed);
-    embedding = await embedTextSmall(intentEmbeddingSource(trimmed, must_haves));
+    embedding = await embedTextSmall(buildDemandEmbeddingText(trimmed, must_haves));
   } catch (e) {
     const msg = e instanceof Error ? e.message : "AI pipeline failed";
     return { ok: false as const, message: msg };
@@ -918,6 +766,7 @@ export async function createConsoleIntent(
     extracted_persona: parsed.extracted_persona,
     location_filter,
     embedding: vectorLiteral(embedding),
+    demand_embedding: vectorLiteral(embedding),
     status: "active",
     is_marketplace_public: false,
     must_haves,
@@ -961,7 +810,7 @@ export async function updateConsoleIntent(
 
   try {
     parsed = await parseIntentWithMini(trimmed);
-    embedding = await embedTextSmall(intentEmbeddingSource(trimmed, must_haves));
+    embedding = await embedTextSmall(buildDemandEmbeddingText(trimmed, must_haves));
   } catch (e) {
     const msg = e instanceof Error ? e.message : "AI pipeline failed";
     return { ok: false as const, message: msg };
@@ -994,6 +843,7 @@ export async function updateConsoleIntent(
       extracted_persona: parsed.extracted_persona,
       location_filter,
       embedding: vectorLiteral(embedding),
+      demand_embedding: vectorLiteral(embedding),
       must_haves,
       updated_at: new Date().toISOString(),
     })

@@ -100,7 +100,7 @@ export async function GET(request: Request) {
 
     const { data: intent } = await supabase
       .from("intent_requests")
-      .select("id, user_id, natural_language_input, location_filter, embedding")
+      .select("id, user_id, natural_language_input, location_filter, demand_embedding, embedding, must_haves")
       .eq("user_id", userId)
       .eq("status", "active")
       .not("embedding", "is", null)

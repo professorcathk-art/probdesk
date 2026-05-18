@@ -1,12 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { vibeCheckWith4o } from "@/lib/aiml";
+import { formatProfileMatchingSnippet } from "@/lib/profile-matching-snippet";
 
 type IntentRow = {
   id: string;
   user_id: string;
   natural_language_input: string;
   location_filter: string | null;
-  embedding: unknown;
+  demand_embedding?: unknown;
+  embedding?: unknown;
   must_haves?: string | null;
 };
 
@@ -15,8 +17,7 @@ export type MatchQualityEval =
   | { ok: false; reason: string };
 
 /**
- * Mirrors console hybrid discovery: RPC pool + vibe scoring (fallback to similarity × 100).
- * Used by cron to estimate best match quality without an end-user session.
+ * Mirrors console discovery: Phase 14 demand↔supply RPC pool + complementary vibe scoring.
  */
 export async function maxHybridMatchScoreForIntent(
   supabase: SupabaseClient,
@@ -25,7 +26,8 @@ export async function maxHybridMatchScoreForIntent(
   if (!intent.location_filter?.trim()) {
     return { ok: false, reason: "no_location" };
   }
-  if (!intent.embedding) {
+  const demandVec = intent.demand_embedding ?? intent.embedding;
+  if (!demandVec) {
     return { ok: false, reason: "no_embedding" };
   }
 
@@ -37,20 +39,25 @@ export async function maxHybridMatchScoreForIntent(
   ] as const;
 
   type RpcRow = {
-    intent_id: string;
-    owner_user_id: string;
-    natural_language_input: string;
+    user_id: string;
+    linked_intent_id: string | null;
+    linked_natural_language_input: string | null;
+    bio: string | null;
+    industry: string | null;
+    superpower: string | null;
+    skills_tags: string[] | null;
+    languages: string[] | null;
     similarity: number;
-    location_filter: string | null;
+    location: string | null;
   };
 
   let rows: RpcRow[] = [];
   for (const tier of tiers) {
-    const { data, error: rpcError } = await supabase.rpc("match_intents", {
-      target_embedding: intent.embedding as unknown as string,
+    const { data, error: rpcError } = await supabase.rpc("match_profiles", {
+      target_embedding: demandVec as unknown as string,
       p_location: intent.location_filter,
       p_threshold: tier.maxDistance,
-      p_limit: 24,
+      p_limit: 20,
       p_exclude_user_id: intent.user_id,
       p_require_location_match: tier.requireLocationMatch,
     });
@@ -65,30 +72,42 @@ export async function maxHybridMatchScoreForIntent(
     return { ok: false, reason: "no_candidates" };
   }
 
-  const pool = rows.slice(0, 6);
-  const poolIds = pool.map((r) => r.intent_id);
+  const pool = rows.slice(0, 20);
+  const linkedIds = pool.map((r) => r.linked_intent_id).filter((id): id is string => Boolean(id));
   const { data: poolMustRows } =
-    poolIds.length > 0
-      ? await supabase.from("intent_requests").select("id, must_haves").in("id", poolIds)
+    linkedIds.length > 0
+      ? await supabase.from("intent_requests").select("id, must_haves").in("id", linkedIds)
       : { data: [] as { id: string; must_haves: string | null }[] };
   const mustByIntentId = new Map((poolMustRows ?? []).map((r) => [r.id as string, r.must_haves as string | null]));
 
+  const PROFILE_STUB = "(Profile supply only — no linked Explore listing.)";
+
   const scored = await Promise.all(
     pool.map(async (row) => {
+      const candIntent = row.linked_natural_language_input?.trim() || PROFILE_STUB;
+      const candSnippet =
+        formatProfileMatchingSnippet({
+          bio: row.bio ?? null,
+          industry: row.industry ?? null,
+          skills_tags: row.skills_tags ?? null,
+          languages: row.languages ?? null,
+          superpower: row.superpower ?? null,
+        }) || undefined;
       try {
         const vibe = await vibeCheckWith4o({
           senderIntent: intent.natural_language_input,
-          candidateIntent: row.natural_language_input,
+          candidateIntent: candIntent,
           senderMustHaves: intent.must_haves ?? null,
-          candidateMustHaves: mustByIntentId.get(row.intent_id) ?? null,
+          candidateMustHaves: row.linked_intent_id ? mustByIntentId.get(row.linked_intent_id) ?? null : null,
           senderLocationPreference: intent.location_filter,
-          candidateLocation: row.location_filter,
+          candidateLocation: row.location,
+          candidateProfileSnippet: candSnippet,
         });
-        return { score: vibe.match_score, peerId: row.owner_user_id };
+        return { score: vibe.match_score, peerId: row.user_id };
       } catch {
         return {
           score: Math.round((row.similarity ?? 0) * 100),
-          peerId: row.owner_user_id,
+          peerId: row.user_id,
         };
       }
     }),
