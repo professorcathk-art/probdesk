@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { signInWithGoogle, signInWithMagicLink } from "@/actions/auth";
+import { signInWithGoogle } from "@/actions/auth";
+import { createClient } from "@/lib/supabase/client";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
@@ -46,13 +47,25 @@ export function LoginPageContent() {
     setBusy(true);
     setError(null);
     setInfo(null);
-    const res = await signInWithMagicLink(email);
-    setBusy(false);
-    if (!res.ok) {
-      setError(res.message);
-      return;
+    try {
+      /** Browser client keeps PKCE verifier in cookies @supabase/ssr expects — Server Actions cannot. */
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      setInfo(L.inboxInfo);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign-in is temporarily unavailable.");
+    } finally {
+      setBusy(false);
     }
-    setInfo(L.inboxInfo);
   }
 
   async function onGoogle() {
@@ -112,7 +125,12 @@ export function LoginPageContent() {
             </Button>
           </form>
 
-          {info ? <p className="mt-4 text-sm text-sky-300/90">{info}</p> : null}
+          {info ? (
+            <div className="mt-4 space-y-2 text-sm">
+              <p className="text-sky-300/90">{info}</p>
+              <p className="leading-relaxed text-slate-500">{L.sameBrowserHint}</p>
+            </div>
+          ) : null}
           {error ? <p className="mt-4 text-sm text-red-400">{error}</p> : null}
         </div>
 

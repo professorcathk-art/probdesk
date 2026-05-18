@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { startTransition, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { MessageCircle, UserRound } from "lucide-react";
 import { getMessengerUnreadThreadCount } from "@/actions/messenger";
@@ -65,73 +65,10 @@ export function SiteNav({
   messengerUnreadInitial?: number;
 }) {
   const { lang, setLang, strings } = useLanguage();
-  const [mobileLogoHidden, setMobileLogoHidden] = useState(false);
-  const lastScrollYRef = useRef(0);
-  const logoHiddenEmittedRef = useRef(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 767px)");
-    lastScrollYRef.current = window.scrollY;
-    logoHiddenEmittedRef.current = false;
-
-    const flushLogoVisibility = () => {
-      if (!mq.matches) {
-        if (logoHiddenEmittedRef.current) {
-          logoHiddenEmittedRef.current = false;
-          startTransition(() => setMobileLogoHidden(false));
-        }
-        return;
-      }
-      const y = window.scrollY;
-      const prevY = lastScrollYRef.current;
-      lastScrollYRef.current = y;
-      let nextHidden = logoHiddenEmittedRef.current;
-      if (y < 8) nextHidden = false;
-      else if (y > prevY && y > 44) nextHidden = true;
-      else if (y < prevY) nextHidden = false;
-      if (nextHidden !== logoHiddenEmittedRef.current) {
-        logoHiddenEmittedRef.current = nextHidden;
-        startTransition(() => setMobileLogoHidden(nextHidden));
-      }
-    };
-
-    let raf = 0 as number | undefined;
-    const onScroll = () => {
-      if (raf) cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        raf = undefined;
-        flushLogoVisibility();
-      });
-    };
-
-    flushLogoVisibility();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    const onMq = () => {
-      lastScrollYRef.current = window.scrollY;
-      flushLogoVisibility();
-    };
-    mq.addEventListener("change", onMq);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      mq.removeEventListener("change", onMq);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
 
   return (
     <header className="sticky top-0 z-[200] isolate touch-manipulation border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
-      {/* Mobile: centered logo row — toggled with display:none for smooth scroll */}
-      <div className={cn("md:hidden", mobileLogoHidden ? "hidden" : "block")}>
-        <div className="flex justify-center px-4 pb-2 pt-2.5">
-          <Link href="/" className="flex touch-manipulation items-center justify-center py-1">
-            <span className="font-[family-name:var(--font-heading)] text-base font-semibold tracking-tight text-white">
-              Vennode
-            </span>
-          </Link>
-        </div>
-      </div>
-
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-2 px-4 py-3 md:justify-between md:gap-4 md:px-6 md:py-4">
+      <div className="mx-auto flex w-full max-w-6xl items-center px-4 py-3 md:justify-between md:gap-4 md:px-6 md:py-4">
         <Link
           href="/"
           className="hidden min-h-11 min-w-0 shrink-0 touch-manipulation items-center md:flex md:min-h-10"
@@ -142,91 +79,85 @@ export function SiteNav({
         </Link>
         <nav
           className={cn(
-            // Mobile: lang left | Explore+Manage centered | Enter/Messages/Profile right; desktop: one row, right-aligned
-            "flex min-w-0 w-full flex-1 flex-nowrap items-center gap-2 py-0.5 md:w-auto md:justify-end md:gap-2 md:overflow-visible md:py-0",
+            // Mobile: full-width bar, controls evenly spaced; desktop: Vennode + right-aligned cluster
+            "flex min-w-0 w-full flex-1 flex-nowrap items-center justify-evenly gap-0 py-0.5 md:w-auto md:justify-end md:gap-2 md:overflow-visible md:py-0",
           )}
         >
-          <div className="flex shrink-0 md:contents">
-            <div
-              className="flex shrink-0 touch-manipulation items-center rounded-full border border-white/10 bg-black/30 p-0.5 text-[11px] font-medium text-slate-300"
-              role="group"
-              aria-label={strings.nav.langToggle}
+          <div
+            className="flex shrink-0 touch-manipulation items-center rounded-full border border-white/10 bg-black/30 p-0.5 text-[11px] font-medium text-slate-300"
+            role="group"
+            aria-label={strings.nav.langToggle}
+          >
+            <button
+              type="button"
+              onClick={() => setLang("en")}
+              className={cn(
+                "touch-manipulation min-h-10 min-w-[2.75rem] rounded-full px-3 py-2 transition-colors sm:min-h-0 sm:px-2.5 sm:py-1",
+                lang === "en" ? "bg-white/15 text-white shadow-sm" : "text-slate-400 hover:text-slate-200",
+              )}
             >
-              <button
-                type="button"
-                onClick={() => setLang("en")}
-                className={cn(
-                  "touch-manipulation min-h-10 min-w-[2.75rem] rounded-full px-3 py-2 transition-colors sm:min-h-0 sm:px-2.5 sm:py-1",
-                  lang === "en" ? "bg-white/15 text-white shadow-sm" : "text-slate-400 hover:text-slate-200",
-                )}
-              >
-                EN
-              </button>
-              <button
-                type="button"
-                onClick={() => setLang("zh")}
-                className={cn(
-                  "touch-manipulation min-h-10 min-w-[2.75rem] rounded-full px-3 py-2 transition-colors sm:min-h-0 sm:px-2.5 sm:py-1",
-                  lang === "zh" ? "bg-white/15 text-white shadow-sm" : "text-slate-400 hover:text-slate-200",
-                )}
-              >
-                繁
-              </button>
-            </div>
+              EN
+            </button>
+            <button
+              type="button"
+              onClick={() => setLang("zh")}
+              className={cn(
+                "touch-manipulation min-h-10 min-w-[2.75rem] rounded-full px-3 py-2 transition-colors sm:min-h-0 sm:px-2.5 sm:py-1",
+                lang === "zh" ? "bg-white/15 text-white shadow-sm" : "text-slate-400 hover:text-slate-200",
+              )}
+            >
+              繁
+            </button>
           </div>
-          <div className="flex min-w-0 flex-1 justify-center gap-1 md:contents">
+          <Link
+            href="/square"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "touch-manipulation shrink-0 whitespace-nowrap min-h-11 px-3 text-slate-200 hover:bg-white/5 hover:text-white sm:min-h-8 sm:px-2.5",
+            )}
+          >
+            {strings.nav.explore}
+          </Link>
+          {isAuthenticated ? (
             <Link
-              href="/square"
+              href="/console"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
                 "touch-manipulation shrink-0 whitespace-nowrap min-h-11 px-3 text-slate-200 hover:bg-white/5 hover:text-white sm:min-h-8 sm:px-2.5",
               )}
             >
-              {strings.nav.explore}
+              {strings.nav.manage}
             </Link>
-            {isAuthenticated ? (
-              <Link
-                href="/console"
-                className={cn(
-                  buttonVariants({ variant: "ghost" }),
-                  "touch-manipulation shrink-0 whitespace-nowrap min-h-11 px-3 text-slate-200 hover:bg-white/5 hover:text-white sm:min-h-8 sm:px-2.5",
-                )}
-              >
-                {strings.nav.manage}
-              </Link>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 justify-end gap-1 md:contents">
-            {isAuthenticated ? (
-              <MessagesNavLink ariaLabel={strings.nav.messages} messengerUnreadInitial={messengerUnreadInitial} />
-            ) : null}
-            {!isAuthenticated ? (
-              <Link
-                href="/login?flow=enter"
-                className={cn(
-                  buttonVariants({ variant: "default", size: "lg" }),
-                  "galaxy-btn-glow touch-manipulation shrink-0 whitespace-nowrap min-h-11 border border-sky-400/35 bg-sky-500/15 px-4 text-sky-50 hover:bg-sky-500/25 sm:min-h-8 sm:px-2.5",
-                )}
-              >
-                {strings.nav.enter}
-              </Link>
-            ) : (
-              <Link
-                href="/profile"
-                aria-label={strings.profilePage.title}
-                className={cn(
-                  "flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/[0.04] text-slate-300 transition-colors hover:border-white/25 hover:bg-white/[0.07] sm:h-9 sm:w-9",
-                )}
-              >
-                {avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- remote Supabase Storage URL
-                  <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <UserRound className="h-5 w-5 opacity-80" strokeWidth={1.75} aria-hidden />
-                )}
-              </Link>
-            )}
-          </div>
+          ) : null}
+          {isAuthenticated ? (
+            <MessagesNavLink ariaLabel={strings.nav.messages} messengerUnreadInitial={messengerUnreadInitial} />
+          ) : null}
+          {!isAuthenticated ? (
+            <Link
+              href="/login?flow=enter"
+              className={cn(
+                buttonVariants({ variant: "default", size: "lg" }),
+                "galaxy-btn-glow touch-manipulation shrink-0 whitespace-nowrap min-h-11 border border-sky-400/35 bg-sky-500/15 px-4 text-sky-50 hover:bg-sky-500/25 sm:min-h-8 sm:px-2.5",
+              )}
+            >
+              {strings.nav.enter}
+            </Link>
+          ) : (
+            <Link
+              href="/profile"
+              aria-label={strings.profilePage.title}
+              className={cn(
+                "flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/[0.04] text-slate-300 transition-colors hover:border-white/25 hover:bg-white/[0.07] sm:h-9 sm:w-9",
+              )}
+            >
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- remote Supabase Storage URL
+                <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <UserRound className="h-5 w-5 opacity-80" strokeWidth={1.75} aria-hidden />
+              )}
+            </Link>
+          )}
         </nav>
       </div>
     </header>

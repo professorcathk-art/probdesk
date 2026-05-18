@@ -430,6 +430,8 @@ export const STRINGS = {
       emailPlaceholder: "you@domain.com",
       magicSubmit: "Email me a magic link",
       inboxInfo: "Check your inbox for the secure login link.",
+      sameBrowserHint:
+        "If the link fails to sign you in, open it in the same browser you used here — or copy the URL from your mail app. Some mail apps open links in a separate browser that doesn’t have your login cookie.",
       backLanding: "Back to landing",
     },
     onboarding: {
@@ -903,6 +905,8 @@ export const STRINGS = {
       emailPlaceholder: "你@信箱網域.com",
       magicSubmit: "寄送登入連結到信箱",
       inboxInfo: "請查收信箱中的安全登入連結。",
+      sameBrowserHint:
+        "若連結無法完成登入，請在目前這個瀏覽器開啟連結，或從郵件複製網址貼上；部分郵件 App 會用另一個瀏覽器開啟，因而找不到登入用的 Cookie。",
       backLanding: "返回首頁",
     },
     onboarding: {
