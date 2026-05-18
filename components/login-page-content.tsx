@@ -24,6 +24,14 @@ export function LoginPageContent() {
     const flow = searchParams.get("flow");
     const connectIntent = searchParams.get("connectIntent");
     const after = searchParams.get("after");
+    const callbackErr = searchParams.get("error");
+    if (callbackErr) {
+      try {
+        setError(decodeURIComponent(callbackErr));
+      } catch {
+        setError(callbackErr);
+      }
+    }
     if (after) setRedirectAfterCookieClient(after);
 
     if (flow === "enter") setEntryCookieClient({ v: 1, kind: "enter" });
