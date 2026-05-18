@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { embedTextSmall } from "@/lib/aiml";
+import { PROFILE_AGE_GROUP_EMBEDDING_PHRASE, type ProfileAgeGroupValue } from "@/lib/profile-age-groups";
 import { vectorLiteral } from "@/lib/vector-literal";
 
 export function buildProfileEmbeddingText(p: {
@@ -21,16 +22,11 @@ export function buildProfileEmbeddingText(p: {
   if (p.superpower?.trim()) chunks.push(`Offers: ${p.superpower.trim()}`);
   if (p.intent_level?.trim()) chunks.push(`Intent level: ${p.intent_level.trim()}`);
   if (p.gender?.trim()) chunks.push(`Gender: ${p.gender.trim()}`);
+  const raw = p.age_group?.trim();
   const ageBand =
-    p.age_group?.trim() &&
-    ({
-      "18_24": "Age band 18–24",
-      "25_34": "Age band 25–34",
-      "35_44": "Age band 35–44",
-      "45_54": "Age band 45–54",
-      "55_64": "Age band 55–64",
-      "65_plus": "Age band 65+",
-    }[p.age_group.trim()] as string | undefined);
+    raw && raw in PROFILE_AGE_GROUP_EMBEDDING_PHRASE
+      ? PROFILE_AGE_GROUP_EMBEDDING_PHRASE[raw as ProfileAgeGroupValue]
+      : undefined;
   if (ageBand) chunks.push(ageBand);
   if (p.location?.trim()) chunks.push(`Location: ${p.location.trim()}`);
   if (p.skills_tags.length) chunks.push(`Interests / keywords: ${p.skills_tags.join(", ")}`);

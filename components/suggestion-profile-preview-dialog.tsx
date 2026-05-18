@@ -12,25 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/components/language-provider";
 import { displayGenderLabel } from "@/lib/display-gender";
-
-function ageLabel(slug: string | null, pr: { ageGroup18_24: string; ageGroup25_34: string; ageGroup35_44: string; ageGroup45_54: string; ageGroup55_64: string; ageGroup65Plus: string }): string | null {
-  switch (slug?.trim()) {
-    case "18_24":
-      return pr.ageGroup18_24;
-    case "25_34":
-      return pr.ageGroup25_34;
-    case "35_44":
-      return pr.ageGroup35_44;
-    case "45_54":
-      return pr.ageGroup45_54;
-    case "55_64":
-      return pr.ageGroup55_64;
-    case "65_plus":
-      return pr.ageGroup65Plus;
-    default:
-      return null;
-  }
-}
+import { displayProfileAgeGroup } from "@/lib/display-age-group";
 
 function intentLevelLabel(slug: string | null, pr: { intentCasual: string; intentIntentional: string; intentFocused: string }): string | null {
   switch (slug?.trim()) {
@@ -111,10 +93,10 @@ export function SuggestionProfilePreviewDialog({
                 {displayGenderLabel(preview.gender, c)}
               </p>
             ) : null}
-            {ageLabel(preview.age_group, pr) ? (
+            {displayProfileAgeGroup(preview.age_group, pr) ? (
               <p className="text-slate-300">
                 <span className="text-slate-500">{pr.ageGroupLabel}: </span>
-                {ageLabel(preview.age_group, pr)}
+                {displayProfileAgeGroup(preview.age_group, pr)}
               </p>
             ) : null}
             {preview.location?.trim() ? (

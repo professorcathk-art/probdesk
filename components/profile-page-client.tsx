@@ -23,7 +23,8 @@ import {
   type ProfileCoreFieldKey,
   type ProfileGenderValue,
 } from "@/lib/profile-basics";
-import { PROFILE_AGE_GROUP_VALUES, type ProfileAgeGroupValue } from "@/lib/profile-age-groups";
+import { PROFILE_AGE_GROUP_VALUES } from "@/lib/profile-age-groups";
+import { displayProfileAgeGroup } from "@/lib/display-age-group";
 import { displayGenderLabel } from "@/lib/display-gender";
 import { cn } from "@/lib/utils";
 
@@ -63,37 +64,6 @@ function profileCoreIssueText(
     default: {
       const _e: never = key;
       return _e;
-    }
-  }
-}
-
-function ageGroupOptionLabel(
-  slug: ProfileAgeGroupValue,
-  labels: {
-    ageGroup18_24: string;
-    ageGroup25_34: string;
-    ageGroup35_44: string;
-    ageGroup45_54: string;
-    ageGroup55_64: string;
-    ageGroup65Plus: string;
-  },
-): string {
-  switch (slug) {
-    case "18_24":
-      return labels.ageGroup18_24;
-    case "25_34":
-      return labels.ageGroup25_34;
-    case "35_44":
-      return labels.ageGroup35_44;
-    case "45_54":
-      return labels.ageGroup45_54;
-    case "55_64":
-      return labels.ageGroup55_64;
-    case "65_plus":
-      return labels.ageGroup65Plus;
-    default: {
-      const _x: never = slug;
-      return _x;
     }
   }
 }
@@ -420,6 +390,7 @@ export function ProfilePageClient({
               <Label htmlFor="pf-age-group" className="text-slate-300">
                 {p.ageGroupLabel}
               </Label>
+              <p className="text-xs leading-relaxed text-slate-500">{p.ageGroupHelp}</p>
               <select
                 id="pf-age-group"
                 value={pfAgeGroup}
@@ -431,7 +402,7 @@ export function ProfilePageClient({
                 <option value="">{p.ageGroupUnset}</option>
                 {PROFILE_AGE_GROUP_VALUES.map((v) => (
                   <option key={v} value={v}>
-                    {ageGroupOptionLabel(v, p)}
+                    {displayProfileAgeGroup(v, p)}
                   </option>
                 ))}
               </select>

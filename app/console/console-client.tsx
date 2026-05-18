@@ -50,6 +50,7 @@ import {
   readLandingIntentDraftBackup,
 } from "@/lib/intent-draft";
 import { cn } from "@/lib/utils";
+import { displayProfileAgeGroup } from "@/lib/display-age-group";
 import { useSessionStore } from "@/stores/session-store";
 
 type Props = {
@@ -83,25 +84,6 @@ export function ConsoleClient({
   const t = strings.console;
   const pr = strings.profilePage;
   const cr = strings.credits;
-
-  function peerAgeLabel(raw: string | null): string | null {
-    switch (raw?.trim()) {
-      case "18_24":
-        return pr.ageGroup18_24;
-      case "25_34":
-        return pr.ageGroup25_34;
-      case "35_44":
-        return pr.ageGroup35_44;
-      case "45_54":
-        return pr.ageGroup45_54;
-      case "55_64":
-        return pr.ageGroup55_64;
-      case "65_plus":
-        return pr.ageGroup65Plus;
-      default:
-        return null;
-    }
-  }
 
   function peerGenderLabel(raw: string | null): string | null {
     switch (raw?.trim()) {
@@ -909,7 +891,7 @@ export function ConsoleClient({
               (freshMatchesModal ?? []).map((s) => {
                 const blocked = blockedPeers.has(s.owner_user_id);
                 const gLabel = peerGenderLabel(s.peer_gender);
-                const ageLbl = peerAgeLabel(s.peer_age_group);
+                const ageLbl = displayProfileAgeGroup(s.peer_age_group, pr);
                 const kw = (s.peer_skills_tags ?? []).filter(Boolean);
                 const langs = (s.peer_languages ?? []).filter(Boolean);
                 return (

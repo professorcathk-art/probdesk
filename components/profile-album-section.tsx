@@ -70,7 +70,7 @@ export function ProfileAlbumSection({ paths, onPathsUpdated }: Props) {
       <p className="text-sm font-medium text-white">{p.albumTitle}</p>
       <p className="mt-1 text-xs leading-relaxed text-slate-500">{p.albumPrivacyHint}</p>
       {error ? <p className="mt-2 text-xs text-red-400">{error}</p> : null}
-      <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5">
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
         {urls.map((item) => (
           <div key={item.path} className="relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-black/40">
             {/* eslint-disable-next-line @next/next/no-img-element */}
