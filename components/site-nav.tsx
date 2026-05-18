@@ -120,10 +120,10 @@ export function SiteNav({
 
   return (
     <header className="sticky top-0 z-[200] isolate touch-manipulation border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
-      {/* Mobile: centered logo row — toggled with display:none (no height animation) for smooth scroll */}
+      {/* Mobile: logo row (left-aligned) — toggled with display:none for smooth scroll */}
       <div className={cn("md:hidden", mobileLogoHidden ? "hidden" : "block")}>
-        <div className="flex justify-center px-4 pb-2 pt-2.5">
-          <Link href="/" className="flex touch-manipulation items-center justify-center py-1">
+        <div className="flex justify-start px-4 pb-2 pt-2.5">
+          <Link href="/" className="flex touch-manipulation items-center justify-start py-1">
             <span className="font-[family-name:var(--font-heading)] text-base font-semibold tracking-tight text-white">
               Vennode
             </span>
@@ -131,7 +131,7 @@ export function SiteNav({
         </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-2 px-4 py-3 md:justify-between md:gap-4 md:px-6 md:py-4">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-start gap-2 px-4 py-3 md:justify-between md:gap-4 md:px-6 md:py-4">
         <Link
           href="/"
           className="hidden min-h-11 min-w-0 shrink-0 touch-manipulation items-center md:flex md:min-h-10"
@@ -142,7 +142,7 @@ export function SiteNav({
         </Link>
         <nav
           className={cn(
-            "flex min-w-0 flex-1 flex-wrap items-center justify-center gap-1 overflow-x-auto overscroll-x-contain py-0.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] sm:gap-2 md:flex-nowrap md:justify-end md:overflow-visible md:py-0 [&::-webkit-scrollbar]:hidden",
+            "flex min-w-0 flex-1 flex-wrap items-center justify-start gap-1 overflow-x-auto overscroll-x-contain py-0.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] sm:gap-2 md:flex-nowrap md:justify-end md:overflow-visible md:py-0 [&::-webkit-scrollbar]:hidden",
           )}
         >
           <div
