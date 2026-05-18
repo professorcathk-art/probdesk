@@ -88,6 +88,11 @@ export const STRINGS = {
       publicGenderUnset: "Gender not set on profile",
       publicInterestsLabel: "Interests & languages",
       noInterestTags: "No interest tags yet — add skills & languages under Profile so people recognize you.",
+      guestPreviewTitle: "Showing the latest 20 listings",
+      guestPreviewBody:
+        "Sign in to browse the full Explore feed, save context for invites, and unlock Smart Matchmaking from Manage.",
+      guestPreviewCta: "Sign in to see more",
+      guestPreviewFootnote: "Preview mode · listings rotate as members publish.",
     },
     exploreIntent: {
       kicker: "Shared Explore link",
@@ -142,7 +147,7 @@ export const STRINGS = {
       freshMatchesSearching: "Finding your best matches…",
       freshMatchesTitle: "Here are your top matches",
       freshMatchesSubtitle:
-        "Up to three people ranked for fit — including profiles without a separate Explore listing. Preview shows bio, gender, and keywords so you can decide before inviting.",
+        "Up to three suggestions ranked for fit — including people without their own Explore listing. Use Preview profile for discovery-safe details (bio, age bracket, keywords, intent level, and more). Display names and photos stay hidden until mutual acceptance.",
       freshMatchesGotIt: "Got it",
       matchQueueTitle: "Your Match Queue (Identities protected)",
       matchQueueDesc:
@@ -159,6 +164,15 @@ export const STRINGS = {
       emptyConnectionsBody: "No connections yet.",
       browseExplore: "Browse Explore",
       connectHeadlineSuggestion: "this recommendation",
+      suggestionAnonymousTitle: "Suggested member",
+      previewProfileTitle: "Profile preview",
+      previewProfileSubtitle:
+        "Name, photo, and album stay hidden until mutual acceptance. Everything below is discovery-safe context.",
+      previewProfileLoading: "Loading preview…",
+      previewProfileOpen: "Preview profile",
+      previewProfileFooter:
+        "Still anonymous — send an invite only when you feel aligned. They will see your opening message on Manage → Invitations.",
+      manageTabBadgeAria: "Needs attention",
       newIntro: "New introduction",
       contextMessage: "Context message",
       personaPreview: "Protected preview",
@@ -362,6 +376,21 @@ export const STRINGS = {
       socialLinkDesc:
         "LinkedIn, Instagram, or personal site. Shown only after a mutual match.",
       socialLinkPlaceholder: "https://linkedin.com/in/your-profile",
+      privacyPhotoAlbumBanner:
+        "Your display name, profile photo, and album shots stay hidden until someone mutually accepts a connection. Smart Match suggestions may show your bio, age bracket, location, interests, and similar profile fields so others can judge fit — not your photo or name.",
+      albumTitle: "Photo album",
+      albumPrivacyHint: "Album photos stay private until a mutual connection. Up to 5 images.",
+      albumAdd: "Add photo",
+      albumRemove: "Remove",
+      albumMaxNote: "JPG / PNG / WebP / GIF · max 5 MB each.",
+      ageGroupLabel: "Age group",
+      ageGroupUnset: "Select…",
+      ageGroup18_24: "18–24",
+      ageGroup25_34: "25–34",
+      ageGroup35_44: "35–44",
+      ageGroup45_54: "45–54",
+      ageGroup55_64: "55–64",
+      ageGroup65Plus: "65+",
       profileSignOut: "Sign out",
     },
     credits: {
@@ -541,6 +570,11 @@ export const STRINGS = {
       publicGenderUnset: "個人檔案尚未填寫性別",
       publicInterestsLabel: "興趣與語言標籤",
       noInterestTags: "尚未設定興趣標籤——可到「個人檔案」填寫技能與語言，方便他人認識你。",
+      guestPreviewTitle: "目前顯示最新 20 則公開徵求",
+      guestPreviewBody:
+        "登入後可瀏覽完整探索廣場、發送邀請並使用管理中心與智慧配對等功能。",
+      guestPreviewCta: "登入查看更多",
+      guestPreviewFootnote: "預覽模式 · 徵求會隨成員公開內容而更新。",
     },
     exploreIntent: {
       kicker: "探索徵求 · 分享連結",
@@ -595,7 +629,7 @@ export const STRINGS = {
       freshMatchesSearching: "正在為你尋找最合適的對象…",
       freshMatchesTitle: "為你找到前列配對",
       freshMatchesSubtitle:
-        "以下最多三位依契合度排序——包含未另外發布探索徵求的個人檔案。預覽會顯示簡介、性別與關鍵字，方便你決定是否邀請。",
+        "以下最多三位依契合度排序——包含未另外發布探索徵求的對象。「預覽檔案」可查看不含姓名與相片的公開脈絡（簡介、年齡區間、關鍵字、交流步調等）；顯示名稱與大頭貼於雙方同意連結前會保持隱藏。",
       freshMatchesGotIt: "知道了",
       matchQueueTitle: "你的配對佇列（身分受保護）",
       matchQueueDesc:
@@ -611,6 +645,15 @@ export const STRINGS = {
       emptyConnectionsBody: "目前還沒有新的連結。",
       browseExplore: "去探索廣場逛逛",
       connectHeadlineSuggestion: "這則推薦對象",
+      suggestionAnonymousTitle: "推薦對象",
+      previewProfileTitle: "個人檔案預覽",
+      previewProfileSubtitle:
+        "姓名、大頭貼與相簿在雙方同意連結前會保持隱藏；以下為可供參考的公開脈絡。",
+      previewProfileLoading: "載入預覽中…",
+      previewProfileOpen: "預覽檔案",
+      previewProfileFooter:
+        "仍為匿名階段——若覺得契合再發邀請；對方會在「管理中心 → 邀請」看到你的開場訊息。",
+      manageTabBadgeAria: "有待處理",
       newIntro: "新的介紹",
       contextMessage: "開場訊息",
       personaPreview: "受保護預覽",
@@ -805,6 +848,21 @@ export const STRINGS = {
       socialLinkLabel: "外部連結（選填）",
       socialLinkDesc: "LinkedIn、Instagram 或個人網站；僅在雙方配對成功後顯示。",
       socialLinkPlaceholder: "https://linkedin.com/in/你的帳號",
+      privacyPhotoAlbumBanner:
+        "你的顯示名稱、大頭貼與相簿照片，在雙方尚未互相接受連結前會保持隱藏。智慧配對預覽可能顯示簡介、年齡區間、地區、興趣關鍵字等欄位供對方判斷契合度——不包含相片或姓名。",
+      albumTitle: "相片相簿",
+      albumPrivacyHint: "相簿在互相接受連結前不會公開，最多 5 張。",
+      albumAdd: "新增照片",
+      albumRemove: "移除",
+      albumMaxNote: "支援 JPG / PNG / WebP / GIF，每張上限 5 MB。",
+      ageGroupLabel: "年齡區間",
+      ageGroupUnset: "請選擇…",
+      ageGroup18_24: "18–24 歲",
+      ageGroup25_34: "25–34 歲",
+      ageGroup35_44: "35–44 歲",
+      ageGroup45_54: "45–54 歲",
+      ageGroup55_64: "55–64 歲",
+      ageGroup65Plus: "65 歲以上",
       profileSignOut: "登出",
     },
     credits: {

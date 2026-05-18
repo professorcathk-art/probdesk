@@ -13,10 +13,28 @@ import { normalizeProfileTags } from "@/lib/profile-tags";
 import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { syncProfileEmbedding } from "@/lib/sync-profile-embedding";
+import { parseProfileAgeGroup } from "@/lib/profile-age-groups";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_TAGS = 5;
+const MAX_ALBUM_PHOTOS = 5;
+
+function albumExtFromMime(mime: string): string | null {
+  switch (mime) {
+    case "image/jpeg":
+      return "jpg";
+    case "image/png":
+      return "png";
+    case "image/webp":
+      return "webp";
+    case "image/gif":
+      return "gif";
+    default:
+      return null;
+  }
+}
 
 function parseSocialLink(raw: string): string | null {
   const t = raw.trim();
@@ -95,6 +113,187 @@ export async function getMyProfileAvatar(): Promise<{ avatar_url: string | null 
   return { avatar_url: data?.avatar_url ?? null };
 }
 
+export type SuggestionProfilePreview = {
+  bio: string | null;
+  gender: string | null;
+  age_group: string | null;
+  location: string | null;
+  industry: string | null;
+  superpower: string | null;
+  skills_tags: string[];
+  languages: string[];
+  intent_level: string | null;
+};
+
+/** Preview during AI discovery — excludes name, avatar, album, social & contact. */
+export async function getSuggestionProfilePreview(
+  peerUserId: string,
+): Promise<{ ok: true; preview: SuggestionProfilePreview } | { ok: false; message: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, message: "Not authenticated" };
+  if (!peerUserId?.trim() || peerUserId === user.id) {
+    return { ok: false as const, message: "Invalid profile." };
+  }
+
+  let svc;
+  try {
+    svc = createServiceRoleClient();
+  } catch {
+    return { ok: false as const, message: "Server configuration error." };
+  }
+
+  const { data: peerUser } = await svc.from("users").select("onboarding_status").eq("id", peerUserId).maybeSingle();
+  if (!peerUser || peerUser.onboarding_status !== "complete") {
+    return { ok: false as const, message: "Profile not available." };
+  }
+
+  const { data: row, error } = await svc
+    .from("profiles")
+    .select("bio, gender, age_group, location, industry, superpower, skills_tags, languages, intent_level")
+    .eq("user_id", peerUserId)
+    .maybeSingle();
+
+  if (error || !row) return { ok: false as const, message: "Could not load profile." };
+
+  return {
+    ok: true as const,
+    preview: {
+      bio: row.bio as string | null,
+      gender: row.gender as string | null,
+      age_group: row.age_group as string | null,
+      location: row.location as string | null,
+      industry: row.industry as string | null,
+      superpower: row.superpower as string | null,
+      skills_tags: Array.isArray(row.skills_tags) ? (row.skills_tags as string[]) : [],
+      languages: Array.isArray(row.languages) ? (row.languages as string[]) : [],
+      intent_level: row.intent_level as string | null,
+    },
+  };
+}
+
+export async function getMyAlbumSignedUrls(
+  paths: string[],
+): Promise<{ ok: true; items: { path: string; url: string }[] } | { ok: false; message: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, message: "Not authenticated" };
+
+  const prefix = `${user.id}/`;
+  const cleaned = paths.filter((p) => typeof p === "string" && p.startsWith(prefix));
+  const items: { path: string; url: string }[] = [];
+
+  for (const path of cleaned) {
+    const { data, error } = await supabase.storage.from("profile-album").createSignedUrl(path, 3600);
+    if (error || !data?.signedUrl) continue;
+    items.push({ path, url: data.signedUrl });
+  }
+
+  return { ok: true as const, items };
+}
+
+export async function uploadProfileAlbumPhoto(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, message: "Not authenticated" };
+
+  const ensured = await ensurePublicUserRowsForSession(supabase, user);
+  if (!ensured.ok) return { ok: false as const, message: ensured.message };
+
+  const file = formData.get("photo");
+  if (!file || !(file instanceof File)) {
+    return { ok: false as const, message: "Choose an image file." };
+  }
+  if (!ALLOWED.includes(file.type)) {
+    return { ok: false as const, message: "Use JPG, PNG, WebP, or GIF." };
+  }
+  if (file.size > MAX_BYTES) {
+    return { ok: false as const, message: "Max file size is 5 MB." };
+  }
+
+  const ext = albumExtFromMime(file.type);
+  if (!ext) return { ok: false as const, message: "Unsupported image type." };
+
+  const { data: prof, error: readErr } = await supabase
+    .from("profiles")
+    .select("album_storage_paths")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (readErr) return { ok: false as const, message: readErr.message };
+
+  const existing = Array.isArray(prof?.album_storage_paths) ? (prof!.album_storage_paths as string[]) : [];
+  if (existing.length >= MAX_ALBUM_PHOTOS) {
+    return { ok: false as const, message: `You can upload up to ${MAX_ALBUM_PHOTOS} photos.` };
+  }
+
+  const objectPath = `${user.id}/${crypto.randomUUID()}.${ext}`;
+  const buf = Buffer.from(await file.arrayBuffer());
+  const { error: upErr } = await supabase.storage.from("profile-album").upload(objectPath, buf, {
+    contentType: file.type,
+    upsert: false,
+  });
+  if (upErr) return { ok: false as const, message: upErr.message };
+
+  const next = [...existing, objectPath];
+  const { error: dbErr } = await supabase
+    .from("profiles")
+    .update({ album_storage_paths: next, updated_at: new Date().toISOString() })
+    .eq("user_id", user.id);
+
+  if (dbErr) {
+    await supabase.storage.from("profile-album").remove([objectPath]);
+    return { ok: false as const, message: dbErr.message };
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  return { ok: true as const, path: objectPath };
+}
+
+export async function removeProfileAlbumPhoto(objectPath: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, message: "Not authenticated" };
+
+  const t = objectPath.trim();
+  if (!t.startsWith(`${user.id}/`)) {
+    return { ok: false as const, message: "Invalid photo." };
+  }
+
+  const { data: prof, error: readErr } = await supabase
+    .from("profiles")
+    .select("album_storage_paths")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (readErr) return { ok: false as const, message: readErr.message };
+
+  const existing = Array.isArray(prof?.album_storage_paths) ? (prof!.album_storage_paths as string[]) : [];
+  if (!existing.includes(t)) return { ok: false as const, message: "Photo not found." };
+
+  await supabase.storage.from("profile-album").remove([t]);
+  const next = existing.filter((p) => p !== t);
+  const { error: dbErr } = await supabase
+    .from("profiles")
+    .update({ album_storage_paths: next, updated_at: new Date().toISOString() })
+    .eq("user_id", user.id);
+
+  if (dbErr) return { ok: false as const, message: dbErr.message };
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  return { ok: true as const };
+}
+
 export type ProfileIdentity = {
   display_name: string | null;
   bio: string | null;
@@ -102,12 +301,14 @@ export type ProfileIdentity = {
   industry: string | null;
   superpower: string | null;
   gender: string | null;
+  age_group: string | null;
   preferred_contact_channel: string | null;
   preferred_contact_detail: string | null;
   skills_tags: string[];
   languages: string[];
   intent_level: string | null;
   social_link: string | null;
+  album_storage_paths: string[];
 };
 
 /** Used before opening Explore/Manage invite UI — same bar as publishing a listing (gender, intent level, superpower, etc.). */
@@ -142,7 +343,7 @@ export async function getMyProfileIdentity(): Promise<ProfileIdentity | { error:
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "display_name, bio, location, industry, superpower, gender, preferred_contact_channel, preferred_contact_detail, skills_tags, languages, intent_level, social_link",
+      "display_name, bio, location, industry, superpower, gender, age_group, preferred_contact_channel, preferred_contact_detail, skills_tags, languages, intent_level, social_link, album_storage_paths",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -155,12 +356,14 @@ export async function getMyProfileIdentity(): Promise<ProfileIdentity | { error:
     industry: data?.industry ?? null,
     superpower: data?.superpower ?? null,
     gender: data?.gender ?? null,
+    age_group: data?.age_group ?? null,
     preferred_contact_channel: data?.preferred_contact_channel ?? null,
     preferred_contact_detail: data?.preferred_contact_detail ?? null,
     skills_tags: Array.isArray(data?.skills_tags) ? (data!.skills_tags as string[]) : [],
     languages: Array.isArray(data?.languages) ? (data!.languages as string[]) : [],
     intent_level: data?.intent_level ?? null,
     social_link: data?.social_link ?? null,
+    album_storage_paths: Array.isArray(data?.album_storage_paths) ? (data!.album_storage_paths as string[]) : [],
   };
 }
 
@@ -171,6 +374,7 @@ export async function updateMyProfileIdentity(fields: {
   industry: string;
   superpower: string;
   gender: string;
+  age_group?: string;
   preferred_contact_channel?: string;
   preferred_contact_detail?: string;
   skills_tags: string[];
@@ -203,6 +407,12 @@ export async function updateMyProfileIdentity(fields: {
   const genderResolved = genderRaw ? parseProfileGender(genderRaw) : null;
   if (genderRaw && !genderResolved) {
     return { ok: false as const, message: "Invalid gender selection." };
+  }
+
+  const ageRaw = fields.age_group?.trim() ?? "";
+  const ageResolved = ageRaw ? parseProfileAgeGroup(ageRaw) : null;
+  if (ageRaw && !ageResolved) {
+    return { ok: false as const, message: "Invalid age group." };
   }
 
   const skills_tags = normalizeProfileTags(fields.skills_tags ?? [], MAX_TAGS);
@@ -251,6 +461,7 @@ export async function updateMyProfileIdentity(fields: {
         industry: fields.industry.trim() || null,
         superpower: superTrim || null,
         gender: genderResolved,
+        age_group: ageResolved,
         preferred_contact_channel: hasPair ? chRaw : null,
         preferred_contact_detail: hasPair ? detRaw : null,
         skills_tags,
@@ -271,6 +482,7 @@ export async function updateMyProfileIdentity(fields: {
     industry: fields.industry.trim() || null,
     superpower: superTrim || null,
     gender: genderResolved,
+    age_group: ageResolved,
     intent_level,
     skills_tags,
     languages,

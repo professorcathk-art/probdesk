@@ -42,6 +42,23 @@ export function filterMatchesForIntentCard(intentId: string, userId: string, mat
     });
 }
 
+/** True when the intent card (Manage → 徵求 / Requests tab) still needs the viewer to accept, decline, or confirm a mutual row. */
+export function intentManageTabNeedsAttention(intentId: string, userId: string, matches: MatchRow[]): boolean {
+  const rows = filterMatchesForIntentCard(intentId, userId, matches);
+  for (const m of rows) {
+    const systemMatch = isSystemStyleMatch(m);
+    const inboundListing = !systemMatch && m.receiver_id === userId && m.intent_request_id === intentId;
+    const pendingInbound = m.status === "Pending" && inboundListing;
+    if (pendingInbound) return true;
+    if (m.status === "Pending_System") {
+      const isSender = userId === m.sender_id;
+      const myAck = isSender ? m.system_ack_sender : m.system_ack_receiver;
+      if (!myAck) return true;
+    }
+  }
+  return false;
+}
+
 function truncateText(s: string | null | undefined, max: number): string {
   const t = (s ?? "").trim();
   if (t.length <= max) return t;

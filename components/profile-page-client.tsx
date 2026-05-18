@@ -7,6 +7,7 @@ import { updateMyProfileIdentity } from "@/actions/profile";
 import { signOut } from "@/actions/auth";
 import { ConsoleAvatarUpload } from "@/components/console-avatar-upload";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
+import { ProfileAlbumSection } from "@/components/profile-album-section";
 import { useLanguage } from "@/components/language-provider";
 import { TagInputField, type TagInputFieldHandle } from "@/components/tag-input-field";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import {
   type ProfileCoreFieldKey,
   type ProfileGenderValue,
 } from "@/lib/profile-basics";
+import { PROFILE_AGE_GROUP_VALUES, type ProfileAgeGroupValue } from "@/lib/profile-age-groups";
 import { displayGenderLabel } from "@/lib/display-gender";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +67,37 @@ function profileCoreIssueText(
   }
 }
 
+function ageGroupOptionLabel(
+  slug: ProfileAgeGroupValue,
+  labels: {
+    ageGroup18_24: string;
+    ageGroup25_34: string;
+    ageGroup35_44: string;
+    ageGroup45_54: string;
+    ageGroup55_64: string;
+    ageGroup65Plus: string;
+  },
+): string {
+  switch (slug) {
+    case "18_24":
+      return labels.ageGroup18_24;
+    case "25_34":
+      return labels.ageGroup25_34;
+    case "35_44":
+      return labels.ageGroup35_44;
+    case "45_54":
+      return labels.ageGroup45_54;
+    case "55_64":
+      return labels.ageGroup55_64;
+    case "65_plus":
+      return labels.ageGroup65Plus;
+    default: {
+      const _x: never = slug;
+      return _x;
+    }
+  }
+}
+
 function genderLabel(
   cx: {
     genderWoman: string;
@@ -100,6 +133,7 @@ export function ProfilePageClient({
   const [pfInd, setPfInd] = useState(profileIdentity.industry ?? "");
   const [pfSuper, setPfSuper] = useState(profileIdentity.superpower ?? "");
   const [pfGender, setPfGender] = useState(profileIdentity.gender ?? "");
+  const [pfAgeGroup, setPfAgeGroup] = useState(profileIdentity.age_group ?? "");
   const [pfContactCh, setPfContactCh] = useState(profileIdentity.preferred_contact_channel ?? "");
   const [pfContactDet, setPfContactDet] = useState(profileIdentity.preferred_contact_detail ?? "");
   const [pfSkills, setPfSkills] = useState<string[]>(profileIdentity.skills_tags ?? []);
@@ -118,6 +152,7 @@ export function ProfilePageClient({
     setPfInd(profileIdentity.industry ?? "");
     setPfSuper(profileIdentity.superpower ?? "");
     setPfGender(profileIdentity.gender ?? "");
+    setPfAgeGroup(profileIdentity.age_group ?? "");
     setPfContactCh(profileIdentity.preferred_contact_channel ?? "");
     setPfContactDet(profileIdentity.preferred_contact_detail ?? "");
     setPfSkills(profileIdentity.skills_tags ?? []);
@@ -131,6 +166,7 @@ export function ProfilePageClient({
     profileIdentity.industry,
     profileIdentity.superpower,
     profileIdentity.gender,
+    profileIdentity.age_group,
     profileIdentity.preferred_contact_channel,
     profileIdentity.preferred_contact_detail,
     profileIdentity.skills_tags,
@@ -153,6 +189,7 @@ export function ProfilePageClient({
       industry: pfInd,
       superpower: pfSuper,
       gender: pfGender,
+      age_group: pfAgeGroup,
       preferred_contact_channel: pfContactCh,
       preferred_contact_detail: pfContactDet,
       skills_tags,
@@ -184,6 +221,9 @@ export function ProfilePageClient({
         <header>
           <h1 className="text-3xl font-semibold tracking-tight text-white">{p.title}</h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-400">{p.subtitle}</p>
+          <p className="mt-4 rounded-xl border border-sky-400/20 bg-sky-500/[0.06] px-4 py-3 text-xs leading-relaxed text-sky-100/95">
+            {p.privacyPhotoAlbumBanner}
+          </p>
         </header>
 
         {showProfileRequiredBanner ? (
@@ -204,6 +244,13 @@ export function ProfilePageClient({
         ) : null}
 
         <ConsoleAvatarUpload key={profileAvatarUrl ?? "none"} initialUrl={profileAvatarUrl} />
+
+        <ProfileAlbumSection
+          paths={profileIdentity.album_storage_paths ?? []}
+          onPathsUpdated={() => {
+            void router.refresh();
+          }}
+        />
 
         <Card className="border-white/10 bg-white/[0.035] backdrop-blur-xl">
           <CardHeader>
@@ -364,6 +411,27 @@ export function ProfilePageClient({
                 {PROFILE_GENDER_VALUES.map((v) => (
                   <option key={v} value={v}>
                     {genderLabel(t, v)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pf-age-group" className="text-slate-300">
+                {p.ageGroupLabel}
+              </Label>
+              <select
+                id="pf-age-group"
+                value={pfAgeGroup}
+                onChange={(e) => setPfAgeGroup(e.target.value)}
+                className={cn(
+                  "h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-slate-50 outline-none focus-visible:border-sky-400/40 focus-visible:ring-2 focus-visible:ring-sky-500/30",
+                )}
+              >
+                <option value="">{p.ageGroupUnset}</option>
+                {PROFILE_AGE_GROUP_VALUES.map((v) => (
+                  <option key={v} value={v}>
+                    {ageGroupOptionLabel(v, p)}
                   </option>
                 ))}
               </select>

@@ -409,6 +409,7 @@ export type SuggestionCard = {
   peer_display_name: string | null;
   peer_bio: string | null;
   peer_gender: string | null;
+  peer_age_group: string | null;
   peer_skills_tags: string[] | null;
   peer_languages: string[] | null;
 };
@@ -486,6 +487,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     peer_display_name: string | null;
     peer_bio: string | null;
     peer_gender: string | null;
+    peer_age_group: string | null;
     peer_skills_tags: string[] | null;
     peer_languages: string[] | null;
     peer_industry: string | null;
@@ -498,6 +500,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     display_name: string | null;
     bio: string | null;
     gender: string | null;
+    age_group: string | null;
     skills_tags: string[] | null;
     languages: string[] | null;
     location: string | null;
@@ -670,6 +673,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
               peer_display_name: row.peer_display_name,
               peer_bio: row.peer_bio,
               peer_gender: row.peer_gender,
+              peer_age_group: row.peer_age_group,
               peer_skills_tags: row.peer_skills_tags,
               peer_languages: row.peer_languages,
               match_score: vibe.match_score,
@@ -698,6 +702,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
               peer_display_name: row.peer_display_name,
               peer_bio: row.peer_bio,
               peer_gender: row.peer_gender,
+              peer_age_group: row.peer_age_group,
               peer_skills_tags: row.peer_skills_tags,
               peer_languages: row.peer_languages,
               match_score: Math.round((row.similarity ?? 0) * 100),
@@ -750,6 +755,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
             peer_display_name: row.display_name,
             peer_bio: row.bio,
             peer_gender: row.gender,
+            peer_age_group: row.age_group,
             peer_skills_tags: row.skills_tags,
             peer_languages: row.languages,
             match_score: vibe.match_score,
@@ -778,6 +784,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
             peer_display_name: row.display_name,
             peer_bio: row.bio,
             peer_gender: row.gender,
+            peer_age_group: row.age_group,
             peer_skills_tags: row.skills_tags,
             peer_languages: row.languages,
             match_score: Math.round((row.similarity ?? 0) * 100),

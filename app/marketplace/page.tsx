@@ -21,9 +21,10 @@ export default async function MarketplacePage({
   const connectToRaw = typeof sp.connectTo === "string" ? sp.connectTo.trim() : "";
   const connectToIntentId = /^[0-9a-f-]{36}$/i.test(connectToRaw) ? connectToRaw : undefined;
 
-  const res = await listMarketplaceListings();
-  const listings = "error" in res ? [] : res.listings;
   const { user } = await getAuthContext();
+  const res = await listMarketplaceListings({ guestPreview: !user });
+  const listings = "error" in res ? [] : res.listings;
+  const guestListingsCapped = !user && !("error" in res) && res.moreAvailable;
   const pendingRes = await getSquarePendingIntentIdsForCurrentUser();
   const pendingIntentIds = "error" in pendingRes ? [] : pendingRes.intentIds;
 
@@ -49,6 +50,7 @@ export default async function MarketplacePage({
           profileReadyForInvites={inviteGate.ok}
           loadError={"error" in res ? res.error : null}
           quotaSnapshot={user?.id ? quotaSnapshot : null}
+          guestListingsCapped={guestListingsCapped}
         />
       </div>
     </div>

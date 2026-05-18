@@ -18,7 +18,7 @@ import { ConnectModal } from "@/components/connect-modal";
 import { CreditsLimitModal } from "@/components/credits-limit-modal";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { InviteQuotaPill } from "@/components/invite-quota-pill";
-import { IntentCardRequestsList } from "@/components/intent-card-requests-list";
+import { IntentCardRequestsList, intentManageTabNeedsAttention } from "@/components/intent-card-requests-list";
 import { IntentMustHavesCallout } from "@/components/intent-must-haves-callout";
 import { IntentShareButton } from "@/components/intent-share-button";
 import { IntentSnippet } from "@/components/intent-snippet";
@@ -40,6 +40,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SenderPreviewBlock } from "@/components/sender-preview-block";
+import { SuggestionProfilePreviewDialog } from "@/components/suggestion-profile-preview-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useConnectionCredits } from "@/hooks/use-connection-credits";
@@ -80,7 +81,27 @@ export function ConsoleClient({
   const router = useRouter();
   const { strings } = useLanguage();
   const t = strings.console;
+  const pr = strings.profilePage;
   const cr = strings.credits;
+
+  function peerAgeLabel(raw: string | null): string | null {
+    switch (raw?.trim()) {
+      case "18_24":
+        return pr.ageGroup18_24;
+      case "25_34":
+        return pr.ageGroup25_34;
+      case "35_44":
+        return pr.ageGroup35_44;
+      case "45_54":
+        return pr.ageGroup45_54;
+      case "55_64":
+        return pr.ageGroup55_64;
+      case "65_plus":
+        return pr.ageGroup65Plus;
+      default:
+        return null;
+    }
+  }
 
   function peerGenderLabel(raw: string | null): string | null {
     switch (raw?.trim()) {
@@ -186,6 +207,8 @@ export function ConsoleClient({
   const [postCreateDiscovering, setPostCreateDiscovering] = useState(false);
   const [freshMatchesModal, setFreshMatchesModal] = useState<SuggestionCard[] | null>(null);
   const [freshMatchesIntentId, setFreshMatchesIntentId] = useState<string | null>(null);
+  const [previewPeerId, setPreviewPeerId] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const outboundInvitesToOthers = useMemo(() => {
     const mine = new Set(intents.map((i) => i.id));
@@ -227,6 +250,23 @@ export function ConsoleClient({
     }
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [activeConnections, userId]);
+
+  const CONNECTION_DOT_WINDOW_MS = 72 * 60 * 60 * 1000;
+
+  const intentsTabAttention = useMemo(
+    () => intents.some((i) => intentManageTabNeedsAttention(i.id, userId, matches)),
+    [intents, userId, matches],
+  );
+
+  const requestsTabAttention = useMemo(
+    () => inboundProfileDiscovery.length > 0 || outboundInvitesToOthers.some((m) => m.status === "Pending"),
+    [inboundProfileDiscovery, outboundInvitesToOthers],
+  );
+
+  const connectionsTabAttention = useMemo(() => {
+    const cutoff = Date.now() - CONNECTION_DOT_WINDOW_MS;
+    return connectionsByPeer.some(([, rows]) => rows.some((m) => new Date(m.created_at).getTime() >= cutoff));
+  }, [connectionsByPeer]);
 
   async function refreshFromServer() {
     router.refresh();
@@ -386,9 +426,45 @@ export function ConsoleClient({
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="gap-6">
           <TabsList className="md:w-full md:max-w-3xl md:flex-wrap">
-            <TabsTrigger value="intents">{t.tabIntents}</TabsTrigger>
-            <TabsTrigger value="requests">{t.tabRequests}</TabsTrigger>
-            <TabsTrigger value="connections">{t.tabConnections}</TabsTrigger>
+            <TabsTrigger
+              value="intents"
+              className="gap-2"
+              aria-label={intentsTabAttention ? `${t.tabIntents} — ${t.manageTabBadgeAria}` : t.tabIntents}
+            >
+              <span>{t.tabIntents}</span>
+              {intentsTabAttention ? (
+                <span
+                  className="inline-flex h-2 w-2 shrink-0 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.85)]"
+                  aria-hidden
+                />
+              ) : null}
+            </TabsTrigger>
+            <TabsTrigger
+              value="requests"
+              className="gap-2"
+              aria-label={requestsTabAttention ? `${t.tabRequests} — ${t.manageTabBadgeAria}` : t.tabRequests}
+            >
+              <span>{t.tabRequests}</span>
+              {requestsTabAttention ? (
+                <span
+                  className="inline-flex h-2 w-2 shrink-0 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.85)]"
+                  aria-hidden
+                />
+              ) : null}
+            </TabsTrigger>
+            <TabsTrigger
+              value="connections"
+              className="gap-2"
+              aria-label={connectionsTabAttention ? `${t.tabConnections} — ${t.manageTabBadgeAria}` : t.tabConnections}
+            >
+              <span>{t.tabConnections}</span>
+              {connectionsTabAttention ? (
+                <span
+                  className="inline-flex h-2 w-2 shrink-0 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.85)]"
+                  aria-hidden
+                />
+              ) : null}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="intents" className="space-y-6">
@@ -424,18 +500,20 @@ export function ConsoleClient({
               ) : (
                 intents.map((intent) => (
                   <Card key={intent.id} className="border-white/10 bg-white/[0.035] backdrop-blur-xl">
-                    <CardHeader className="gap-3 px-4 pb-2 pt-6 sm:px-6">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
+                    <CardHeader className="gap-4 px-4 pb-2 pt-6 sm:px-6">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4">
+                        <div className="min-w-0 w-full space-y-3 md:flex-1">
                           <CardTitle className="text-base text-slate-100">{t.intentCardTitle}</CardTitle>
-                          <CardDescription className="text-slate-300">{intent.natural_language_input}</CardDescription>
+                          <CardDescription className="w-full max-w-none whitespace-normal text-sm leading-relaxed text-slate-300">
+                            {intent.natural_language_input}
+                          </CardDescription>
                           <IntentMustHavesCallout
-                            className="mt-3"
+                            className="w-full max-w-none"
                             heading={t.mustHavesCardHeading}
                             body={intent.must_haves ?? ""}
                           />
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex w-full shrink-0 flex-wrap items-center gap-2 md:w-auto md:justify-end">
                           <Badge variant="outline" className="border-white/15 text-slate-200">
                             {intent.location_filter ?? t.locationUnset}
                           </Badge>
@@ -831,9 +909,7 @@ export function ConsoleClient({
               (freshMatchesModal ?? []).map((s) => {
                 const blocked = blockedPeers.has(s.owner_user_id);
                 const gLabel = peerGenderLabel(s.peer_gender);
-                const title =
-                  s.peer_display_name?.trim() ||
-                  (s.discovery_source === "profile" ? t.suggestionBadgeProfile : t.peerFallbackName);
+                const ageLbl = peerAgeLabel(s.peer_age_group);
                 const kw = (s.peer_skills_tags ?? []).filter(Boolean);
                 const langs = (s.peer_languages ?? []).filter(Boolean);
                 return (
@@ -847,7 +923,12 @@ export function ConsoleClient({
                         <Badge variant="outline" className="border-white/15 text-[10px] font-normal text-slate-400">
                           {s.discovery_source === "profile" ? t.suggestionBadgeProfile : t.suggestionBadgeIntent}
                         </Badge>
-                        <p className="truncate text-base font-semibold text-white">{title}</p>
+                        <p className="text-base font-semibold leading-snug text-white">{t.suggestionAnonymousTitle}</p>
+                        {ageLbl ? (
+                          <p className="text-xs text-slate-400">
+                            {pr.ageGroupLabel}: {ageLbl}
+                          </p>
+                        ) : null}
                         {gLabel ? (
                           <p className="text-xs text-slate-400">
                             {t.profileGender}: {gLabel}
@@ -886,17 +967,31 @@ export function ConsoleClient({
                       </div>
                     ) : null}
                     <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-slate-500">{s.compatibility_reason}</p>
-                    <Button
-                      size="sm"
-                      className={cn(
-                        "galaxy-btn-glow mt-5 min-h-11 w-full touch-manipulation border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 sm:min-h-10",
-                        !blocked && outOfCredits && "opacity-50 hover:bg-sky-500/15",
-                      )}
-                      disabled={blocked}
-                      onClick={() => !blocked && openConnectAndDismissFresh(s)}
-                    >
-                      {blocked ? t.alreadyPending : outOfCredits ? cr.dailyLimitReached : t.requestConnection}
-                    </Button>
+                    <div className="mt-5 flex flex-col gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="min-h-11 w-full touch-manipulation border-white/15 bg-transparent text-slate-100 hover:bg-white/[0.06] sm:min-h-10"
+                        onClick={() => {
+                          setPreviewPeerId(s.owner_user_id);
+                          setPreviewOpen(true);
+                        }}
+                      >
+                        {t.previewProfileOpen}
+                      </Button>
+                      <Button
+                        size="sm"
+                        className={cn(
+                          "galaxy-btn-glow min-h-11 w-full touch-manipulation border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 sm:min-h-10",
+                          !blocked && outOfCredits && "opacity-50 hover:bg-sky-500/15",
+                        )}
+                        disabled={blocked}
+                        onClick={() => !blocked && openConnectAndDismissFresh(s)}
+                      >
+                        {blocked ? t.alreadyPending : outOfCredits ? cr.dailyLimitReached : t.requestConnection}
+                      </Button>
+                    </div>
                   </div>
                 );
               })
@@ -919,6 +1014,15 @@ export function ConsoleClient({
       </Dialog>
 
       <CreditsLimitModal open={creditsTeaserOpen} onOpenChange={setCreditsTeaserOpen} />
+
+      <SuggestionProfilePreviewDialog
+        peerUserId={previewPeerId}
+        open={previewOpen}
+        onOpenChange={(o) => {
+          setPreviewOpen(o);
+          if (!o) setPreviewPeerId(null);
+        }}
+      />
 
       {connectCtx ? (
         <ConnectModal

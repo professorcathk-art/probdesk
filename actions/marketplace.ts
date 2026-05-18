@@ -57,11 +57,18 @@ async function attachExplorePublicIdentityRows(rows: ListingRow[]): Promise<Mark
   });
 }
 
-export async function listMarketplaceListings(): Promise<
-  { listings: MarketplaceListing[] } | { error: string }
-> {
+export type ListMarketplaceResult =
+  | { listings: MarketplaceListing[]; moreAvailable: boolean }
+  | { error: string };
+
+/**
+ * @param guestPreview When true (Explore/Square for signed-out users), fetch at most 20 listings but probe +1 row to show “sign in for more”.
+ */
+export async function listMarketplaceListings(options?: { guestPreview?: boolean }): Promise<ListMarketplaceResult> {
   try {
     const supabase = await createClient();
+    const guestPreview = Boolean(options?.guestPreview);
+    const fetchLimit = guestPreview ? 21 : 60;
 
     const { data, error } = await supabase
       .from("intent_requests")
@@ -71,12 +78,17 @@ export async function listMarketplaceListings(): Promise<
       .eq("is_marketplace_public", true)
       .eq("status", "active")
       .order("created_at", { ascending: false })
-      .limit(60);
+      .limit(fetchLimit);
 
     if (error) return { error: error.message };
-    const raw = (data ?? []) as ListingRow[];
+    let raw = (data ?? []) as ListingRow[];
+    let moreAvailable = false;
+    if (guestPreview && raw.length > 20) {
+      moreAvailable = true;
+      raw = raw.slice(0, 20);
+    }
     const listings = await attachExplorePublicIdentityRows(raw);
-    return { listings };
+    return { listings, moreAvailable };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server configuration error";
     return { error: msg };

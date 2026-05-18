@@ -12,6 +12,7 @@ export function buildProfileEmbeddingText(p: {
   intent_level: string | null;
   skills_tags: string[];
   languages: string[];
+  age_group?: string | null;
 }): string {
   const chunks: string[] = [];
   if (p.display_name?.trim()) chunks.push(`Name: ${p.display_name.trim()}`);
@@ -20,6 +21,17 @@ export function buildProfileEmbeddingText(p: {
   if (p.superpower?.trim()) chunks.push(`Offers: ${p.superpower.trim()}`);
   if (p.intent_level?.trim()) chunks.push(`Intent level: ${p.intent_level.trim()}`);
   if (p.gender?.trim()) chunks.push(`Gender: ${p.gender.trim()}`);
+  const ageBand =
+    p.age_group?.trim() &&
+    ({
+      "18_24": "Age band 18–24",
+      "25_34": "Age band 25–34",
+      "35_44": "Age band 35–44",
+      "45_54": "Age band 45–54",
+      "55_64": "Age band 55–64",
+      "65_plus": "Age band 65+",
+    }[p.age_group.trim()] as string | undefined);
+  if (ageBand) chunks.push(ageBand);
   if (p.location?.trim()) chunks.push(`Location: ${p.location.trim()}`);
   if (p.skills_tags.length) chunks.push(`Interests / keywords: ${p.skills_tags.join(", ")}`);
   if (p.languages.length) chunks.push(`Languages: ${p.languages.join(", ")}`);

@@ -25,6 +25,8 @@ type Props = {
     maxActiveIntents: number;
     unlimitedIntents: boolean;
   } | null;
+  /** True when signed-out Explore caps listings (see server probe row). */
+  guestListingsCapped?: boolean;
 };
 
 export function MarketplaceFeed({
@@ -37,6 +39,7 @@ export function MarketplaceFeed({
   profileReadyForInvites = true,
   loadError,
   quotaSnapshot = null,
+  guestListingsCapped = false,
 }: Props) {
   const { strings } = useLanguage();
 
@@ -53,10 +56,36 @@ export function MarketplaceFeed({
             </div>
           ) : null}
         </div>
-        <Link href="/console" className={cn(buttonVariants({ variant: "ghost" }), "text-sky-300/90 underline-offset-4 hover:underline")}>
-          {strings.marketplace.backManage}
-        </Link>
+        {currentUserId ? (
+          <Link
+            href="/console"
+            prefetch={false}
+            className={cn(buttonVariants({ variant: "ghost" }), "text-sky-300/90 underline-offset-4 hover:underline")}
+          >
+            {strings.marketplace.backManage}
+          </Link>
+        ) : (
+          <span className="hidden md:block md:w-40" aria-hidden />
+        )}
       </header>
+
+      {guestListingsCapped && !currentUserId ? (
+        <div className="rounded-2xl border border-sky-400/30 bg-gradient-to-br from-sky-500/15 to-transparent px-5 py-6 shadow-[0_0_40px_rgba(56,189,248,0.08)]">
+          <h2 className="text-lg font-semibold text-white">{strings.marketplace.guestPreviewTitle}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">{strings.marketplace.guestPreviewBody}</p>
+          <Link
+            href={`/login?after=${encodeURIComponent(exploreBasePath)}`}
+            prefetch={false}
+            className={cn(
+              buttonVariants({ variant: "default", size: "lg" }),
+              "galaxy-btn-glow mt-5 inline-flex border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25",
+            )}
+          >
+            {strings.marketplace.guestPreviewCta}
+          </Link>
+          <p className="mt-3 text-xs text-slate-500">{strings.marketplace.guestPreviewFootnote}</p>
+        </div>
+      ) : null}
 
       {loadError ? (
         <p className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">

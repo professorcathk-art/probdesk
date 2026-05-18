@@ -40,12 +40,14 @@ export default async function ProfilePage({
           industry: null,
           superpower: null,
           gender: null,
+          age_group: null,
           preferred_contact_channel: null,
           preferred_contact_detail: null,
           skills_tags: [],
           languages: [],
           intent_level: null,
           social_link: null,
+          album_storage_paths: [],
         }
       : profileRes;
 
