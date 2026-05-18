@@ -81,6 +81,9 @@ create index if not exists intent_requests_status_marketplace_idx
   where is_marketplace_public = true and status = 'active';
 
 -- IVFFLAT index for cosine similarity (create after you have enough rows for lists parameter tuning)
+-- Increase maintenance_work_mem for ivfflat builds (default 32MB is often too low).
+set maintenance_work_mem = '256MB';
+
 create index if not exists intent_requests_embedding_ivfflat
   on public.intent_requests using ivfflat (embedding vector_cosine_ops)
   with (lists = 100);

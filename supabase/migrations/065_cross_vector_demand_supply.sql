@@ -1,4 +1,7 @@
 -- Phase 14: split embeddings — intent demand vs profile supply; retrieval compares demand_embedding <=> supply_embedding only.
+--
+-- If index creation still fails on memory, temporarily lower IVFFLAT lists (e.g. `lists = 50`) or raise
+-- Database Settings → maintenance_work_mem in the Supabase dashboard, then re-run from the `SET` line below.
 
 alter table public.intent_requests add column if not exists demand_embedding vector(1536);
 alter table public.profiles add column if not exists supply_embedding vector(1536);
@@ -10,6 +13,9 @@ where demand_embedding is null and embedding is not null;
 update public.profiles
 set supply_embedding = embedding
 where supply_embedding is null and embedding is not null;
+
+-- IVFFLAT training can require > default maintenance_work_mem (often 32MB).
+set maintenance_work_mem = '256MB';
 
 create index if not exists intent_requests_demand_embedding_ivfflat
   on public.intent_requests using ivfflat (demand_embedding vector_cosine_ops)
