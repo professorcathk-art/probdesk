@@ -16,10 +16,9 @@ import { isAdminEmail } from "@/lib/admin-emails";
 import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
 import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
 import { logPairingScoreEvent } from "@/lib/pairing-score-log";
-
-function vectorLiteral(vec: number[]): string {
-  return `[${vec.join(",")}]`;
-}
+import { BLOCKING_MATCH_STATUSES } from "@/lib/match-blocking";
+import { vectorLiteral } from "@/lib/vector-literal";
+import { syncProfileEmbedding } from "@/lib/sync-profile-embedding";
 
 function normalizeMustHaves(raw: string | null | undefined): string | null {
   const t = raw?.trim() ?? "";
@@ -273,6 +272,18 @@ export async function completeOnboarding(params: {
     return { ok: false as const, message: profileError.message };
   }
 
+  await syncProfileEmbedding(supabase, user.id, {
+    display_name: params.profile.display_name ?? null,
+    bio: params.profile.bio ?? null,
+    location: params.profile.location ?? null,
+    industry: params.profile.industry ?? null,
+    superpower: superpowerTrim || null,
+    gender: genderTrim || null,
+    intent_level,
+    skills_tags: skillTags,
+    languages: langTags,
+  });
+
   const { data: intent } = await supabase
     .from("intent_requests")
     .select("location_filter")
@@ -385,7 +396,7 @@ export async function setIntentStatus(
 }
 
 export type SuggestionCard = {
-  intent_id: string;
+  intent_id: string | null;
   owner_user_id: string;
   natural_language_input: string;
   extracted_persona: Record<string, unknown> | null;
@@ -394,6 +405,12 @@ export type SuggestionCard = {
   similarity: number;
   match_score: number;
   compatibility_reason: string;
+  discovery_source: "intent" | "profile";
+  peer_display_name: string | null;
+  peer_bio: string | null;
+  peer_gender: string | null;
+  peer_skills_tags: string[] | null;
+  peer_languages: string[] | null;
 };
 
 export async function computeHybridSuggestions(intentId: string): Promise<
@@ -436,10 +453,20 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     return { ok: false, message: "This intent could not be processed — please create a new one." };
   }
 
+  const { data: blockRows } = await supabase
+    .from("matches")
+    .select("sender_id, receiver_id")
+    .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+    .in("status", [...BLOCKING_MATCH_STATUSES]);
+
+  const blocking = new Set<string>();
+  for (const r of blockRows ?? []) {
+    blocking.add(r.sender_id === user.id ? r.receiver_id : r.sender_id);
+  }
+
   /**
-   * Semantic-first: embeddings already blend main text + must-haves (`intentEmbeddingSource`).
-   * pgvector cosine distance (`<=>`): lower = closer. `p_threshold` is MAX distance allowed.
-   * Location is not used as a hard filter by default (`requireLocationMatch: false`).
+   * Semantic-first against other intents, then fill remaining slots with profile.embedding matches.
+   * `match_intents` / `match_profiles` are SECURITY DEFINER and return peer preview columns for the UI.
    */
   const MATCH_TIERS = [
     { key: "semantic_primary", maxDistance: 0.55, requireLocationMatch: false },
@@ -448,7 +475,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     { key: "same_city_boost_fallback", maxDistance: 0.72, requireLocationMatch: true },
   ] as const;
 
-  type RpcRow = {
+  type IntentRpcRow = {
     intent_id: string;
     owner_user_id: string;
     natural_language_input: string;
@@ -456,16 +483,57 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     location_filter: string | null;
     distance: number;
     similarity: number;
+    peer_display_name: string | null;
+    peer_bio: string | null;
+    peer_gender: string | null;
+    peer_skills_tags: string[] | null;
+    peer_languages: string[] | null;
+    peer_industry: string | null;
+    peer_intent_level: string | null;
+    peer_superpower: string | null;
   };
 
-  let rows: RpcRow[] = [];
-  let matchTier: (typeof MATCH_TIERS)[number]["key"] = MATCH_TIERS[0].key;
-  let appliedMaxDistance = MATCH_TIERS[0].maxDistance as number;
-  let appliedRequireLocation = MATCH_TIERS[0].requireLocationMatch as boolean;
+  type ProfileRpcRow = {
+    user_id: string;
+    display_name: string | null;
+    bio: string | null;
+    gender: string | null;
+    skills_tags: string[] | null;
+    languages: string[] | null;
+    location: string | null;
+    industry: string | null;
+    intent_level: string | null;
+    superpower: string | null;
+    distance: number;
+    similarity: number;
+  };
+
+  function dedupeBestIntentByOwner(rows: IntentRpcRow[]): IntentRpcRow[] {
+    const best = new Map<string, IntentRpcRow>();
+    for (const r of rows) {
+      const cur = best.get(r.owner_user_id);
+      if (!cur || r.distance < cur.distance) best.set(r.owner_user_id, r);
+    }
+    return [...best.values()].sort((a, b) => a.distance - b.distance);
+  }
+
+  function dedupeBestProfileByUser(rows: ProfileRpcRow[]): ProfileRpcRow[] {
+    const best = new Map<string, ProfileRpcRow>();
+    for (const r of rows) {
+      const cur = best.get(r.user_id);
+      if (!cur || r.distance < cur.distance) best.set(r.user_id, r);
+    }
+    return [...best.values()].sort((a, b) => a.distance - b.distance);
+  }
+
+  let intentRpcRows: IntentRpcRow[] = [];
+  let intentTier: (typeof MATCH_TIERS)[number]["key"] = MATCH_TIERS[0].key;
+  let intentAppliedMax = MATCH_TIERS[0].maxDistance as number;
+  let intentAppliedReq = MATCH_TIERS[0].requireLocationMatch as boolean;
   let rpcError: { message: string } | null = null;
 
   for (const tier of MATCH_TIERS) {
-    const { data, error } = await supabase.rpc("match_intents", {
+    const { data, error: tierErr } = await supabase.rpc("match_intents", {
       target_embedding: intent.embedding as unknown as string,
       p_location: intent.location_filter,
       p_threshold: tier.maxDistance,
@@ -473,16 +541,16 @@ export async function computeHybridSuggestions(intentId: string): Promise<
       p_exclude_user_id: user.id,
       p_require_location_match: tier.requireLocationMatch,
     });
-    if (error) {
-      rpcError = error;
+    if (tierErr) {
+      rpcError = tierErr;
       break;
     }
-    const next = (data ?? []) as RpcRow[];
+    const next = (data ?? []) as IntentRpcRow[];
     if (next.length > 0) {
-      rows = next;
-      matchTier = tier.key;
-      appliedMaxDistance = tier.maxDistance;
-      appliedRequireLocation = tier.requireLocationMatch;
+      intentRpcRows = next;
+      intentTier = tier.key;
+      intentAppliedMax = tier.maxDistance;
+      intentAppliedReq = tier.requireLocationMatch;
       break;
     }
   }
@@ -491,9 +559,56 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     return { ok: false, message: rpcError.message };
   }
 
-  const pool = rows.slice(0, 6);
+  const POOL = 6;
+  const intentPick = dedupeBestIntentByOwner(intentRpcRows)
+    .filter((r) => !blocking.has(r.owner_user_id))
+    .slice(0, POOL);
+  const intentOwners = new Set(intentPick.map((r) => r.owner_user_id));
 
-  const poolIntentIds = pool.map((r) => r.intent_id);
+  let profilePick: ProfileRpcRow[] = [];
+  let profileTier: (typeof MATCH_TIERS)[number]["key"] = MATCH_TIERS[0].key;
+  let profileAppliedMax = MATCH_TIERS[0].maxDistance as number;
+  let profileAppliedReq = MATCH_TIERS[0].requireLocationMatch as boolean;
+
+  if (intentPick.length < POOL) {
+    let profileRpcErr: { message: string } | null = null;
+    for (const tier of MATCH_TIERS) {
+      const { data, error: pErr } = await supabase.rpc("match_profiles", {
+        target_embedding: intent.embedding as unknown as string,
+        p_location: intent.location_filter,
+        p_threshold: tier.maxDistance,
+        p_limit: 24,
+        p_exclude_user_id: user.id,
+        p_require_location_match: tier.requireLocationMatch,
+      });
+      if (pErr) {
+        profileRpcErr = pErr;
+        break;
+      }
+      const next = (data ?? []) as ProfileRpcRow[];
+      const filtered = dedupeBestProfileByUser(next).filter(
+        (r) => !intentOwners.has(r.user_id) && !blocking.has(r.user_id),
+      );
+      if (filtered.length > 0) {
+        profileTier = tier.key;
+        profileAppliedMax = tier.maxDistance;
+        profileAppliedReq = tier.requireLocationMatch;
+        profilePick = filtered.slice(0, POOL - intentPick.length);
+        break;
+      }
+    }
+    if (profileRpcErr && intentPick.length === 0) {
+      return { ok: false, message: profileRpcErr.message };
+    }
+  }
+
+  type Unified =
+    | { kind: "intent"; row: IntentRpcRow }
+    | { kind: "profile"; row: ProfileRpcRow };
+
+  const pool: Unified[] = [...intentPick.map((row) => ({ kind: "intent" as const, row })), ...profilePick.map((row) => ({ kind: "profile" as const, row }))];
+
+  const poolIntentIds = intentPick.map((r) => r.intent_id);
   const { data: poolMustRows } =
     poolIntentIds.length > 0
       ? await supabase.from("intent_requests").select("id, must_haves").in("id", poolIntentIds)
@@ -506,88 +621,212 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const ownerIds = [...new Set(pool.map((r) => r.owner_user_id))];
-  const { data: ownerProfiles } = await supabase
-    .from("profiles")
-    .select("user_id, bio, industry, skills_tags, languages, intent_level, superpower")
-    .in("user_id", ownerIds);
-
-  const profMap = new Map((ownerProfiles ?? []).map((p) => [p.user_id as string, p]));
+  const PROFILE_ONLY_INTENT_STUB =
+    "(Profile similarity — they have not published a separate Explore request; fit is from their profile.)";
 
   const scored = await Promise.all(
-    pool.map(async (row) => {
+    pool.map(async (entry) => {
+      const senderSnippet = formatProfileMatchingSnippet({
+        bio: senderProf?.bio ?? null,
+        industry: senderProf?.industry ?? null,
+        skills_tags: senderProf?.skills_tags ?? null,
+        languages: senderProf?.languages ?? null,
+        intent_level: senderProf?.intent_level ?? null,
+        superpower: senderProf?.superpower ?? null,
+      });
+
+      if (entry.kind === "intent") {
+        const row = entry.row;
+        const candidateSnippet =
+          formatProfileMatchingSnippet({
+            bio: row.peer_bio ?? null,
+            industry: row.peer_industry ?? null,
+            skills_tags: row.peer_skills_tags ?? null,
+            languages: row.peer_languages ?? null,
+            intent_level: row.peer_intent_level ?? null,
+            superpower: row.peer_superpower ?? null,
+          }) || undefined;
+        try {
+          const vibe = await vibeCheckWith4o({
+            senderIntent: intent.natural_language_input,
+            candidateIntent: row.natural_language_input,
+            senderProfileSnippet: senderSnippet || undefined,
+            candidateProfileSnippet: candidateSnippet,
+            senderMustHaves: intent.must_haves,
+            candidateMustHaves: mustByIntentId.get(row.intent_id) ?? null,
+            senderLocationPreference: intent.location_filter,
+            candidateLocation: row.location_filter,
+          });
+          return {
+            card: {
+              intent_id: row.intent_id,
+              owner_user_id: row.owner_user_id,
+              natural_language_input: row.natural_language_input,
+              extracted_persona: row.extracted_persona,
+              location_filter: row.location_filter,
+              distance: row.distance,
+              similarity: row.similarity,
+              discovery_source: "intent" as const,
+              peer_display_name: row.peer_display_name,
+              peer_bio: row.peer_bio,
+              peer_gender: row.peer_gender,
+              peer_skills_tags: row.peer_skills_tags,
+              peer_languages: row.peer_languages,
+              match_score: vibe.match_score,
+              compatibility_reason: vibe.compatibility_reason,
+            },
+            logMeta: {
+              candidate_intent_id: row.intent_id,
+              similarity: row.similarity,
+              rpc_threshold: intentAppliedMax,
+              tier: intentTier,
+              require_location_match: intentAppliedReq,
+              discovery_source: "intent" as const,
+            },
+          };
+        } catch {
+          return {
+            card: {
+              intent_id: row.intent_id,
+              owner_user_id: row.owner_user_id,
+              natural_language_input: row.natural_language_input,
+              extracted_persona: row.extracted_persona,
+              location_filter: row.location_filter,
+              distance: row.distance,
+              similarity: row.similarity,
+              discovery_source: "intent" as const,
+              peer_display_name: row.peer_display_name,
+              peer_bio: row.peer_bio,
+              peer_gender: row.peer_gender,
+              peer_skills_tags: row.peer_skills_tags,
+              peer_languages: row.peer_languages,
+              match_score: Math.round((row.similarity ?? 0) * 100),
+              compatibility_reason:
+                "Strong semantic overlap on goals and constraints — worth a careful intro if incentives align.",
+            },
+            logMeta: {
+              candidate_intent_id: row.intent_id,
+              similarity: row.similarity,
+              rpc_threshold: intentAppliedMax,
+              tier: intentTier,
+              require_location_match: intentAppliedReq,
+              discovery_source: "intent" as const,
+            },
+          };
+        }
+      }
+
+      const row = entry.row;
+      const candidateSnippet =
+        formatProfileMatchingSnippet({
+          bio: row.bio ?? null,
+          industry: row.industry ?? null,
+          skills_tags: row.skills_tags ?? null,
+          languages: row.languages ?? null,
+          intent_level: row.intent_level ?? null,
+          superpower: row.superpower ?? null,
+        }) || undefined;
       try {
-        const cand = profMap.get(row.owner_user_id);
-        const senderSnippet = formatProfileMatchingSnippet({
-          bio: senderProf?.bio ?? null,
-          industry: senderProf?.industry ?? null,
-          skills_tags: senderProf?.skills_tags ?? null,
-          languages: senderProf?.languages ?? null,
-          intent_level: senderProf?.intent_level ?? null,
-          superpower: senderProf?.superpower ?? null,
-        });
-        const candidateSnippet = formatProfileMatchingSnippet({
-          bio: cand?.bio ?? null,
-          industry: cand?.industry ?? null,
-          skills_tags: cand?.skills_tags ?? null,
-          languages: cand?.languages ?? null,
-          intent_level: cand?.intent_level ?? null,
-          superpower: cand?.superpower ?? null,
-        });
         const vibe = await vibeCheckWith4o({
           senderIntent: intent.natural_language_input,
-          candidateIntent: row.natural_language_input,
+          candidateIntent: PROFILE_ONLY_INTENT_STUB,
           senderProfileSnippet: senderSnippet || undefined,
-          candidateProfileSnippet: candidateSnippet || undefined,
+          candidateProfileSnippet: candidateSnippet,
           senderMustHaves: intent.must_haves,
-          candidateMustHaves: mustByIntentId.get(row.intent_id) ?? null,
+          candidateMustHaves: null,
           senderLocationPreference: intent.location_filter,
-          candidateLocation: row.location_filter,
+          candidateLocation: row.location,
         });
         return {
-          row,
-          match_score: vibe.match_score,
-          compatibility_reason: vibe.compatibility_reason,
+          card: {
+            intent_id: null,
+            owner_user_id: row.user_id,
+            natural_language_input: row.bio?.trim() || PROFILE_ONLY_INTENT_STUB,
+            extracted_persona: null,
+            location_filter: row.location,
+            distance: row.distance,
+            similarity: row.similarity,
+            discovery_source: "profile" as const,
+            peer_display_name: row.display_name,
+            peer_bio: row.bio,
+            peer_gender: row.gender,
+            peer_skills_tags: row.skills_tags,
+            peer_languages: row.languages,
+            match_score: vibe.match_score,
+            compatibility_reason: vibe.compatibility_reason,
+          },
+          logMeta: {
+            candidate_intent_id: null,
+            similarity: row.similarity,
+            rpc_threshold: profileAppliedMax,
+            tier: profileTier,
+            require_location_match: profileAppliedReq,
+            discovery_source: "profile" as const,
+          },
         };
       } catch {
         return {
-          row,
-          match_score: Math.round((row.similarity ?? 0) * 100),
-          compatibility_reason:
-            "Strong semantic overlap on goals and constraints — worth a careful intro if incentives align.",
+          card: {
+            intent_id: null,
+            owner_user_id: row.user_id,
+            natural_language_input: row.bio?.trim() || PROFILE_ONLY_INTENT_STUB,
+            extracted_persona: null,
+            location_filter: row.location,
+            distance: row.distance,
+            similarity: row.similarity,
+            discovery_source: "profile" as const,
+            peer_display_name: row.display_name,
+            peer_bio: row.bio,
+            peer_gender: row.gender,
+            peer_skills_tags: row.skills_tags,
+            peer_languages: row.languages,
+            match_score: Math.round((row.similarity ?? 0) * 100),
+            compatibility_reason:
+              "Profile signals overlap with what you're looking for — worth a careful intro if incentives align.",
+          },
+          logMeta: {
+            candidate_intent_id: null,
+            similarity: row.similarity,
+            rpc_threshold: profileAppliedMax,
+            tier: profileTier,
+            require_location_match: profileAppliedReq,
+            discovery_source: "profile" as const,
+          },
         };
       }
     }),
   );
 
-  scored.sort((a, b) => b.match_score - a.match_score);
+  scored.sort((a, b) => b.card.match_score - a.card.match_score);
 
   void Promise.all(
-    scored.map(({ row, match_score, compatibility_reason }, index) =>
+    scored.map(({ card, logMeta }, index) =>
       logPairingScoreEvent({
         source: "hybrid_suggestion",
         actor_user_id: user.id,
         anchor_intent_id: intentId,
-        candidate_intent_id: row.intent_id,
-        candidate_user_id: row.owner_user_id,
-        similarity: row.similarity,
-        rpc_threshold: appliedMaxDistance,
+        candidate_intent_id: logMeta.candidate_intent_id,
+        candidate_user_id: card.owner_user_id,
+        similarity: logMeta.similarity,
+        rpc_threshold: logMeta.rpc_threshold,
         rank_after_sort: index + 1,
         selected_top: index < 3,
-        match_score,
-        compatibility_reason,
+        match_score: card.match_score,
+        compatibility_reason: card.compatibility_reason,
         excluded_reason: index >= 3 ? "not_in_top_3_after_sort" : null,
-        meta: { pool_size: pool.length, match_tier: matchTier, require_location_match: appliedRequireLocation },
+        meta: {
+          pool_size: pool.length,
+          match_tier: logMeta.tier,
+          require_location_match: logMeta.require_location_match,
+          discovery_source: logMeta.discovery_source,
+          intent_match_tier: intentTier,
+          profile_match_tier: profilePick.length > 0 ? profileTier : null,
+        },
       }),
     ),
   );
 
-  const suggestions: SuggestionCard[] = scored.slice(0, 3).map(({ row, match_score, compatibility_reason }) => ({
-    ...row,
-    extracted_persona: row.extracted_persona,
-    match_score,
-    compatibility_reason,
-  }));
+  const suggestions: SuggestionCard[] = scored.slice(0, 3).map(({ card }) => card);
 
   return { ok: true, suggestions };
 }

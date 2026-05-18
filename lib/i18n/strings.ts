@@ -142,7 +142,7 @@ export const STRINGS = {
       freshMatchesSearching: "Finding your best matches…",
       freshMatchesTitle: "Here are your top matches",
       freshMatchesSubtitle:
-        "Up to three people ranked for fit with the request you just created. Profiles stay protected until you send an invite.",
+        "Up to three people ranked for fit — including profiles without a separate Explore listing. Preview shows bio, gender, and keywords so you can decide before inviting.",
       freshMatchesGotIt: "Got it",
       matchQueueTitle: "Your Match Queue (Identities protected)",
       matchQueueDesc:
@@ -253,6 +253,15 @@ export const STRINGS = {
       statusPendingBadge: "Pending",
       inviteListingLabel: "Listing for this invite",
       outboundListingLabel: "Explore listing you contacted",
+      outboundProfileInviteHint:
+        "Smart discovery from their profile — they had not posted a separate Explore listing.",
+      inboundDiscoveryBadge: "Profile invitation",
+      inboundDiscoveryTitle: "Invitations to your profile",
+      inboundDiscoveryDesc:
+        "Someone matched with you from your profile (no Explore listing on file). Accept or decline here.",
+      suggestionBadgeIntent: "Request listing",
+      suggestionBadgeProfile: "Profile match",
+      suggestionTheirBio: "Bio",
       inviteRoleYouReachedOut: "You sent this invite",
       inviteRoleTheyReachedOut: "They reached out to you",
       senderSharedProfileBadge: "They chose to share their profile with you",
@@ -586,7 +595,7 @@ export const STRINGS = {
       freshMatchesSearching: "正在為你尋找最合適的對象…",
       freshMatchesTitle: "為你找到前列配對",
       freshMatchesSubtitle:
-        "以下最多三位與你剛建立的徵求最契合；在送出邀請前，對方身分仍受保護。",
+        "以下最多三位依契合度排序——包含未另外發布探索徵求的個人檔案。預覽會顯示簡介、性別與關鍵字，方便你決定是否邀請。",
       freshMatchesGotIt: "知道了",
       matchQueueTitle: "你的配對佇列（身分受保護）",
       matchQueueDesc:
@@ -693,6 +702,14 @@ export const STRINGS = {
       statusPendingBadge: "等待回覆",
       inviteListingLabel: "此邀請對應的徵求",
       outboundListingLabel: "你聯繫的探索廣場徵求",
+      outboundProfileInviteHint: "智慧配對依對方個人檔案送出——對方未另外發布探索徵求。",
+      inboundDiscoveryBadge: "個人檔案邀請",
+      inboundDiscoveryTitle: "針對你個人檔案的邀請",
+      inboundDiscoveryDesc:
+        "對方依你的個人檔案與你配對（尚未對應特定探索徵求）。可於此接受或婉拒。",
+      suggestionBadgeIntent: "徵求列表",
+      suggestionBadgeProfile: "檔案配對",
+      suggestionTheirBio: "簡介",
       inviteRoleYouReachedOut: "你主動送出邀請",
       inviteRoleTheyReachedOut: "對方向你發起邀請",
       senderSharedProfileBadge: "對方選擇與你分享個人檔案",

@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SenderPreviewBlock } from "@/components/sender-preview-block";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useConnectionCredits } from "@/hooks/use-connection-credits";
@@ -81,6 +82,23 @@ export function ConsoleClient({
   const t = strings.console;
   const cr = strings.credits;
 
+  function peerGenderLabel(raw: string | null): string | null {
+    switch (raw?.trim()) {
+      case "woman":
+        return t.genderWoman;
+      case "man":
+        return t.genderMan;
+      case "non_binary":
+        return t.genderNonBinary;
+      case "prefer_not_say":
+        return t.genderPreferNotSay;
+      case "other":
+        return t.genderOther;
+      default:
+        return null;
+    }
+  }
+
   const { refresh: refreshCredits, outOfCredits } = useConnectionCredits(userId);
   const [creditsTeaserOpen, setCreditsTeaserOpen] = useState(false);
 
@@ -103,9 +121,10 @@ export function ConsoleClient({
   const [connectOpen, setConnectOpen] = useState(false);
   const [connectCtx, setConnectCtx] = useState<{
     receiverUserId: string;
-    receiverIntentId: string;
+    receiverIntentId: string | null;
     headline: string;
     senderContextIntentId: string | null;
+    initialIntro: string;
   } | null>(null);
 
   const [activeTab, setActiveTab] = useState<"intents" | "requests" | "connections">(() => initialConsoleTab);
@@ -174,12 +193,23 @@ export function ConsoleClient({
       .filter(
         (m) =>
           m.sender_id === userId &&
-          Boolean(m.intent_request_id) &&
-          !mine.has(m.intent_request_id!) &&
+          !mine.has(m.intent_request_id ?? "") &&
           (m.status === "Pending" || m.status === "Accepted" || m.status === "Rejected"),
       )
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [matches, userId, intents]);
+
+  const inboundProfileDiscovery = useMemo(() => {
+    return matches
+      .filter(
+        (m) =>
+          m.receiver_id === userId &&
+          m.status === "Pending" &&
+          !m.counterparty_intent_id &&
+          m.intent_request_id == null,
+      )
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [matches, userId]);
 
   const activeConnections = useMemo(() => matches.filter((m) => m.status === "Accepted"), [matches]);
 
@@ -252,11 +282,15 @@ export function ConsoleClient({
       setCreditsTeaserOpen(true);
       return;
     }
+    const ctxIntentId = senderContextIntentId ?? null;
+    const intentRow = ctxIntentId ? intents.find((i) => i.id === ctxIntentId) : undefined;
+    const initialIntro = intentRow?.natural_language_input?.trim() ?? "";
     setConnectCtx({
       receiverUserId: card.owner_user_id,
       receiverIntentId: card.intent_id,
       headline: t.connectHeadlineSuggestion,
-      senderContextIntentId: senderContextIntentId ?? null,
+      senderContextIntentId: ctxIntentId,
+      initialIntro,
     });
     setConnectOpen(true);
   }
@@ -390,7 +424,7 @@ export function ConsoleClient({
               ) : (
                 intents.map((intent) => (
                   <Card key={intent.id} className="border-white/10 bg-white/[0.035] backdrop-blur-xl">
-                    <CardHeader className="gap-3">
+                    <CardHeader className="gap-3 px-4 pb-2 pt-6 sm:px-6">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <CardTitle className="text-base text-slate-100">{t.intentCardTitle}</CardTitle>
@@ -421,8 +455,8 @@ export function ConsoleClient({
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <CardContent className="space-y-6 px-4 pb-6 sm:px-6">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-4">
                           <Checkbox
                             id={`sq-${intent.id}`}
@@ -436,16 +470,16 @@ export function ConsoleClient({
                             <p className="mt-1 text-xs text-slate-500">{t.listOnSquareHint}</p>
                           </div>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
                           <Button
                             variant="outline"
-                            className="galaxy-btn-glow border-white/15 bg-transparent text-slate-100"
+                            className="galaxy-btn-glow min-h-11 w-full touch-manipulation border-white/15 bg-transparent text-slate-100 sm:w-auto sm:min-h-10"
                             onClick={() => void togglePaused(intent.id, intent.status === "active" ? "paused" : "active")}
                           >
                             {intent.status === "active" ? t.pauseMatching : t.resumeMatching}
                           </Button>
                           <Button
-                            className="galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
+                            className="galaxy-btn-glow min-h-11 w-full touch-manipulation border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 sm:w-auto sm:min-h-10"
                             disabled={busyIntent === intent.id || intent.status !== "active"}
                             onClick={() => void loadSuggestions(intent.id)}
                           >
@@ -474,6 +508,60 @@ export function ConsoleClient({
           </TabsContent>
 
           <TabsContent value="requests" className="space-y-10">
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold text-white">{t.inboundDiscoveryTitle}</h2>
+              <p className="text-sm text-slate-500">{t.inboundDiscoveryDesc}</p>
+              {inboundProfileDiscovery.length === 0 ? (
+                <Card className="border-dashed border-white/15 bg-white/[0.02] backdrop-blur-xl">
+                  <CardContent className="py-10 text-center text-sm text-slate-500">{t.noInbound}</CardContent>
+                </Card>
+              ) : (
+                <ul className="grid gap-4">
+                  {inboundProfileDiscovery.map((m) => (
+                    <li key={m.id}>
+                      <Card className="border-white/10 bg-white/[0.035] backdrop-blur-xl">
+                        <CardHeader className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="outline" className="border-sky-400/35 text-sky-100">
+                              {t.inboundDiscoveryBadge}
+                            </Badge>
+                            <Badge variant="outline" className="border-amber-400/35 text-amber-100">
+                              {t.statusPendingBadge}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <SenderPreviewBlock match={m} />
+                          {typeof m.match_score === "number" ? (
+                            <p className="text-xs tabular-nums text-slate-500">
+                              {t.matchFitScore}: {m.match_score}
+                            </p>
+                          ) : null}
+                          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                            <Button
+                              size="sm"
+                              className="min-h-11 w-full touch-manipulation border border-emerald-400/35 bg-emerald-500/15 text-emerald-50 hover:bg-emerald-500/25 sm:w-auto sm:min-h-10"
+                              onClick={() => void onRespond(m.id, "Accepted")}
+                            >
+                              {t.accept}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="min-h-11 w-full touch-manipulation text-slate-400 hover:bg-white/5 sm:w-auto sm:min-h-10"
+                              onClick={() => void onRespond(m.id, "Rejected")}
+                            >
+                              {t.decline}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
             <section className="space-y-4">
               <h2 className="text-xl font-semibold text-white">{t.outboundTitle}</h2>
               <p className="text-sm text-slate-500">{t.outboundDesc}</p>
@@ -517,7 +605,14 @@ export function ConsoleClient({
                             <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.contextMessage}</p>
                             <p className="mt-2 text-sm leading-relaxed text-slate-200">{m.introductory_context}</p>
                           </div>
-                          <IntentSnippet intentId={m.intent_request_id} label={t.outboundListingLabel} />
+                          {m.intent_request_id ? (
+                            <IntentSnippet intentId={m.intent_request_id} label={t.outboundListingLabel} />
+                          ) : (
+                            <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+                              <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.outboundListingLabel}</p>
+                              <p className="mt-2 text-sm leading-relaxed text-slate-400">{t.outboundProfileInviteHint}</p>
+                            </div>
+                          )}
                           {typeof m.match_score === "number" ? (
                             <p className="text-xs tabular-nums text-slate-500">
                               {t.matchFitScore}: {m.match_score}
@@ -727,41 +822,84 @@ export function ConsoleClient({
             <DialogTitle>{t.freshMatchesTitle}</DialogTitle>
             <DialogDescription className="text-slate-400">{t.freshMatchesSubtitle}</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-3">
             {(freshMatchesModal ?? []).length === 0 ? (
               <div className="col-span-full rounded-2xl border border-dashed border-white/10 px-6 py-10 text-center text-sm text-slate-400">
                 {t.intentDashboard.discoverCarouselEmpty}
               </div>
             ) : (
               (freshMatchesModal ?? []).map((s) => {
-              const blocked = blockedPeers.has(s.owner_user_id);
-              return (
-                <div
-                  key={s.intent_id}
-                  className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-xl"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <LockedAvatarPreview />
-                    <div className="min-w-0">
-                      <p className="text-xs text-slate-500">{t.matchFitScore}</p>
-                      <p className="text-lg font-semibold text-sky-200">{s.match_score}</p>
-                    </div>
-                  </div>
-                  <p className="mt-3 line-clamp-4 flex-1 break-words text-sm text-slate-200">{s.natural_language_input}</p>
-                  <Button
-                    size="sm"
-                    className={cn(
-                      "galaxy-btn-glow mt-4 min-h-11 w-full touch-manipulation border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 sm:min-h-10",
-                      !blocked && outOfCredits && "opacity-50 hover:bg-sky-500/15",
-                    )}
-                    disabled={blocked}
-                    onClick={() => !blocked && openConnectAndDismissFresh(s)}
+                const blocked = blockedPeers.has(s.owner_user_id);
+                const gLabel = peerGenderLabel(s.peer_gender);
+                const title =
+                  s.peer_display_name?.trim() ||
+                  (s.discovery_source === "profile" ? t.suggestionBadgeProfile : t.peerFallbackName);
+                const kw = (s.peer_skills_tags ?? []).filter(Boolean);
+                const langs = (s.peer_languages ?? []).filter(Boolean);
+                return (
+                  <div
+                    key={`${s.discovery_source}-${s.owner_user_id}-${s.intent_id ?? "profile"}`}
+                    className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-black/25 px-4 py-5 backdrop-blur-xl"
                   >
-                    {blocked ? t.alreadyPending : outOfCredits ? cr.dailyLimitReached : t.requestConnection}
-                  </Button>
-                </div>
-              );
-            })
+                    <div className="flex min-w-0 items-start gap-3">
+                      <LockedAvatarPreview />
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <Badge variant="outline" className="border-white/15 text-[10px] font-normal text-slate-400">
+                          {s.discovery_source === "profile" ? t.suggestionBadgeProfile : t.suggestionBadgeIntent}
+                        </Badge>
+                        <p className="truncate text-base font-semibold text-white">{title}</p>
+                        {gLabel ? (
+                          <p className="text-xs text-slate-400">
+                            {t.profileGender}: {gLabel}
+                          </p>
+                        ) : null}
+                        <p className="text-xs text-slate-500">{t.matchFitScore}</p>
+                        <p className="text-lg font-semibold text-sky-200">{s.match_score}</p>
+                      </div>
+                    </div>
+                    {s.peer_bio?.trim() ? (
+                      <div className="mt-4 rounded-xl border border-white/10 bg-black/20 px-3 py-3">
+                        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500">
+                          {t.suggestionTheirBio}
+                        </p>
+                        <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-slate-200">{s.peer_bio.trim()}</p>
+                      </div>
+                    ) : null}
+                    {kw.length > 0 ? (
+                      <p className="mt-3 text-xs leading-relaxed text-slate-400">
+                        <span className="font-medium text-slate-500">{t.peerProfileSkills}: </span>
+                        {kw.join(", ")}
+                      </p>
+                    ) : null}
+                    {langs.length > 0 ? (
+                      <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                        <span className="font-medium text-slate-500">{t.peerProfileLanguages}: </span>
+                        {langs.join(", ")}
+                      </p>
+                    ) : null}
+                    {s.discovery_source === "intent" && s.natural_language_input.trim() ? (
+                      <div className="mt-4 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] px-3 py-3">
+                        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-emerald-400/90">
+                          {t.inviteListingLabel}
+                        </p>
+                        <p className="mt-2 line-clamp-3 text-sm text-slate-200">{s.natural_language_input.trim()}</p>
+                      </div>
+                    ) : null}
+                    <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-slate-500">{s.compatibility_reason}</p>
+                    <Button
+                      size="sm"
+                      className={cn(
+                        "galaxy-btn-glow mt-5 min-h-11 w-full touch-manipulation border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 sm:min-h-10",
+                        !blocked && outOfCredits && "opacity-50 hover:bg-sky-500/15",
+                      )}
+                      disabled={blocked}
+                      onClick={() => !blocked && openConnectAndDismissFresh(s)}
+                    >
+                      {blocked ? t.alreadyPending : outOfCredits ? cr.dailyLimitReached : t.requestConnection}
+                    </Button>
+                  </div>
+                );
+              })
             )}
           </div>
           <DialogFooter>
@@ -793,6 +931,7 @@ export function ConsoleClient({
           receiverIntentId={connectCtx.receiverIntentId}
           headline={connectCtx.headline}
           senderContextIntentId={connectCtx.senderContextIntentId ?? undefined}
+          initialIntro={connectCtx.initialIntro}
           onInviteSent={() => void refreshCredits()}
           profileIncompleteResumeAfter="/console"
         />

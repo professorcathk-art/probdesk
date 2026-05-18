@@ -76,7 +76,8 @@ export async function getConnectionCreditsRemaining(): Promise<
 
 export async function initiateConnection(params: {
   receiverUserId: string;
-  receiverIntentId: string;
+  /** When omitted, invite targets the member by profile discovery (no Explore listing row). */
+  receiverIntentId?: string | null;
   introductory_context: string;
   senderDisclosesProfile?: boolean;
   /** Manage discovery: sender's intent card this invite was started from. */
@@ -106,19 +107,42 @@ export async function initiateConnection(params: {
     }
   }
 
-  const { data: receiverIntent, error: intentError } = await supabase
-    .from("intent_requests")
-    .select("id, user_id, natural_language_input, is_demo_listing, must_haves, location_filter")
-    .eq("id", params.receiverIntentId)
-    .single();
+  const receiverIntentId = params.receiverIntentId?.trim() ? params.receiverIntentId.trim() : null;
 
-  if (intentError || !receiverIntent || receiverIntent.user_id !== params.receiverUserId) {
-    return { ok: false as const, message: "Request not found." };
+  let receiverIntent: {
+    id: string;
+    user_id: string;
+    natural_language_input: string;
+    is_demo_listing: boolean;
+    must_haves: string | null;
+    location_filter: string | null;
+  } | null = null;
+
+  if (receiverIntentId) {
+    const { data: intentRow, error: intentError } = await supabase
+      .from("intent_requests")
+      .select("id, user_id, natural_language_input, is_demo_listing, must_haves, location_filter")
+      .eq("id", receiverIntentId)
+      .single();
+
+    if (intentError || !intentRow || intentRow.user_id !== params.receiverUserId) {
+      return { ok: false as const, message: "Request not found." };
+    }
+    receiverIntent = intentRow;
+  } else {
+    const { data: ru } = await supabase
+      .from("users")
+      .select("id, onboarding_status")
+      .eq("id", params.receiverUserId)
+      .maybeSingle();
+    if (!ru || ru.onboarding_status !== "complete") {
+      return { ok: false as const, message: "That member is not available for invites yet." };
+    }
   }
 
   const demoInbox = process.env["MARKETPLACE_DEMO_INBOX_USER_ID"]?.trim();
   let receiverId = params.receiverUserId;
-  if (receiverIntent.is_demo_listing === true) {
+  if (receiverIntent?.is_demo_listing === true) {
     if (!demoInbox) {
       return {
         ok: false as const,
@@ -199,7 +223,7 @@ export async function initiateConnection(params: {
 
   const { data: receiverProfile } = await supabase
     .from("profiles")
-    .select("bio, industry, skills_tags, languages, intent_level, superpower")
+    .select("bio, industry, skills_tags, languages, intent_level, superpower, location, gender")
     .eq("user_id", receiverId)
     .maybeSingle();
 
@@ -221,15 +245,18 @@ export async function initiateConnection(params: {
         intent_level: receiverProfile?.intent_level ?? null,
         superpower: receiverProfile?.superpower ?? null,
       });
+      const candidateIntentText =
+        receiverIntent?.natural_language_input?.trim() ||
+        "(Profile discovery — they did not publish a separate Explore listing; fit uses profile similarity.)";
       const vibe = await vibeCheckWith4o({
         senderIntent: senderIntentText,
-        candidateIntent: receiverIntent.natural_language_input ?? "",
+        candidateIntent: candidateIntentText,
         senderProfileSnippet: senderSnippet || undefined,
         candidateProfileSnippet: candidateSnippet || undefined,
         senderMustHaves,
-        candidateMustHaves: receiverIntent.must_haves ?? null,
+        candidateMustHaves: receiverIntent?.must_haves ?? null,
         senderLocationPreference,
-        candidateLocation: receiverIntent.location_filter ?? null,
+        candidateLocation: receiverIntent?.location_filter ?? receiverProfile?.location ?? null,
       });
       match_score = vibe.match_score;
       compatibility_reason = vibe.compatibility_reason;
@@ -244,12 +271,12 @@ export async function initiateConnection(params: {
     source: "invite_vibe",
     actor_user_id: user.id,
     anchor_intent_id: anchorIntentIdForLog,
-    candidate_intent_id: params.receiverIntentId,
+    candidate_intent_id: receiverIntentId,
     candidate_user_id: receiverId,
     match_score,
     compatibility_reason,
     excluded_reason: senderIntentText ? null : "no_sender_intent_text",
-    meta: { sender_context_intent_id: ctxIntent || null },
+    meta: { sender_context_intent_id: ctxIntent || null, profile_only_invite: receiverIntentId === null },
   });
 
   let ai_context_sender: Record<string, unknown> = {
@@ -302,7 +329,7 @@ export async function initiateConnection(params: {
   const { error } = await supabase.from("matches").insert({
     sender_id: user.id,
     receiver_id: receiverId,
-    intent_request_id: params.receiverIntentId,
+    intent_request_id: receiverIntentId,
     sender_context_intent_id: ctxIntent || null,
     introductory_context: params.introductory_context,
     match_score,

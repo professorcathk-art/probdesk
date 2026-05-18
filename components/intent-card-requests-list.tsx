@@ -202,7 +202,14 @@ export function IntentCardRequestsList({
 
                 {outboundFromCard ? (
                   <div className="pt-1">
-                    <IntentSnippet intentId={m.intent_request_id} label={d.theirListing} />
+                    {m.intent_request_id ? (
+                      <IntentSnippet intentId={m.intent_request_id} label={d.theirListing} />
+                    ) : (
+                      <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{d.theirListing}</p>
+                        <p className="mt-2 text-sm leading-relaxed text-slate-400">{c.outboundProfileInviteHint}</p>
+                      </div>
+                    )}
                   </div>
                 ) : null}
 

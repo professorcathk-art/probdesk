@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -22,10 +22,12 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   receiverUserId: string;
-  receiverIntentId: string;
+  receiverIntentId: string | null;
   headline: string;
   /** When set (Manage discovery), stored on the match for grouping under your intent card. */
   senderContextIntentId?: string | null;
+  /** Prefill introductory message (e.g. sender's request text). */
+  initialIntro?: string;
   onInviteSent?: () => void;
   /** After completing profile, return here (internal path + query). Used when server returns PROFILE_INCOMPLETE. */
   profileIncompleteResumeAfter?: string;
@@ -38,6 +40,7 @@ export function ConnectModal({
   receiverIntentId,
   headline,
   senderContextIntentId,
+  initialIntro = "",
   onInviteSent,
   profileIncompleteResumeAfter,
 }: Props) {
@@ -51,12 +54,19 @@ export function ConnectModal({
   const [error, setError] = useState<string | null>(null);
   const [creditsModalOpen, setCreditsModalOpen] = useState(false);
 
+  useEffect(() => {
+    if (!open) return;
+    setMessage(initialIntro.trim());
+    setDiscloseProfile(false);
+    setError(null);
+  }, [open, initialIntro]);
+
   async function onSend() {
     setBusy(true);
     setError(null);
     const res = await initiateConnection({
       receiverUserId,
-      receiverIntentId,
+      receiverIntentId: receiverIntentId ?? undefined,
       introductory_context: message.trim(),
       senderDisclosesProfile: discloseProfile,
       senderContextIntentId: senderContextIntentId ?? undefined,
