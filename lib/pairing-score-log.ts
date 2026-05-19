@@ -22,7 +22,7 @@ export type PairingScoreLogPayload = {
 export async function logPairingScoreEvent(payload: PairingScoreLogPayload): Promise<void> {
   try {
     const svc = createServiceRoleClient();
-    await svc.from("pairing_score_events").insert({
+    const { error } = await svc.from("pairing_score_events").insert({
       source: payload.source,
       actor_user_id: payload.actor_user_id ?? null,
       anchor_intent_id: payload.anchor_intent_id ?? null,
@@ -37,7 +37,13 @@ export async function logPairingScoreEvent(payload: PairingScoreLogPayload): Pro
       excluded_reason: payload.excluded_reason ?? null,
       meta: payload.meta ?? {},
     });
-  } catch {
-    /* non-fatal — missing key or insert failure should not block UX */
+    if (error) {
+      console.error("[pairing_score_events] insert failed:", error.message);
+    }
+  } catch (e) {
+    console.error(
+      "[pairing_score_events]",
+      e instanceof Error ? e.message : e,
+    );
   }
 }

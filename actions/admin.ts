@@ -272,9 +272,9 @@ export async function adminForceSystemMatch(params: { intentAId: string; intentB
         "Curated introduction — Vennode matched your intents. Review both statements and accept if you want to connect.",
       compatibility_reason: null,
       ai_context_sender: {
-        headline: "System-curated pairing",
-        summary: "Both intents were selected for mutual review.",
-        signals: ["Admin introduction", "Cold-start programme"],
+        preview_kind: "system_match_v1",
+        body:
+          "Vennode linked two active intents for admin cold-start review. This notice describes the workflow — it is not generated from either member’s profile fields.",
       },
       system_ack_sender: false,
       system_ack_receiver: false,

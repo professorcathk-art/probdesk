@@ -139,8 +139,6 @@ export function IntentCardRequestsList({
           statusLabel = d.tagStatusAwaitingTheirReply;
         }
 
-        const preview = m.ai_context_sender as { headline?: string; summary?: string } | undefined;
-
         const compatDisplay = compatibilityReasonForDisplay(m.compatibility_reason);
 
         const showAnonymousPreview = outboundFromCard || systemMatch;
@@ -172,10 +170,8 @@ export function IntentCardRequestsList({
                 {showAnonymousPreview ? (
                   <div>
                     <p className="text-sm font-medium text-slate-100">{d.peerAnonymous}</p>
-                    {(pendingOutbound || pendingSystem || m.status !== "Pending") && (preview?.summary || compatDisplay) ? (
-                      <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                        {truncateText(preview?.summary ?? compatDisplay ?? "", 220)}
-                      </p>
+                    {(pendingOutbound || pendingSystem || m.status !== "Pending") && compatDisplay ? (
+                      <p className="mt-1 text-xs leading-relaxed text-slate-500">{truncateText(compatDisplay, 220)}</p>
                     ) : null}
                   </div>
                 ) : null}
@@ -196,6 +192,12 @@ export function IntentCardRequestsList({
 
                 {inboundListing ? (
                   <>
+                    {m.introductory_context?.trim() ? (
+                      <p className="text-xs leading-relaxed text-slate-300">
+                        <span className="font-medium text-slate-500">{d.theirOpeningMessage}: </span>
+                        {truncateText(m.introductory_context, 280)}
+                      </p>
+                    ) : null}
                     <SenderPreviewBlock match={m} />
                     {pendingInbound ? (
                       <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:flex-wrap">

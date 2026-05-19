@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { sanitizeProfilePreview, vibeCheckWith4o } from "@/lib/aiml";
+import { vibeCheckWith4o } from "@/lib/aiml";
 import { formatProfileMatchingSnippet } from "@/lib/profile-matching-snippet";
+import { buildFactualSenderPreviewFromProfile } from "@/lib/factual-sender-preview";
 import { DUPLICATE_MATCH_MESSAGE, BLOCKING_MATCH_STATUSES, hasBlockingMatchBetween } from "@/lib/match-blocking";
 import { validateProfileBasicsForPublish } from "@/lib/profile-basics";
 import { isAdminEmail } from "@/lib/admin-emails";
@@ -215,7 +216,7 @@ export async function initiateConnection(params: {
   const { data: senderProfile } = await supabase
     .from("profiles")
     .select(
-      "display_name, industry, location, bio, superpower, skills_tags, languages, gender",
+      "display_name, industry, location, bio, superpower, skills_tags, languages, gender, age_group",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -266,7 +267,7 @@ export async function initiateConnection(params: {
       "Fit scoring was unavailable — Vennode defaulted this relationship hint conservatively; judge overlap from both intents.";
   }
 
-  void logPairingScoreEvent({
+  await logPairingScoreEvent({
     source: "invite_vibe",
     actor_user_id: user.id,
     anchor_intent_id: anchorIntentIdForLog,
@@ -278,27 +279,29 @@ export async function initiateConnection(params: {
     meta: { sender_context_intent_id: ctxIntent || null, profile_only_invite: receiverIntentId === null },
   });
 
-  let ai_context_sender: Record<string, unknown> = {
-    headline: "Anonymous sender",
-    summary: "Preview hidden until mutual acceptance.",
-    signals: [],
-  };
-
-  try {
-    if (senderProfile) {
-      ai_context_sender = await sanitizeProfilePreview({
-        display_name: senderProfile.display_name,
+  /** Recipient-facing preview: verbatim profile fields only (no LLM fabrications). */
+  const ai_context_sender: Record<string, unknown> = senderProfile
+    ? (buildFactualSenderPreviewFromProfile({
+        bio: senderProfile.bio,
         industry: senderProfile.industry,
         location: senderProfile.location,
-        bio: senderProfile.bio,
         superpower: senderProfile.superpower,
+        gender: senderProfile.gender,
+        age_group: senderProfile.age_group ?? null,
         skills_tags: senderProfile.skills_tags,
         languages: senderProfile.languages,
-      });
-    }
-  } catch {
-    /* fallback */
-  }
+      }) as unknown as Record<string, unknown>)
+    : ({
+        preview_kind: "factual_v1",
+        bio: null,
+        industry: null,
+        location: null,
+        superpower: null,
+        gender: null,
+        age_group: null,
+        skills_tags: [],
+        languages: [],
+      } as Record<string, unknown>);
 
   let creditsConsumed = false;
 

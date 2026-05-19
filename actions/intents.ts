@@ -557,6 +557,22 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     .filter((r) => !blocking.has(r.user_id))
     .slice(0, POOL_SIZE);
 
+  if (poolRows.length === 0) {
+    await logPairingScoreEvent({
+      source: "hybrid_suggestion",
+      actor_user_id: user.id,
+      anchor_intent_id: intentId,
+      excluded_reason:
+        supplyRows.length === 0 ? "empty_rpc_retrieval" : "all_candidates_blocked_or_truncated",
+      meta: {
+        supply_rows_before_dedupe: supplyRows.length,
+        blocking_peer_count: blocking.size,
+        applied_tier: appliedTier,
+        applied_max_distance: appliedMax,
+      },
+    });
+  }
+
   const linkedIds = poolRows.map((r) => r.linked_intent_id).filter((id): id is string => Boolean(id));
   const { data: poolMustRows } =
     linkedIds.length > 0
@@ -672,7 +688,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
 
   scored.sort((a, b) => b.card.match_score - a.card.match_score);
 
-  void Promise.all(
+  await Promise.all(
     scored.map(({ card, logMeta }, index) =>
       logPairingScoreEvent({
         source: "hybrid_suggestion",

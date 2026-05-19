@@ -282,12 +282,21 @@ export const STRINGS = {
       inviteRoleTheyReachedOut: "They reached out to you",
       senderPreviewBadge: "Safe sender preview",
       senderPreviewHint:
-        "Real name, photo, album, and external links stay hidden until you both accept.",
-      senderPreviewFallbackHeadline: "Member preview",
+        "Shown below are fields from their profile as they saved them — not paraphrased or invented. Name, photo, album, and external links stay hidden until you both accept.",
+      senderPreviewFactualCaption: "From their saved profile",
+      senderPreviewSystemBadge: "Vennode notice",
+      senderPreviewSystemDisclaimer:
+        "This text explains an admin-linked workflow only. It is not generated from either member’s profile fields.",
+      senderPreviewLegacyNotice:
+        "This invite uses an older stored preview format. We no longer display AI-paraphrased profile text here — use their opening message and fit notes on this card.",
+      senderPreviewNothingStored: "No profile preview fields were stored for this invite.",
       peerProfileView: "View profile",
       peerProfileTitle: "Profile",
       peerProfileSubtitle: "Shown according to privacy rules.",
       peerProfileBio: "Bio",
+      peerProfileIndustry: "Industry / field",
+      peerProfileLocation: "Location",
+      peerProfileAgeGroup: "Age group",
       peerProfileGender: "Gender",
       peerProfileSkills: "Interests & traits",
       peerProfileLanguages: "Languages",
@@ -298,7 +307,7 @@ export const STRINGS = {
       intentDashboard: {
         sectionTitle: "Invitations & suggestions",
         sectionHint:
-          "Inbound invites include a safe sender preview (no real name or photo until mutual acceptance). Accept or decline here, alongside AI suggestions.",
+          "Inbound invites include a factual preview from the sender’s saved profile (no real name or photo until mutual acceptance). Ranked suggestions load after you run discovery from this card.",
         discoverCarouselTitle: "Suggested people",
         discoverCarouselEmpty:
           'Tap "Find people who fit" above to load ranked suggestions you can invite.',
@@ -324,6 +333,7 @@ export const STRINGS = {
         matchContext: "Why this fits",
         theirListing: "Their Explore request",
         yourInviteNote: "Your note",
+        theirOpeningMessage: "Their opening message",
       },
       quotaAdminBypass: "Admin · unlimited requests & daily invites",
       quotaActiveRequests: "Active requests",
@@ -777,12 +787,22 @@ export const STRINGS = {
       inviteRoleYouReachedOut: "你主動送出邀請",
       inviteRoleTheyReachedOut: "對方向你發起邀請",
       senderPreviewBadge: "安全預覽（發送者）",
-      senderPreviewHint: "真實姓名、大頭照、相簿與外部連結須待雙方同意後才會顯示。",
-      senderPreviewFallbackHeadline: "會員預覽",
+      senderPreviewHint:
+        "下列內容來自對方已儲存的檔案欄位，供你判斷契合度；我們不會另外改寫或臆測。真實姓名、大頭照、相簿與外部連結須待雙方同意後才會顯示。",
+      senderPreviewFactualCaption: "對方檔案中儲存的內容",
+      senderPreviewSystemBadge: "Vennode 說明",
+      senderPreviewSystemDisclaimer:
+        "此段文字僅說明管理員媒合流程，並非依雙方檔案欄位自動生成。",
+      senderPreviewLegacyNotice:
+        "此邀請沿用了較舊的預覽格式。我們已不再顯示 AI 改寫的檔案摘要——請以對方的開場訊息與此卡上的契合說明為準。",
+      senderPreviewNothingStored: "此邀請未附帶可顯示的檔案預覽欄位。",
       peerProfileView: "查看檔案",
       peerProfileTitle: "個人檔案",
       peerProfileSubtitle: "依隱私規則顯示。",
       peerProfileBio: "簡介",
+      peerProfileIndustry: "產業／領域",
+      peerProfileLocation: "所在地",
+      peerProfileAgeGroup: "年齡區間",
       peerProfileGender: "性別",
       peerProfileSkills: "興趣與特質",
       peerProfileLanguages: "語言",
@@ -793,7 +813,7 @@ export const STRINGS = {
       intentDashboard: {
         sectionTitle: "此徵求的邀請與推薦",
         sectionHint:
-          "來訊邀請會附帶發送者的安全預覽（雙方同意前不含真實姓名或照片）；亦可在此處理 AI 推薦與回覆。",
+          "來訊邀請會附上依對方已存檔案欄位製作的預覽（雙方同意前不含真實姓名或照片）。在本卡片執行探索後，會載入依契合度排序的建議名單。",
         discoverCarouselTitle: "建議人選",
         discoverCarouselEmpty:
           "請先按上方的「尋找契合對象」，載入依契合度排序、方便發送邀請的人選。",
@@ -819,6 +839,7 @@ export const STRINGS = {
         matchContext: "契合說明",
         theirListing: "對方的探索徵求",
         yourInviteNote: "你的開場訊息",
+        theirOpeningMessage: "對方的開場訊息",
       },
       quotaAdminBypass: "管理員 · 徵求數與每日邀請無上限",
       quotaActiveRequests: "進行中的徵求",
