@@ -272,14 +272,16 @@ export const STRINGS = {
       inboundDiscoveryBadge: "Profile invitation",
       inboundDiscoveryTitle: "Invitations to your profile",
       inboundDiscoveryDesc:
-        "Someone matched with you from your profile (no Explore listing on file). Accept or decline here.",
+        "Someone invited you from your profile (no Explore listing on file). Review their safe preview—without real name or photo—and accept or decline here.",
       suggestionBadgeIntent: "Request listing",
       suggestionBadgeProfile: "Profile suggestion",
       suggestionTheirBio: "Bio",
       inviteRoleYouReachedOut: "You sent this invite",
       inviteRoleTheyReachedOut: "They reached out to you",
-      senderSharedProfileBadge: "They chose to share their profile with you",
-      senderPreviewProtected: "Profile preview is protected",
+      senderPreviewBadge: "Safe sender preview",
+      senderPreviewHint:
+        "Real name, photo, album, and external links stay hidden until you both accept.",
+      senderPreviewFallbackHeadline: "Member preview",
       peerProfileView: "View profile",
       peerProfileTitle: "Profile",
       peerProfileSubtitle: "Shown according to privacy rules.",
@@ -294,7 +296,7 @@ export const STRINGS = {
       intentDashboard: {
         sectionTitle: "Invitations & suggestions",
         sectionHint:
-          "Inbound invites and AI suggestions for this request — accept or decline here.",
+          "Inbound invites include a safe sender preview (no real name or photo until mutual acceptance). Accept or decline here, alongside AI suggestions.",
         discoverCarouselTitle: "Suggested people",
         discoverCarouselEmpty:
           'Tap "Find people who fit" above to load ranked suggestions you can invite.',
@@ -411,9 +413,9 @@ export const STRINGS = {
       cancel: "Cancel",
       sendBusy: "Sending…",
       confirmSend: "Send invite",
-      discloseProfileLabel: "Share my profile while they decide",
-      discloseProfileHint:
-        "They can view your profile details before accepting. Social and contact stay hidden until mutual match.",
+      previewNoticeTitle: "What recipients see while they decide",
+      previewNoticeBody:
+        "They always get a safe preview of your profile—role-style headline, summary, and a few credibility signals. Your real name, photo, album, and external links stay hidden until you both accept.",
     },
     common: {
       copied: "Copied link",
@@ -424,14 +426,25 @@ export const STRINGS = {
       kicker: "Passwordless entry",
       title: "Sign in to Vennode",
       sub:
-        "Use Google or a one-time email link — no password to remember. After signing in, complete your profile to explore and send invites.",
+        "Use Google or a 6-digit email code — no password. After signing in, complete your profile to explore and send invites.",
       googleCta: "Continue with Google",
-      divider: "Or email link",
+      divider: "Or email code",
+      emailLabel: "Email",
       emailPlaceholder: "you@domain.com",
-      magicSubmit: "Email me a magic link",
-      inboxInfo: "Check your inbox for the secure login link.",
-      sameBrowserHint:
-        "If the link fails to sign you in, open it in the same browser you used here — or copy the URL from your mail app. Some mail apps open links in a separate browser that doesn’t have your login cookie.",
+      otpSendCode: "Email me a sign-in code",
+      otpSending: "Sending code…",
+      otpSentInfo:
+        "If this address can sign in or register here, we emailed a 6-digit code. Enter it below (check spam).",
+      otpSentTo: "Code sent to",
+      otpLabel: "6-digit code",
+      otpPlaceholder: "000000",
+      otpHint: "Codes expire quickly. You can resend or switch email if needed.",
+      otpVerify: "Verify and continue",
+      otpVerifying: "Verifying…",
+      otpResend: "Resend code",
+      otpResentInfo: "We sent another code to your inbox.",
+      otpUseDifferentEmail: "Use a different email",
+      otpInvalidLength: "Enter the full 6-digit code.",
       backLanding: "Back to landing",
     },
     onboarding: {
@@ -753,14 +766,15 @@ export const STRINGS = {
       inboundDiscoveryBadge: "個人檔案邀請",
       inboundDiscoveryTitle: "針對你個人檔案的邀請",
       inboundDiscoveryDesc:
-        "對方依你的個人檔案與你配對（尚未對應特定探索徵求）。可於此接受或婉拒。",
+        "有人透過你的個人檔案向你發起邀請（目前沒有對應的探索廣場徵求）。你可查看不含真名與照片的預覽，並在此接受或婉拒。",
       suggestionBadgeIntent: "徵求列表",
       suggestionBadgeProfile: "檔案推薦",
       suggestionTheirBio: "簡介",
       inviteRoleYouReachedOut: "你主動送出邀請",
       inviteRoleTheyReachedOut: "對方向你發起邀請",
-      senderSharedProfileBadge: "對方選擇與你分享個人檔案",
-      senderPreviewProtected: "個人檔案預覽仍受保護",
+      senderPreviewBadge: "安全預覽（發送者）",
+      senderPreviewHint: "真實姓名、大頭照、相簿與外部連結須待雙方同意後才會顯示。",
+      senderPreviewFallbackHeadline: "會員預覽",
       peerProfileView: "查看檔案",
       peerProfileTitle: "個人檔案",
       peerProfileSubtitle: "依隱私規則顯示。",
@@ -774,7 +788,8 @@ export const STRINGS = {
       matchFitScore: "契合分數",
       intentDashboard: {
         sectionTitle: "此徵求的邀請與推薦",
-        sectionHint: "與此徵求相關的來訊邀請與系統推薦——在此接受或婉拒。",
+        sectionHint:
+          "來訊邀請會附帶發送者的安全預覽（雙方同意前不含真實姓名或照片）；亦可在此處理 AI 推薦與回覆。",
         discoverCarouselTitle: "建議人選",
         discoverCarouselEmpty:
           "請先按上方的「尋找契合對象」，載入依契合度排序、方便發送邀請的人選。",
@@ -886,9 +901,9 @@ export const STRINGS = {
       cancel: "取消",
       sendBusy: "傳送中…",
       confirmSend: "發送邀請",
-      discloseProfileLabel: "等待對方回覆時，讓對方查看我的檔案",
-      discloseProfileHint:
-        "對方可在接受前先瀏覽你的檔案內容；外部連結與聯絡方式仍須雙方同意後才會顯示。",
+      previewNoticeTitle: "對方在決定前會看到什麼",
+      previewNoticeBody:
+        "對方會看到你經過模糊化的預覽（角色式標題、摘要與少數可信訊號）。真實姓名、照片、相簿與外部連結須待雙方都接受後才會揭露。",
     },
     common: {
       copied: "已複製連結",
@@ -899,14 +914,25 @@ export const STRINGS = {
       kicker: "無密碼登入",
       title: "登入 Vennode",
       sub:
-        "可用 Google 或電郵一次性連結登入，無需設定密碼。登入後先完成個人檔案，就能瀏覽探索廣場並發送邀請。若在首頁已寫好徵求草稿，我們會在你進入管理中心後引導你繼續完成。",
+        "可使用 Google 或電郵 6 位數驗證碼登入，無需設定密碼。登入後請完成個人檔案，即可瀏覽探索廣場並發送邀請。",
       googleCta: "使用 Google 繼續",
-      divider: "或使用電郵連結",
+      divider: "或使用電郵驗證碼",
+      emailLabel: "電郵",
       emailPlaceholder: "你@信箱網域.com",
-      magicSubmit: "寄送登入連結到信箱",
-      inboxInfo: "請查收信箱中的安全登入連結。",
-      sameBrowserHint:
-        "若連結無法完成登入，請在目前這個瀏覽器開啟連結，或從郵件複製網址貼上；部分郵件 App 會用另一個瀏覽器開啟，因而找不到登入用的 Cookie。",
+      otpSendCode: "寄送登入驗證碼",
+      otpSending: "寄送中…",
+      otpSentInfo:
+        "若此信箱可登入或註冊，我們已寄出 6 位數驗證碼，請於下方輸入（亦請查看垃圾郵件）。",
+      otpSentTo: "驗證碼已寄至",
+      otpLabel: "6 位數驗證碼",
+      otpPlaceholder: "000000",
+      otpHint: "驗證碼時效較短，可重新寄送或改用其他電郵。",
+      otpVerify: "驗證並繼續",
+      otpVerifying: "驗證中…",
+      otpResend: "重新寄送驗證碼",
+      otpResentInfo: "我們已再次寄出驗證碼到你的信箱。",
+      otpUseDifferentEmail: "改用其他電郵",
+      otpInvalidLength: "請輸入完整的 6 位數驗證碼。",
       backLanding: "返回首頁",
     },
     onboarding: {

@@ -1,4 +1,4 @@
-/** Short-lived first-party cookie carrying signup intent before OAuth / magic link completes. */
+/** Short-lived first-party cookie carrying signup intent before OAuth / email sign-in completes. */
 
 export const ENTRY_COOKIE = "vn_entry";
 

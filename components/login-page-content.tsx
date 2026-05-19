@@ -12,11 +12,27 @@ import { Input } from "@/components/ui/input";
 import { setEntryCookieClient } from "@/lib/entry-cookie";
 import { setRedirectAfterCookieClient } from "@/lib/redirect-after-login-cookie";
 
+function digitsOnlyOtp(raw: string): string {
+  return raw.replace(/\D/g, "").slice(0, 6);
+}
+
+function maskEmailForDisplay(raw: string): string {
+  const t = raw.trim();
+  const at = t.indexOf("@");
+  if (at <= 0) return t;
+  const local = t.slice(0, at);
+  const domain = t.slice(at);
+  const vis = local.slice(0, Math.min(2, local.length));
+  return `${vis}${local.length > 2 ? "***" : ""}${domain}`;
+}
+
 export function LoginPageContent() {
   const { strings } = useLanguage();
   const L = strings.login;
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState<"email" | "code">("email");
   const [info, setInfo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -42,27 +58,76 @@ export function LoginPageContent() {
     }
   }, [searchParams]);
 
-  async function onMagicLink(e: React.FormEvent) {
+  async function onSendCode(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     setInfo(null);
     try {
-      /** Browser client keeps PKCE verifier in cookies @supabase/ssr expects — Server Actions cannot. */
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
+      const trimmed = email.trim();
+      const { error: otpErr } = await supabase.auth.signInWithOtp({
+        email: trimmed,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          shouldCreateUser: true,
         },
       });
-      if (error) {
-        setError(error.message);
+      if (otpErr) {
+        setError(otpErr.message);
         return;
       }
-      setInfo(L.inboxInfo);
+      setStep("code");
+      setOtp("");
+      setInfo(L.otpSentInfo);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign-in is temporarily unavailable.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onVerifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+    const code = digitsOnlyOtp(otp);
+    if (code.length !== 6) {
+      setError(L.otpInvalidLength);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const supabase = createClient();
+      const { error: verErr } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: code,
+        type: "email",
+      });
+      if (verErr) {
+        setError(verErr.message);
+        setBusy(false);
+        return;
+      }
+      window.location.assign(`${window.location.origin}/auth/complete`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Verification failed.");
+      setBusy(false);
+    }
+  }
+
+  async function onResend() {
+    setBusy(true);
+    setError(null);
+    setInfo(null);
+    try {
+      const supabase = createClient();
+      const { error: otpErr } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: { shouldCreateUser: true },
+      });
+      if (otpErr) setError(otpErr.message);
+      else setInfo(L.otpResentInfo);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not resend code.");
     } finally {
       setBusy(false);
     }
@@ -79,6 +144,8 @@ export function LoginPageContent() {
     }
     window.location.assign(res.url);
   }
+
+  const maskedEmail = maskEmailForDisplay(email);
 
   return (
     <div className="relative min-h-screen text-slate-50">
@@ -107,28 +174,89 @@ export function LoginPageContent() {
             <div className="h-px flex-1 bg-white/10" />
           </div>
 
-          <form className="space-y-4" onSubmit={(e) => void onMagicLink(e)}>
-            <Input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={L.emailPlaceholder}
-              className="border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500"
-            />
-            <Button
-              type="submit"
-              disabled={busy}
-              className="w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
-            >
-              {L.magicSubmit}
-            </Button>
-          </form>
+          {step === "email" ? (
+            <form className="space-y-4" onSubmit={(e) => void onSendCode(e)}>
+              <div className="space-y-2">
+                <label htmlFor="login-email" className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  {L.emailLabel}
+                </label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={L.emailPlaceholder}
+                  className="border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500"
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={busy}
+                className="w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
+              >
+                {busy ? L.otpSending : L.otpSendCode}
+              </Button>
+            </form>
+          ) : (
+            <form className="space-y-5" onSubmit={(e) => void onVerifyOtp(e)}>
+              <div className="rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-slate-300">
+                <p>{L.otpSentTo}</p>
+                <p className="mt-1 font-medium text-white">{maskedEmail}</p>
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="login-otp" className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  {L.otpLabel}
+                </label>
+                <Input
+                  id="login-otp"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) => setOtp(digitsOnlyOtp(e.target.value))}
+                  placeholder={L.otpPlaceholder}
+                  className="border-white/10 bg-white/[0.03] text-center font-mono text-2xl tracking-[0.35em] text-slate-50 placeholder:text-slate-600 placeholder:tracking-normal md:text-3xl"
+                />
+                <p className="text-xs leading-relaxed text-slate-500">{L.otpHint}</p>
+              </div>
+              <Button
+                type="submit"
+                disabled={busy || digitsOnlyOtp(otp).length !== 6}
+                className="w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
+              >
+                {busy ? L.otpVerifying : L.otpVerify}
+              </Button>
+              <div className="flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="button"
+                  className="text-sm text-sky-400/90 underline-offset-4 hover:underline disabled:opacity-50"
+                  disabled={busy}
+                  onClick={() => void onResend()}
+                >
+                  {L.otpResend}
+                </button>
+                <button
+                  type="button"
+                  className="text-sm text-slate-500 underline-offset-4 hover:text-slate-300 hover:underline"
+                  disabled={busy}
+                  onClick={() => {
+                    setStep("email");
+                    setOtp("");
+                    setInfo(null);
+                    setError(null);
+                  }}
+                >
+                  {L.otpUseDifferentEmail}
+                </button>
+              </div>
+            </form>
+          )}
 
           {info ? (
             <div className="mt-4 space-y-2 text-sm">
               <p className="text-sky-300/90">{info}</p>
-              <p className="leading-relaxed text-slate-500">{L.sameBrowserHint}</p>
             </div>
           ) : null}
           {error ? <p className="mt-4 text-sm text-red-400">{error}</p> : null}

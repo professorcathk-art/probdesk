@@ -162,11 +162,13 @@ export function IntentCardRequestsList({
             </div>
             {statusSub ? <p className="mt-1.5 text-xs text-slate-500">{statusSub}</p> : null}
 
-            <div className="mt-4 flex gap-3">
-              <div className="shrink-0 pt-0.5">
-                <LockedAvatarPreview size="sm" />
-              </div>
-              <div className="min-w-0 flex-1 space-y-3">
+            <div className={cn("mt-4", inboundListing ? "space-y-4" : "flex gap-3")}>
+              {!inboundListing ? (
+                <div className="shrink-0 pt-0.5">
+                  <LockedAvatarPreview size="sm" />
+                </div>
+              ) : null}
+              <div className={cn("min-w-0 flex-1 space-y-3", inboundListing && "w-full")}>
                 {showAnonymousPreview ? (
                   <div>
                     <p className="text-sm font-medium text-slate-100">{d.peerAnonymous}</p>

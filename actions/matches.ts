@@ -79,7 +79,6 @@ export async function initiateConnection(params: {
   /** When omitted, invite targets the member by profile discovery (no Explore listing row). */
   receiverIntentId?: string | null;
   introductory_context: string;
-  senderDisclosesProfile?: boolean;
   /** Manage discovery: sender's intent card this invite was started from. */
   senderContextIntentId?: string | null;
 }): Promise<InitiateConnectionResult> {
@@ -337,7 +336,7 @@ export async function initiateConnection(params: {
     status: "Pending",
     system_ack_sender: false,
     system_ack_receiver: false,
-    sender_discloses_profile: Boolean(params.senderDisclosesProfile),
+    sender_discloses_profile: false,
   });
 
   if (error) {

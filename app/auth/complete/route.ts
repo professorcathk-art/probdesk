@@ -3,21 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { redirectAfterAuthenticatedSession } from "@/lib/post-auth-session-redirect";
 import { getSiteOrigin } from "@/lib/site-url";
 
+/**
+ * Full-page redirect target after email OTP verification (session already in cookies).
+ * Reuses the same post-login routing as OAuth / magic-link callback.
+ */
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const code = url.searchParams.get("code");
   const site = getSiteOrigin(request);
-
-  if (!code) {
-    return NextResponse.redirect(`${site}/login?error=missing_code`);
-  }
-
   const supabase = await createClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-  if (error) {
-    return NextResponse.redirect(`${site}/login?error=${encodeURIComponent(error.message)}`);
-  }
-
   return redirectAfterAuthenticatedSession(request, site, supabase);
 }
