@@ -365,10 +365,10 @@ export function ConsoleClient({
     const discover = await computeHybridSuggestions(newIntentId);
     setPostCreateDiscovering(false);
     await router.refresh();
-    if (discover.ok && discover.suggestions.length > 0) {
+    if (discover.ok) {
       setFreshMatchesIntentId(newIntentId);
       setFreshMatchesModal(discover.suggestions);
-    } else if (!discover.ok) {
+    } else {
       setError(discover.message);
     }
   }

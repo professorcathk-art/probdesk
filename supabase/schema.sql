@@ -236,7 +236,7 @@ as $$
     pr.age_group,
     pr.skills_tags,
     pr.languages,
-    pr.location,
+    coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')) as location,
     pr.industry,
     pr.superpower,
     li.id as linked_intent_id,
@@ -246,7 +246,7 @@ as $$
   from public.profiles pr
   inner join public.users u on u.id = pr.user_id
   left join lateral (
-    select ir.id, ir.natural_language_input
+    select ir.id, ir.natural_language_input, ir.location_filter
     from public.intent_requests ir
     where ir.user_id = pr.user_id
       and ir.status = 'active'
@@ -254,12 +254,12 @@ as $$
     limit 1
   ) li on true
   where pr.supply_embedding is not null
-    and pr.location is not null
-    and length(trim(pr.location)) > 0
+    and coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')) is not null
+    and length(trim(coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')))) > 0
     and u.onboarding_status = 'complete'
     and (
       not coalesce(p_require_location_match, true)
-      or lower(trim(pr.location)) = lower(trim(p_location))
+      or lower(trim(coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')))) = lower(trim(p_location))
     )
     and (p_exclude_user_id is null or pr.user_id <> p_exclude_user_id)
     and (pr.supply_embedding <=> target_embedding) <= p_threshold

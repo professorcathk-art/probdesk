@@ -23,6 +23,8 @@ export function buildSupplyEmbeddingText(p: {
   superpower: string | null;
   languages: string[];
   skills_tags?: string[];
+  /** Active Explore listing — pulls complementary phrases into supply space for demand↔supply retrieval. */
+  activeIntentNaturalLanguage?: string | null;
 }): string {
   const industryBio =
     [p.industry?.trim(), p.bio?.trim()].filter(Boolean).join(" / ") || "Networking member";
@@ -31,5 +33,10 @@ export function buildSupplyEmbeddingText(p: {
   const langStr = langs.length > 0 ? langs.join(", ") : "(none stated)";
   const tags = (p.skills_tags ?? []).map((s) => String(s).trim()).filter(Boolean);
   const tagStr = tags.length > 0 ? tags.join(", ") : "(none stated)";
-  return `I am a: ${industryBio}. My superpower/offer: ${superpower}. Spoken languages: ${langStr}. Keywords/interests: ${tagStr}.`;
+  const listingRaw = p.activeIntentNaturalLanguage?.trim();
+  const listing =
+    listingRaw && listingRaw.length > 0
+      ? ` Active Explore listing (what I'm seeking right now): ${listingRaw}.`
+      : "";
+  return `I am a: ${industryBio}. My superpower/offer: ${superpower}. Spoken languages: ${langStr}. Keywords/interests: ${tagStr}.${listing}`;
 }

@@ -287,13 +287,21 @@ export async function completeOnboarding(params: {
   revalidatePath("/square");
   revalidatePath("/");
 
-  /** Embedding calls an external API — must not delay redirect to Manage. */
-  void syncProfileEmbedding(supabase, user.id, {
+  const { data: intentForSupply } = await supabase
+    .from("intent_requests")
+    .select("natural_language_input")
+    .eq("id", params.intentId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  /** Indexes profile for Phase 14 discovery (supply_embedding); includes listing text when available. */
+  await syncProfileEmbedding(supabase, user.id, {
     bio: params.profile.bio ?? null,
     industry: params.profile.industry ?? null,
     superpower: superpowerTrim || null,
     skills_tags: skillTags,
     languages: langTags,
+    activeIntentNaturalLanguage: intentForSupply?.natural_language_input ?? null,
   });
 
   return { ok: true as const };
@@ -842,6 +850,21 @@ export async function createConsoleIntent(
 
   if (error || !inserted) return { ok: false as const, message: error?.message ?? "Insert failed" };
 
+  const { data: profForSupply } = await supabase
+    .from("profiles")
+    .select("bio, industry, superpower, skills_tags, languages")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  await syncProfileEmbedding(supabase, user.id, {
+    bio: profForSupply?.bio ?? null,
+    industry: profForSupply?.industry ?? null,
+    superpower: profForSupply?.superpower ?? null,
+    skills_tags: Array.isArray(profForSupply?.skills_tags) ? profForSupply.skills_tags : [],
+    languages: Array.isArray(profForSupply?.languages) ? profForSupply.languages : [],
+    activeIntentNaturalLanguage: trimmed,
+  });
+
   revalidatePath("/console");
   revalidatePath("/square");
   return { ok: true as const, intentId: inserted.id as string };
@@ -919,6 +942,30 @@ export async function updateConsoleIntent(
     .eq("user_id", user.id);
 
   if (error) return { ok: false as const, message: error.message };
+
+  const { data: profForSupply } = await supabase
+    .from("profiles")
+    .select("bio, industry, superpower, skills_tags, languages")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const { data: latestListing } = await supabase
+    .from("intent_requests")
+    .select("natural_language_input")
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  await syncProfileEmbedding(supabase, user.id, {
+    bio: profForSupply?.bio ?? null,
+    industry: profForSupply?.industry ?? null,
+    superpower: profForSupply?.superpower ?? null,
+    skills_tags: Array.isArray(profForSupply?.skills_tags) ? profForSupply.skills_tags : [],
+    languages: Array.isArray(profForSupply?.languages) ? profForSupply.languages : [],
+    activeIntentNaturalLanguage: latestListing?.natural_language_input ?? null,
+  });
 
   revalidatePath("/console");
   revalidatePath("/square");

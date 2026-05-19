@@ -15,6 +15,7 @@ Rows are written **server-side** with the Supabase **service role** into `pairin
 1. Confirm **`SUPABASE_SERVICE_ROLE_KEY`** is set in the **production** Next.js / Vercel environment (without it, inserts are skipped and errors are logged server-side).
 2. Check server logs for **`[pairing_score_events]`** insert failures.
 3. Run discovery again after deploy; an empty candidate pool still produces a diagnostic row with `excluded_reason` set (e.g. `empty_rpc_retrieval`).
+4. **`match_profiles`** requires **`profiles.supply_embedding`** and onboarding complete. Candidate **location** for filtering uses **`profiles.location`** with fallback to the member’s latest **active** intent’s **`location_filter`** (migration `067`). **`syncProfileEmbedding`** includes the latest active listing text in the supply vector so dating-style complements surface in retrieval.
 
 ## Daily digest email (`ai_recommendations`)
 

@@ -456,12 +456,22 @@ export async function updateMyProfileIdentity(fields: {
   revalidatePath("/profile");
   revalidatePath("/");
 
+  const { data: latestListing } = await supabase
+    .from("intent_requests")
+    .select("natural_language_input")
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   await syncProfileEmbedding(supabase, user.id, {
     bio: fields.bio.trim() || null,
     industry: fields.industry.trim() || null,
     superpower: superTrim || null,
     skills_tags,
     languages,
+    activeIntentNaturalLanguage: latestListing?.natural_language_input ?? null,
   });
 
   void generateBackgroundMatchesForProfileUser(user.id);
