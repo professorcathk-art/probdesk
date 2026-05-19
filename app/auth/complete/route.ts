@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { redirectAfterAuthenticatedSession } from "@/lib/post-auth-session-redirect";
 import { getSiteOrigin } from "@/lib/site-url";

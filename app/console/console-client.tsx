@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
 import { Users } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { IntentRow, SuggestionCard } from "@/actions/intents";
 import {
   computeHybridSuggestions,
@@ -51,10 +51,13 @@ import {
   MIN_INTENT_CHARS,
   readLandingIntentDraftBackup,
 } from "@/lib/intent-draft";
-import { cn } from "@/lib/utils";
 import { aiRecommendationToSuggestionCard } from "@/lib/ai-recommendation-to-suggestion-card";
 import { displayProfileAgeGroup } from "@/lib/display-age-group";
+import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
+
+/** Connections-tab dot: matches newer than (mount time − window); cutoff fixed at first render for stable purity. */
+const CONNECTION_TAB_RECENCY_MS = 72 * 60 * 60 * 1000;
 
 type Props = {
   userId: string;
@@ -238,7 +241,7 @@ export function ConsoleClient({
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [activeConnections, userId]);
 
-  const CONNECTION_DOT_WINDOW_MS = 72 * 60 * 60 * 1000;
+  const [connectionsAttentionCutoff] = useState(() => Date.now() - CONNECTION_TAB_RECENCY_MS);
 
   const intentsTabAttention = useMemo(
     () => intents.some((i) => intentManageTabNeedsAttention(i.id, userId, matches)),
@@ -254,9 +257,10 @@ export function ConsoleClient({
   );
 
   const connectionsTabAttention = useMemo(() => {
-    const cutoff = Date.now() - CONNECTION_DOT_WINDOW_MS;
-    return connectionsByPeer.some(([, rows]) => rows.some((m) => new Date(m.created_at).getTime() >= cutoff));
-  }, [connectionsByPeer]);
+    return connectionsByPeer.some(([, rows]) =>
+      rows.some((m) => new Date(m.created_at).getTime() >= connectionsAttentionCutoff),
+    );
+  }, [connectionsByPeer, connectionsAttentionCutoff]);
 
   async function refreshFromServer() {
     router.refresh();
