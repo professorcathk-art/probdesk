@@ -96,9 +96,8 @@ create index if not exists intent_requests_demand_embedding_ivfflat
 
 alter table public.profiles add column if not exists supply_embedding vector(1536);
 
-create index if not exists profiles_supply_embedding_ivfflat
-  on public.profiles using ivfflat (supply_embedding vector_cosine_ops)
-  with (lists = 100);
+-- No IVFFLAT on supply_embedding by default: small membership uses sequential scan (see migration 068).
+-- Add HNSW or IVFFLAT after you have enough embedded profiles to justify approximate search.
 
 create table if not exists public.matches (
   id uuid primary key default uuid_generate_v4(),

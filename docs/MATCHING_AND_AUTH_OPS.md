@@ -16,6 +16,7 @@ Rows are written **server-side** with the Supabase **service role** into `pairin
 2. Check server logs for **`[pairing_score_events]`** insert failures.
 3. Run discovery again after deploy; an empty candidate pool still produces a diagnostic row with `excluded_reason` set (e.g. `empty_rpc_retrieval`).
 4. **`match_profiles`** requires **`profiles.supply_embedding`** and onboarding complete. Candidate **location** for filtering uses **`profiles.location`** with fallback to the member’s latest **active** intent’s **`location_filter`** (migration `067`). **`syncProfileEmbedding`** includes the latest active listing text in the supply vector so dating-style complements surface in retrieval.
+5. Migration **`068`** drops **`profiles_supply_embedding_ivfflat`**: on small/partial corpora, IVFFLAT can return **zero** neighbors (false empty pool). Sequential scan is used until you add HNSW or a tuned IVFFLAT at scale. Server logs **`[syncProfileEmbedding]`** if the profile vector write fails (previously swallowed).
 
 ## Daily digest email (`ai_recommendations`)
 

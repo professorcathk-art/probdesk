@@ -13,12 +13,12 @@ export type ProfileSupplyEmbeddingSource = {
   activeIntentNaturalLanguage?: string | null;
 };
 
-/** Best-effort: keeps `profiles.supply_embedding` (and legacy `embedding`) aligned for Phase 14 retrieval. */
+/** Keeps `profiles.supply_embedding` (and legacy `embedding`) aligned for Phase 14 retrieval. */
 export async function syncProfileEmbedding(
   supabase: SupabaseClient,
   userId: string,
   source: ProfileSupplyEmbeddingSource,
-): Promise<void> {
+): Promise<{ ok: boolean }> {
   try {
     const languages = Array.isArray(source.languages) ? source.languages : [];
     const skills_tags = Array.isArray(source.skills_tags) ? source.skills_tags : [];
@@ -32,11 +32,27 @@ export async function syncProfileEmbedding(
     });
     const vec = await embedTextSmall(text);
     const lit = vectorLiteral(vec);
-    await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .update({ supply_embedding: lit, embedding: lit })
-      .eq("user_id", userId);
-  } catch {
-    /* embedding must never block profile saves */
+      .eq("user_id", userId)
+      .select("user_id")
+      .maybeSingle();
+
+    if (error) {
+      console.error("[syncProfileEmbedding] Supabase update failed", userId, error.message);
+      return { ok: false };
+    }
+    if (!data) {
+      console.error(
+        "[syncProfileEmbedding] No profile row updated (missing profiles row or RLS blocked)",
+        userId,
+      );
+      return { ok: false };
+    }
+    return { ok: true };
+  } catch (e) {
+    console.error("[syncProfileEmbedding] Unexpected failure", userId, e);
+    return { ok: false };
   }
 }

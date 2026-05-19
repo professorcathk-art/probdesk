@@ -465,7 +465,7 @@ export async function updateMyProfileIdentity(fields: {
     .limit(1)
     .maybeSingle();
 
-  await syncProfileEmbedding(supabase, user.id, {
+  const supplyEmb = await syncProfileEmbedding(supabase, user.id, {
     bio: fields.bio.trim() || null,
     industry: fields.industry.trim() || null,
     superpower: superTrim || null,
@@ -473,6 +473,9 @@ export async function updateMyProfileIdentity(fields: {
     languages,
     activeIntentNaturalLanguage: latestListing?.natural_language_input ?? null,
   });
+  if (!supplyEmb.ok) {
+    console.warn("[updateMyProfileIdentity] supply_embedding sync did not persist", user.id);
+  }
 
   void generateBackgroundMatchesForProfileUser(user.id);
 

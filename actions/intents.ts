@@ -16,7 +16,7 @@ import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
 import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
 import { logPairingScoreEvent } from "@/lib/pairing-score-log";
 import { BLOCKING_MATCH_STATUSES } from "@/lib/match-blocking";
-import { vectorLiteral } from "@/lib/vector-literal";
+import { vectorLiteral, embeddingVectorForRpc } from "@/lib/vector-literal";
 import { syncProfileEmbedding } from "@/lib/sync-profile-embedding";
 import { buildDemandEmbeddingText } from "@/lib/demand-supply-embedding";
 import { recordImmediateHybridRecommendations } from "@/actions/ai-recommendations";
@@ -295,7 +295,7 @@ export async function completeOnboarding(params: {
     .maybeSingle();
 
   /** Indexes profile for Phase 14 discovery (supply_embedding); includes listing text when available. */
-  await syncProfileEmbedding(supabase, user.id, {
+  const supplyEmb = await syncProfileEmbedding(supabase, user.id, {
     bio: params.profile.bio ?? null,
     industry: params.profile.industry ?? null,
     superpower: superpowerTrim || null,
@@ -303,6 +303,9 @@ export async function completeOnboarding(params: {
     languages: langTags,
     activeIntentNaturalLanguage: intentForSupply?.natural_language_input ?? null,
   });
+  if (!supplyEmb.ok) {
+    console.warn("[completeOnboarding] supply_embedding sync did not persist", user.id);
+  }
 
   return { ok: true as const };
 }
@@ -458,6 +461,16 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     };
   }
 
+  let targetEmbeddingRpc: string;
+  try {
+    targetEmbeddingRpc = embeddingVectorForRpc(demandVec);
+  } catch (e) {
+    return {
+      ok: false,
+      message: e instanceof Error ? e.message : "Invalid intent embedding format.",
+    };
+  }
+
   const { data: blockRows } = await supabase
     .from("matches")
     .select("sender_id, receiver_id")
@@ -522,7 +535,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
 
   for (const tier of MATCH_TIERS) {
     const { data, error: tierErr } = await supabase.rpc("match_profiles", {
-      target_embedding: demandVec as unknown as string,
+      target_embedding: targetEmbeddingRpc,
       p_location: intent.location_filter,
       p_threshold: tier.maxDistance,
       p_limit: 20,
@@ -545,7 +558,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
 
   if (!rpcError && supplyRows.length === 0) {
     const { data: fbData, error: fbErr } = await supabase.rpc("match_profiles", {
-      target_embedding: demandVec as unknown as string,
+      target_embedding: targetEmbeddingRpc,
       p_location: intent.location_filter,
       p_threshold: NEIGHBOR_FALLBACK_MAX_DISTANCE,
       p_limit: NEIGHBOR_FALLBACK_LIMIT,
@@ -856,7 +869,7 @@ export async function createConsoleIntent(
     .eq("user_id", user.id)
     .maybeSingle();
 
-  await syncProfileEmbedding(supabase, user.id, {
+  const supplyEmb = await syncProfileEmbedding(supabase, user.id, {
     bio: profForSupply?.bio ?? null,
     industry: profForSupply?.industry ?? null,
     superpower: profForSupply?.superpower ?? null,
@@ -864,6 +877,9 @@ export async function createConsoleIntent(
     languages: Array.isArray(profForSupply?.languages) ? profForSupply.languages : [],
     activeIntentNaturalLanguage: trimmed,
   });
+  if (!supplyEmb.ok) {
+    console.warn("[createConsoleIntent] supply_embedding sync did not persist", user.id);
+  }
 
   revalidatePath("/console");
   revalidatePath("/square");
@@ -958,7 +974,7 @@ export async function updateConsoleIntent(
     .limit(1)
     .maybeSingle();
 
-  await syncProfileEmbedding(supabase, user.id, {
+  const supplyEmb = await syncProfileEmbedding(supabase, user.id, {
     bio: profForSupply?.bio ?? null,
     industry: profForSupply?.industry ?? null,
     superpower: profForSupply?.superpower ?? null,
@@ -966,6 +982,9 @@ export async function updateConsoleIntent(
     languages: Array.isArray(profForSupply?.languages) ? profForSupply.languages : [],
     activeIntentNaturalLanguage: latestListing?.natural_language_input ?? null,
   });
+  if (!supplyEmb.ok) {
+    console.warn("[updateConsoleIntent] supply_embedding sync did not persist", user.id);
+  }
 
   revalidatePath("/console");
   revalidatePath("/square");
