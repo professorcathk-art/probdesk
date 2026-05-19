@@ -5,6 +5,7 @@ import { getAuthContext } from "@/lib/auth-context";
 import { ensureProfileCoreCompleteForAppUse } from "@/lib/ensure-profile-core";
 import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
 import { ConsoleClient } from "./console-client";
+import { listMyAiRecommendations } from "@/actions/ai-recommendations";
 import { getProfileBasicsGateForInvites } from "@/actions/profile";
 
 export const dynamic = "force-dynamic";
@@ -34,21 +35,24 @@ export default async function ConsolePage({
     ? (tabRaw as (typeof validTabs)[number])
     : "intents";
 
-  const intentsRes = await listMyIntents();
-  const matchesRes = await listMatches();
-  const blockedRes = await getBlockingPeerIdsForCurrentUser();
+  const [intentsRes, matchesRes, blockedRes, quotaRes, inviteGate, aiRecRes] = await Promise.all([
+    listMyIntents(),
+    listMatches(),
+    getBlockingPeerIdsForCurrentUser(),
+    getConsoleQuotaSnapshot(),
+    getProfileBasicsGateForInvites(),
+    listMyAiRecommendations(),
+  ]);
 
   const intents = "error" in intentsRes ? [] : intentsRes.intents;
   const matches = "error" in matchesRes ? [] : matchesRes.matches;
   const blockedPeerIds = "error" in blockedRes ? [] : blockedRes.peerIds;
+  const aiRecommendations = aiRecRes.ok ? aiRecRes.rows : [];
 
-  const quotaRes = await getConsoleQuotaSnapshot();
   const quotaSnapshot =
     "error" in quotaRes
       ? { activeIntentCount: 0, maxActiveIntents: MAX_ACTIVE_INTENTS_PER_USER, unlimitedIntents: false }
       : quotaRes;
-
-  const inviteGate = await getProfileBasicsGateForInvites();
 
   return (
     <ConsoleClient
@@ -57,6 +61,7 @@ export default async function ConsolePage({
       intents={intents}
       matches={matches}
       blockedPeerIds={blockedPeerIds}
+      aiRecommendations={aiRecommendations}
       initialConsoleTab={initialConsoleTab}
       initialConsoleCue={initialConsoleCue}
       quotaSnapshot={quotaSnapshot}

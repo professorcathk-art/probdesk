@@ -7,6 +7,7 @@ import { normalizeProfileTags } from "@/lib/profile-tags";
 import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { syncProfileEmbedding } from "@/lib/sync-profile-embedding";
+import { generateBackgroundMatchesForProfileUser } from "@/actions/ai-recommendations";
 import { parseProfileAgeGroup } from "@/lib/profile-age-groups";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 
@@ -451,6 +452,10 @@ export async function updateMyProfileIdentity(fields: {
 
   if (error) return { ok: false as const, message: error.message };
 
+  revalidatePath("/console");
+  revalidatePath("/profile");
+  revalidatePath("/");
+
   await syncProfileEmbedding(supabase, user.id, {
     bio: fields.bio.trim() || null,
     industry: fields.industry.trim() || null,
@@ -459,8 +464,7 @@ export async function updateMyProfileIdentity(fields: {
     languages,
   });
 
-  revalidatePath("/console");
-  revalidatePath("/profile");
-  revalidatePath("/");
+  void generateBackgroundMatchesForProfileUser(user.id);
+
   return { ok: true as const };
 }

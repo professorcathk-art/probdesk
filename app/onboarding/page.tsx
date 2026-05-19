@@ -169,6 +169,7 @@ export default function OnboardingPage() {
       return;
     }
     router.replace("/console");
+    router.refresh();
   }
 
   if (checkingAuth) {

@@ -14,6 +14,8 @@ import {
 } from "@/actions/intents";
 import type { MatchRow } from "@/actions/matches";
 import { respondToMatch } from "@/actions/matches";
+import type { AiRecommendationListItem } from "@/actions/ai-recommendations";
+import { AiRecommendationsConsole } from "@/components/ai-recommendations-console";
 import { ConnectModal } from "@/components/connect-modal";
 import { CreditsLimitModal } from "@/components/credits-limit-modal";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
@@ -50,6 +52,7 @@ import {
   readLandingIntentDraftBackup,
 } from "@/lib/intent-draft";
 import { cn } from "@/lib/utils";
+import { aiRecommendationToSuggestionCard } from "@/lib/ai-recommendation-to-suggestion-card";
 import { displayProfileAgeGroup } from "@/lib/display-age-group";
 import { useSessionStore } from "@/stores/session-store";
 
@@ -58,6 +61,7 @@ type Props = {
   intents: IntentRow[];
   matches: MatchRow[];
   blockedPeerIds: string[];
+  aiRecommendations: AiRecommendationListItem[];
   initialConsoleTab?: "intents" | "requests" | "connections";
   /** Post-login cue from `/console?cue=` — stripped client-side after handling. */
   initialConsoleCue?: "pulseCreateIntent" | "openIntentDraft" | null;
@@ -74,6 +78,7 @@ export function ConsoleClient({
   intents,
   matches,
   blockedPeerIds,
+  aiRecommendations,
   initialConsoleTab = "intents",
   initialConsoleCue = null,
   quotaSnapshot,
@@ -241,8 +246,11 @@ export function ConsoleClient({
   );
 
   const requestsTabAttention = useMemo(
-    () => inboundProfileDiscovery.length > 0 || outboundInvitesToOthers.some((m) => m.status === "Pending"),
-    [inboundProfileDiscovery, outboundInvitesToOthers],
+    () =>
+      inboundProfileDiscovery.length > 0 ||
+      outboundInvitesToOthers.some((m) => m.status === "Pending") ||
+      aiRecommendations.length > 0,
+    [inboundProfileDiscovery, outboundInvitesToOthers, aiRecommendations.length],
   );
 
   const connectionsTabAttention = useMemo(() => {
@@ -322,6 +330,10 @@ export function ConsoleClient({
     setFreshMatchesModal(null);
     setFreshMatchesIntentId(null);
     openConnect(card, senderIntent);
+  }
+
+  function openInviteFromAiRecommendation(row: AiRecommendationListItem) {
+    openConnect(aiRecommendationToSuggestionCard(row), row.intent_id);
   }
 
   async function onCreateIntent() {
@@ -559,6 +571,18 @@ export function ConsoleClient({
                           matches={matches}
                           onRespond={(id, dec) => void onRespond(id, dec)}
                         />
+                        <AiRecommendationsConsole
+                          variant="intentStrip"
+                          intentId={intent.id}
+                          rows={aiRecommendations}
+                          blockedPeerIds={blockedPeers}
+                          onInvite={(row) => openInviteFromAiRecommendation(row)}
+                          onPreview={(uid) => {
+                            setPreviewPeerId(uid);
+                            setPreviewOpen(true);
+                          }}
+                          onAfterDismiss={() => void router.refresh()}
+                        />
                       </div>
                     </CardContent>
                   </Card>
@@ -568,6 +592,18 @@ export function ConsoleClient({
           </TabsContent>
 
           <TabsContent value="requests" className="space-y-10">
+            <AiRecommendationsConsole
+              variant="requestsHub"
+              rows={aiRecommendations}
+              blockedPeerIds={blockedPeers}
+              onInvite={(row) => openInviteFromAiRecommendation(row)}
+              onPreview={(uid) => {
+                setPreviewPeerId(uid);
+                setPreviewOpen(true);
+              }}
+              onAfterDismiss={() => void router.refresh()}
+            />
+
             <section className="space-y-4">
               <h2 className="text-xl font-semibold text-white">{t.inboundDiscoveryTitle}</h2>
               <p className="text-sm text-slate-500">{t.inboundDiscoveryDesc}</p>

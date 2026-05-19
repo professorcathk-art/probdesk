@@ -22,8 +22,7 @@ export default async function ProfilePage({
   const showProfileRequiredBanner = sp.required === "profile";
   const redirectAfterSave = sanitizeInternalRedirect(typeof sp.after === "string" ? sp.after : undefined);
 
-  const avatarRes = await getMyProfileAvatar();
-  const profileRes = await getMyProfileIdentity();
+  const [avatarRes, profileRes] = await Promise.all([getMyProfileAvatar(), getMyProfileIdentity()]);
 
   let coreFieldIssues: ProfileCoreFieldKey[] = [];
   if (showProfileRequiredBanner && !("error" in profileRes)) {

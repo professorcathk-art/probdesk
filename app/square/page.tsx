@@ -22,19 +22,26 @@ export default async function SquarePage({
   const connectToIntentId = /^[0-9a-f-]{36}$/i.test(connectToRaw) ? connectToRaw : undefined;
 
   const { user } = await getAuthContext();
-  const res = await listMarketplaceListings({ guestPreview: !user });
+
+  const [res, pendingRes, userExtras] = await Promise.all([
+    listMarketplaceListings({ guestPreview: !user }),
+    user ? getSquarePendingIntentIdsForCurrentUser() : Promise.resolve({ intentIds: [] as string[] }),
+    user
+      ? Promise.all([getConsoleQuotaSnapshot(), getProfileBasicsGateForInvites()] as const)
+      : Promise.resolve(null),
+  ]);
+
   const listings = "error" in res ? [] : res.listings;
   const guestListingsCapped = !user && !("error" in res) && res.moreAvailable;
-  const pendingRes = await getSquarePendingIntentIdsForCurrentUser();
   const pendingIntentIds = "error" in pendingRes ? [] : pendingRes.intentIds;
 
-  const quotaRes = user ? await getConsoleQuotaSnapshot() : null;
+  const quotaRes = userExtras?.[0];
   const quotaSnapshot =
     quotaRes && !("error" in quotaRes)
       ? quotaRes
       : { activeIntentCount: 0, maxActiveIntents: MAX_ACTIVE_INTENTS_PER_USER, unlimitedIntents: false };
 
-  const inviteGate = user ? await getProfileBasicsGateForInvites() : { ok: true as const };
+  const inviteGate = userExtras?.[1] ?? { ok: true as const };
 
   return (
     <div className="relative min-h-screen text-slate-50">

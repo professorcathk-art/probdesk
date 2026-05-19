@@ -10,20 +10,15 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const { user } = await getAuthContext();
 
-  const listingsRes = await listMarketplaceListings();
+  const [listingsRes, pendingRes, inviteGate] = await Promise.all([
+    listMarketplaceListings(),
+    user ? getSquarePendingIntentIdsForCurrentUser() : Promise.resolve({ intentIds: [] as string[] }),
+    user ? getProfileBasicsGateForInvites() : Promise.resolve({ ok: true as const }),
+  ]);
+
   const squareListings = "error" in listingsRes ? [] : listingsRes.listings.slice(0, 48);
-
-  let squarePendingIntentIds: string[] = [];
-  if (user) {
-    const pendingRes = await getSquarePendingIntentIdsForCurrentUser();
-    squarePendingIntentIds = "error" in pendingRes ? [] : pendingRes.intentIds;
-  }
-
-  let profileReadyForInvites = true;
-  if (user) {
-    const gate = await getProfileBasicsGateForInvites();
-    profileReadyForInvites = gate.ok;
-  }
+  const squarePendingIntentIds = "error" in pendingRes ? [] : pendingRes.intentIds;
+  const profileReadyForInvites = inviteGate.ok;
 
   return (
     <div className="relative min-h-screen text-slate-50">

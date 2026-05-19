@@ -99,9 +99,14 @@ export default function AdminDashboard() {
             Cold-start tool: pair two active intents into a <span className="text-slate-200">Pending_System</span> match.
             Both users must accept in Console.
           </p>
-          <Link href="/console" className="mt-4 inline-block text-sm text-sky-300/90 underline-offset-4 hover:underline">
-            ← Back to console
-          </Link>
+          <div className="mt-4 flex flex-wrap gap-4">
+            <Link href="/console" className="inline-block text-sm text-sky-300/90 underline-offset-4 hover:underline">
+              ← Back to console
+            </Link>
+            <Link href="/admin/email-logs" className="inline-block text-sm text-amber-200/90 underline-offset-4 hover:underline">
+              Daily digest email logs →
+            </Link>
+          </div>
         </header>
 
         {loading ? <p className="text-slate-400">Loading directory…</p> : null}

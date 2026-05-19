@@ -19,6 +19,7 @@ import { BLOCKING_MATCH_STATUSES } from "@/lib/match-blocking";
 import { vectorLiteral } from "@/lib/vector-literal";
 import { syncProfileEmbedding } from "@/lib/sync-profile-embedding";
 import { buildDemandEmbeddingText } from "@/lib/demand-supply-embedding";
+import { recordImmediateHybridRecommendations } from "@/actions/ai-recommendations";
 
 function normalizeMustHaves(raw: string | null | undefined): string | null {
   const t = raw?.trim() ?? "";
@@ -153,6 +154,10 @@ export async function bootstrapIntentFromLanding(naturalLanguageInput: string) {
     ];
   }
 
+  revalidatePath("/console");
+  revalidatePath("/onboarding");
+  revalidatePath("/profile");
+
   return {
     ok: true as const,
     intentId: inserted.id as string,
@@ -259,14 +264,6 @@ export async function completeOnboarding(params: {
     return { ok: false as const, message: profileError.message };
   }
 
-  await syncProfileEmbedding(supabase, user.id, {
-    bio: params.profile.bio ?? null,
-    industry: params.profile.industry ?? null,
-    superpower: superpowerTrim || null,
-    skills_tags: skillTags,
-    languages: langTags,
-  });
-
   const { data: intent } = await supabase
     .from("intent_requests")
     .select("location_filter")
@@ -286,6 +283,18 @@ export async function completeOnboarding(params: {
   revalidatePath("/console");
   revalidatePath("/onboarding");
   revalidatePath("/profile");
+  revalidatePath("/marketplace");
+  revalidatePath("/square");
+  revalidatePath("/");
+
+  /** Embedding calls an external API — must not delay redirect to Manage. */
+  void syncProfileEmbedding(supabase, user.id, {
+    bio: params.profile.bio ?? null,
+    industry: params.profile.industry ?? null,
+    superpower: superpowerTrim || null,
+    skills_tags: skillTags,
+    languages: langTags,
+  });
 
   return { ok: true as const };
 }
@@ -717,6 +726,19 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   );
 
   const suggestions: SuggestionCard[] = scored.slice(0, 3).map(({ card }) => card);
+
+  try {
+    await recordImmediateHybridRecommendations(
+      intentId,
+      suggestions.map((card) => ({
+        owner_user_id: card.owner_user_id,
+        match_score: card.match_score,
+        compatibility_reason: card.compatibility_reason,
+      })),
+    );
+  } catch (e) {
+    console.error("[computeHybridSuggestions] recordImmediateHybridRecommendations:", e);
+  }
 
   return { ok: true, suggestions };
 }

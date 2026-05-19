@@ -16,15 +16,18 @@ Rows are written **server-side** with the Supabase **service role** into `pairin
 2. Check server logs for **`[pairing_score_events]`** insert failures.
 3. Run discovery again after deploy; an empty candidate pool still produces a diagnostic row with `excluded_reason` set (e.g. `empty_rpc_retrieval`).
 
-## “Daily” match email — what actually runs
+## Daily digest email (`ai_recommendations`)
 
-There is **no** job that continuously discovers new matches for every intent and emails full match lists.
+Phase 15 replaces heavyweight cron-side LLM matching with a **lightweight mailman**:
 
-What exists today:
+- **Vercel Cron** calls **`GET /api/cron/daily-digest`** once per day (see `vercel.json`; default **`0 14 * * *`** UTC).
+- Auth: **`Authorization: Bearer CRON_SECRET`** plus **`RESEND_API_KEY`** / **`RESEND_FROM_EMAIL`**.
+- The job selects **`ai_recommendations`** rows where **`email_sent = false`** and **`dismissed_at` is null**, groups them by the **intent owner’s email**, sends one Resend message per member (“You have N new AI recommendations…”), then marks those rows **`email_sent = true`**.
+- **`computeHybridSuggestions`** still runs **vector retrieval + LLM vibe scoring synchronously** and returns the top 3 immediately to the UI; those rows are **also inserted** into **`ai_recommendations`** for later digest if untouched.
+- **Background embedding matches**: profile saves **`await syncProfileEmbedding`** then **`generateBackgroundMatchesForProfileUser`** (service role + **`match_active_intents_for_supply`**) inserts **`background_supply`** rows when similarity ≥ 80 — **no LLM** on that path.
+- **`admin_email_logs`** captures each cron summary; **`/admin/email-logs`** lists runs plus unsent queue size.
 
-- **Vercel Cron** calls **`GET /api/cron/match-quality-alerts`** once per day (see `vercel.json`; schedule **`0 14 * * *`** → 14:00 UTC).
-- The route requires **`Authorization: Bearer CRON_SECRET`** and valid **`RESEND_*`** env vars.
-- For each profile where **`match_quality_alert_sent` is false**, it evaluates hybrid match quality for that user’s latest active intent (with embedding + location). If the best score is **≥ `MATCH_QUALITY_ALERT_MIN_SCORE`** (default 80) and the peer isn’t blocked, it sends **one** high-match alert email and sets **`match_quality_alert_sent = true`** — so it is **one-time per profile**, not a digest of every new suggestion.
+Legacy **`profiles.match_quality_alert_sent`** and the removed **`/api/cron/match-quality-alerts`** route are obsolete once Phase 15 is deployed.
 
 ## Google login: “Continue to …supabase.co”
 

@@ -304,6 +304,21 @@ export const STRINGS = {
       peerProfileSocial: "Social link",
       peerProfileContact: "Contact",
       matchFitScore: "Fit score",
+      aiRecBadge: "AI suggestion",
+      aiRecSectionTitle: "Saved AI suggestions",
+      aiRecSectionHint:
+        "From your latest discovery runs or automated profile matching. Dismiss anytime or send an invite — also listed under Invitations.",
+      aiRecHubTitle: "AI suggested matches",
+      aiRecHubSubtitle: "Everything queued for your requests. Open a suggestion here or from each request card.",
+      aiRecEmptyForIntent: "No saved suggestions for this request yet. Tap “Find people who fit” to generate matches.",
+      aiRecEmptyHub: "No AI suggestions in your queue right now.",
+      aiRecDismiss: "Dismiss",
+      aiRecInvite: "Send invite",
+      aiRecPreview: "Preview profile",
+      aiRecForIntent: "Your request",
+      aiRecSourceSync: "Discovery run",
+      aiRecSourceBackground: "Embedding match",
+      aiRecBlockedPeer: "You have a pending or accepted connection with this person — invite blocked.",
       intentDashboard: {
         sectionTitle: "Invitations & suggestions",
         sectionHint:
@@ -810,6 +825,21 @@ export const STRINGS = {
       peerProfileSocial: "外部連結",
       peerProfileContact: "聯絡方式",
       matchFitScore: "契合分數",
+      aiRecBadge: "AI 建議",
+      aiRecSectionTitle: "已儲存的 AI 建議",
+      aiRecSectionHint:
+        "來自你最近一次「尋找契合對象」或系統依檔案嵌入的比對。可随时移除或發送邀請——邀請分頁亦會列出。",
+      aiRecHubTitle: "AI 建議名單",
+      aiRecHubSubtitle: "彙整所有徵求的建議人選；亦可在各徵求卡片上操作。",
+      aiRecEmptyForIntent: "此徵求尚無已儲存建議。請按「尋找契合對象」產生人選。",
+      aiRecEmptyHub: "目前沒有任何 AI 建議在佇列中。",
+      aiRecDismiss: "移除",
+      aiRecInvite: "發送邀請",
+      aiRecPreview: "預覽檔案",
+      aiRecForIntent: "對應徵求",
+      aiRecSourceSync: "探索跑分",
+      aiRecSourceBackground: "嵌入比對",
+      aiRecBlockedPeer: "與對方已有待處理或已連結紀錄，無法重複邀請。",
       intentDashboard: {
         sectionTitle: "此徵求的邀請與推薦",
         sectionHint:
