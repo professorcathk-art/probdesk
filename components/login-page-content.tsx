@@ -13,7 +13,7 @@ import { setEntryCookieClient } from "@/lib/entry-cookie";
 import { setRedirectAfterCookieClient } from "@/lib/redirect-after-login-cookie";
 
 function digitsOnlyOtp(raw: string): string {
-  return raw.replace(/\D/g, "").slice(0, 6);
+  return raw.replace(/\D/g, "").slice(0, 8);
 }
 
 function maskEmailForDisplay(raw: string): string {
@@ -89,7 +89,7 @@ export function LoginPageContent() {
   async function onVerifyOtp(e: React.FormEvent) {
     e.preventDefault();
     const code = digitsOnlyOtp(otp);
-    if (code.length !== 6) {
+    if (code.length !== 8) {
       setError(L.otpInvalidLength);
       return;
     }
@@ -213,17 +213,17 @@ export function LoginPageContent() {
                   id="login-otp"
                   inputMode="numeric"
                   autoComplete="one-time-code"
-                  maxLength={6}
+                  maxLength={8}
                   value={otp}
                   onChange={(e) => setOtp(digitsOnlyOtp(e.target.value))}
                   placeholder={L.otpPlaceholder}
-                  className="border-white/10 bg-white/[0.03] text-center font-mono text-2xl tracking-[0.35em] text-slate-50 placeholder:text-slate-600 placeholder:tracking-normal md:text-3xl"
+                  className="border-white/10 bg-white/[0.03] text-center font-mono text-xl tracking-[0.2em] text-slate-50 placeholder:text-slate-600 placeholder:tracking-normal sm:text-2xl sm:tracking-[0.26em] md:text-3xl md:tracking-[0.3em]"
                 />
                 <p className="text-xs leading-relaxed text-slate-500">{L.otpHint}</p>
               </div>
               <Button
                 type="submit"
-                disabled={busy || digitsOnlyOtp(otp).length !== 6}
+                disabled={busy || digitsOnlyOtp(otp).length !== 8}
                 className="w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
               >
                 {busy ? L.otpVerifying : L.otpVerify}

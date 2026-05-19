@@ -1,12 +1,12 @@
 # Supabase: switch auth emails from magic link to OTP
 
-Vennode’s login page uses **email OTP** (`verifyOtp` with `type: "email"`). Configure Supabase so messages include the **6-digit code**.
+Vennode’s login page uses **email OTP** (`verifyOtp` with `type: "email"`). Configure Supabase so messages include the **one-time code** (your project may use **6 or 8 digits** — the app expects **8 digits** as configured in your templates / Auth settings).
 
 ## Dashboard steps
 
 1. Open **[Authentication → Email templates](https://supabase.com/dashboard/project/_/auth/templates)**.
 2. Edit **Magic link** (used for `signInWithOtp`):
-   - Include **`{{ .Token }}`** in the body — this is the **one-time 6-digit code**.
+   - Include **`{{ .Token }}`** in the body — this is the **one-time code** (length depends on your Supabase/project settings; Vennode’s UI accepts **8 digits**).
    - Optionally remove or shorten the clickable **`{{ .ConfirmationURL }}`** link so users rely on the code (recommended; avoids email scanners consuming links).
 3. Optionally adjust **Confirm signup** the same way if new users confirm email.
 4. **[Authentication → URL configuration](https://supabase.com/dashboard/project/_/auth/url-configuration)**  
