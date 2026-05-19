@@ -15,5 +15,12 @@ export function embeddingVectorForRpc(raw: unknown): string {
   if (Array.isArray(raw) && raw.length > 0 && raw.every((x) => typeof x === "number" && Number.isFinite(x))) {
     return `[${raw.join(",")}]`;
   }
+  if (typeof raw === "object" && raw !== null && ArrayBuffer.isView(raw)) {
+    const v = raw as unknown as ArrayLike<number>;
+    const arr = Array.from({ length: v.length }, (_, i) => Number(v[i]));
+    if (arr.length > 0 && arr.every((x) => Number.isFinite(x))) {
+      return `[${arr.join(",")}]`;
+    }
+  }
   throw new Error("Intent embedding has an unexpected shape — save the intent again or contact support.");
 }

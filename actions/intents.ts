@@ -483,10 +483,9 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   }
 
   /**
-   * Phase 14 retrieval: sender **demand_embedding** vs candidate **supply_embedding** only (no parallel demand↔demand).
-   * `match_profiles` RPC returns up to 20 rows; each is re-ranked by the complementary LLM.
-   * Tiers progress from stricter to looser cosine distance (pgvector `<=>` max ~2). If all tiers return empty,
-   * we fall back to nearest-neighbors regardless of distance so the LLM can still rank a small pool.
+   * Phase 14 retrieval: sender **demand_embedding** vs candidate **supply_embedding** (`match_profiles`).
+   * If that returns no rows (missing supply vectors, IVFFLAT quirks, etc.), fall back to Phase 13-style
+   * **demand vs peer intent demand** (`match_intents_cross_demand`) so discovery still works.
    */
   const MATCH_TIERS = [
     { key: "demand_supply_primary", maxDistance: 0.55, requireLocationMatch: false },
@@ -532,6 +531,9 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   let appliedMax = 0;
   let appliedReq = false;
   let rpcError: { message: string } | null = null;
+  let retrievalModel: "demand_vs_supply_embedding" | "demand_vs_peer_intent_demand" =
+    "demand_vs_supply_embedding";
+  let intentDemandFallbackAttempted = false;
 
   for (const tier of MATCH_TIERS) {
     const { data, error: tierErr } = await supabase.rpc("match_profiles", {
@@ -578,6 +580,30 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     }
   }
 
+  if (!rpcError && supplyRows.length === 0) {
+    intentDemandFallbackAttempted = true;
+    const { data: crossData, error: crossErr } = await supabase.rpc("match_intents_cross_demand", {
+      target_embedding: targetEmbeddingRpc,
+      p_location: intent.location_filter,
+      p_threshold: NEIGHBOR_FALLBACK_MAX_DISTANCE,
+      p_limit: NEIGHBOR_FALLBACK_LIMIT,
+      p_exclude_user_id: user.id,
+      p_require_location_match: false,
+    });
+    if (crossErr) {
+      rpcError = crossErr;
+    } else {
+      const next = (crossData ?? []) as SupplyRpcRow[];
+      if (next.length > 0) {
+        supplyRows = next;
+        appliedTier = "demand_cross_intent_fallback";
+        appliedMax = NEIGHBOR_FALLBACK_MAX_DISTANCE;
+        appliedReq = false;
+        retrievalModel = "demand_vs_peer_intent_demand";
+      }
+    }
+  }
+
   if (rpcError) {
     return { ok: false, message: rpcError.message };
   }
@@ -599,6 +625,8 @@ export async function computeHybridSuggestions(intentId: string): Promise<
         blocking_peer_count: blocking.size,
         applied_tier: appliedTier,
         applied_max_distance: appliedMax,
+        retrieval_model: retrievalModel,
+        intent_demand_fallback_attempted: intentDemandFallbackAttempted,
       },
     });
   }
@@ -701,7 +729,9 @@ export async function computeHybridSuggestions(intentId: string): Promise<
             peer_languages: row.languages,
             match_score: Math.round((row.similarity ?? 0) * 100),
             compatibility_reason:
-              "Demand↔supply retrieval — confirm fit manually while AI scoring is unavailable.",
+              retrievalModel === "demand_vs_peer_intent_demand"
+                ? "Demand↔demand retrieval — confirm fit manually while AI scoring is unavailable."
+                : "Demand↔supply retrieval — confirm fit manually while AI scoring is unavailable.",
           },
           logMeta: {
             candidate_intent_id: row.linked_intent_id,
@@ -738,7 +768,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
           match_tier: logMeta.tier,
           require_location_match: logMeta.require_location_match,
           discovery_source: logMeta.discovery_source,
-          retrieval_model: "demand_vs_supply_embedding",
+          retrieval_model: retrievalModel,
           intent_match_tier: null,
           profile_match_tier: appliedTier,
         },
