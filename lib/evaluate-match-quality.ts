@@ -35,8 +35,12 @@ export async function maxHybridMatchScoreForIntent(
     { maxDistance: 0.55, requireLocationMatch: false },
     { maxDistance: 0.66, requireLocationMatch: false },
     { maxDistance: 0.76, requireLocationMatch: false },
+    { maxDistance: 0.84, requireLocationMatch: false },
+    { maxDistance: 0.94, requireLocationMatch: false },
     { maxDistance: 0.72, requireLocationMatch: true },
   ] as const;
+
+  const NEIGHBOR_FALLBACK_MAX_DISTANCE = 2.0;
 
   type RpcRow = {
     user_id: string;
@@ -66,6 +70,21 @@ export async function maxHybridMatchScoreForIntent(
     }
     rows = (data ?? []) as RpcRow[];
     if (rows.length > 0) break;
+  }
+
+  if (rows.length === 0) {
+    const { data, error: fbErr } = await supabase.rpc("match_profiles", {
+      target_embedding: demandVec as unknown as string,
+      p_location: intent.location_filter,
+      p_threshold: NEIGHBOR_FALLBACK_MAX_DISTANCE,
+      p_limit: 45,
+      p_exclude_user_id: intent.user_id,
+      p_require_location_match: false,
+    });
+    if (fbErr) {
+      return { ok: false, reason: `rpc:${fbErr.message}` };
+    }
+    rows = (data ?? []) as RpcRow[];
   }
 
   if (rows.length === 0) {

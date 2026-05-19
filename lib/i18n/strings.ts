@@ -149,6 +149,8 @@ export const STRINGS = {
       freshMatchesSubtitle:
         "Up to three suggestions ranked for fit — including people without their own Explore listing. Use Preview profile for discovery-safe details (bio, age bracket, keywords, intent level, and more). Display names and photos stay hidden until mutual acceptance.",
       freshMatchesGotIt: "Got it",
+      freshMatchesEmptyState:
+        "No suggestions surfaced this round — strict retrieval plus automatic widen didn't find enough indexed peers yet (profiles need supply embeddings and onboarding complete). Try Explore, revise your request or expectations, or try again later as membership grows.",
       matchQueueTitle: "Your Match Queue (Identities protected)",
       matchQueueDesc:
         'After you tap Find people who fit, Vennode finds nearby people whose requests align with yours. Photos stay protected until someone sends an invite.',
@@ -648,6 +650,8 @@ export const STRINGS = {
       freshMatchesSubtitle:
         "以下最多三位依契合度排序——包含未另外發布探索徵求的對象。「預覽檔案」可查看不含姓名與相片的公開脈絡（簡介、年齡區間、關鍵字、交流步調等）；顯示名稱與大頭貼於雙方同意連結前會保持隱藏。",
       freshMatchesGotIt: "知道了",
+      freshMatchesEmptyState:
+        "這次沒有產生推薦——系統已自動放寬向量相似度條件；若仍空白，可能是目前符合條件的對象較少，或對方尚未完成檔案／向量同步與註冊流程。你可改用探索廣場、微調徵求與期望，或稍後再試。",
       matchQueueTitle: "你的配對佇列（身分受保護）",
       matchQueueDesc:
         "按下「尋找契合對象」後，Vennode 會在附近尋找徵求相近的人。在送出邀請前，大頭貼與身分會保持保護。",

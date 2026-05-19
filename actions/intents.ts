@@ -455,13 +455,21 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   /**
    * Phase 14 retrieval: sender **demand_embedding** vs candidate **supply_embedding** only (no parallel demand↔demand).
    * `match_profiles` RPC returns up to 20 rows; each is re-ranked by the complementary LLM.
+   * Tiers progress from stricter to looser cosine distance (pgvector `<=>` max ~2). If all tiers return empty,
+   * we fall back to nearest-neighbors regardless of distance so the LLM can still rank a small pool.
    */
   const MATCH_TIERS = [
     { key: "demand_supply_primary", maxDistance: 0.55, requireLocationMatch: false },
     { key: "demand_supply_relaxed", maxDistance: 0.66, requireLocationMatch: false },
     { key: "demand_supply_wide", maxDistance: 0.76, requireLocationMatch: false },
+    { key: "demand_supply_loose_a", maxDistance: 0.84, requireLocationMatch: false },
+    { key: "demand_supply_loose_b", maxDistance: 0.94, requireLocationMatch: false },
     { key: "demand_supply_same_city", maxDistance: 0.72, requireLocationMatch: true },
   ] as const;
+
+  /** Cosine distance upper bound (~opposite vectors); includes essentially all embedded profiles for KNN ordering. */
+  const NEIGHBOR_FALLBACK_MAX_DISTANCE = 2.0;
+  const NEIGHBOR_FALLBACK_LIMIT = 45;
 
   type SupplyRpcRow = {
     user_id: string;
@@ -490,9 +498,9 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   }
 
   let supplyRows: SupplyRpcRow[] = [];
-  let appliedTier: (typeof MATCH_TIERS)[number]["key"] = MATCH_TIERS[0].key;
-  let appliedMax = MATCH_TIERS[0].maxDistance as number;
-  let appliedReq = MATCH_TIERS[0].requireLocationMatch as boolean;
+  let appliedTier = "none";
+  let appliedMax = 0;
+  let appliedReq = false;
   let rpcError: { message: string } | null = null;
 
   for (const tier of MATCH_TIERS) {
@@ -518,11 +526,33 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     }
   }
 
+  if (!rpcError && supplyRows.length === 0) {
+    const { data: fbData, error: fbErr } = await supabase.rpc("match_profiles", {
+      target_embedding: demandVec as unknown as string,
+      p_location: intent.location_filter,
+      p_threshold: NEIGHBOR_FALLBACK_MAX_DISTANCE,
+      p_limit: NEIGHBOR_FALLBACK_LIMIT,
+      p_exclude_user_id: user.id,
+      p_require_location_match: false,
+    });
+    if (fbErr) {
+      rpcError = fbErr;
+    } else {
+      const next = (fbData ?? []) as SupplyRpcRow[];
+      if (next.length > 0) {
+        supplyRows = next;
+        appliedTier = "demand_supply_neighbor_fallback";
+        appliedMax = NEIGHBOR_FALLBACK_MAX_DISTANCE;
+        appliedReq = false;
+      }
+    }
+  }
+
   if (rpcError) {
     return { ok: false, message: rpcError.message };
   }
 
-  const POOL_SIZE = 20;
+  const POOL_SIZE = 24;
   const poolRows = dedupeBestProfileByUser(supplyRows)
     .filter((r) => !blocking.has(r.user_id))
     .slice(0, POOL_SIZE);
