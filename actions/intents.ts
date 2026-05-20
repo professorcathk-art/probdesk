@@ -418,7 +418,7 @@ export type SuggestionCard = {
 };
 
 /** Bumped when hybrid discovery logging shape changes (admin pairs this with migrations). */
-const HYBRID_DISCOVERY_LOG_PIPELINE = "071-eligibility-meta";
+const HYBRID_DISCOVERY_LOG_PIPELINE = "072-discover-in-progress";
 
 export async function computeHybridSuggestions(intentId: string): Promise<
   | { ok: true; suggestions: SuggestionCard[] }

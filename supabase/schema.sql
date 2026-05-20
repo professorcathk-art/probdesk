@@ -251,7 +251,7 @@ as $$
     limit 1
   ) li on true
   where pr.supply_embedding is not null
-    and u.onboarding_status = 'complete'
+    and u.onboarding_status in ('complete', 'in_progress')
     and (
       not coalesce(p_require_location_match, true)
       or (
@@ -329,7 +329,7 @@ as $$
     order by ir.updated_at desc nulls last, ir.created_at desc
     limit 1
   ) li on true
-  where u.onboarding_status = 'complete'
+  where u.onboarding_status in ('complete', 'in_progress')
     and (
       not coalesce(p_require_location_match, true)
       or (
@@ -361,6 +361,9 @@ as $$
     'users_onboarding_complete_excluding_anchor',
       (select count(*)::int from public.users u
        where u.onboarding_status = 'complete' and u.id <> p_exclude_user_id),
+    'users_discoverable_onboarding_excluding_anchor',
+      (select count(*)::int from public.users u
+       where u.onboarding_status in ('complete', 'in_progress') and u.id <> p_exclude_user_id),
     'distinct_users_with_active_embedded_intent_excluding_anchor',
       (select count(distinct ir.user_id)::int from public.intent_requests ir
        where ir.status = 'active'

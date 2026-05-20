@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
+import { withAvatarCacheBust } from "@/lib/avatar-cache-bust";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -54,7 +55,7 @@ export function ConsoleAvatarUpload({ initialUrl }: { initialUrl: string | null 
       }
 
       const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
-      const avatar_url = pub.publicUrl;
+      const avatar_url = withAvatarCacheBust(pub.publicUrl);
 
       const { error: dbErr } = await supabase
         .from("profiles")

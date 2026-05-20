@@ -10,6 +10,7 @@ import { syncProfileEmbedding } from "@/lib/sync-profile-embedding";
 import { generateBackgroundMatchesForProfileUser } from "@/actions/ai-recommendations";
 import { parseProfileAgeGroup } from "@/lib/profile-age-groups";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { withAvatarCacheBust } from "@/lib/avatar-cache-bust";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -80,7 +81,7 @@ export async function uploadProfileAvatar(formData: FormData) {
   if (upErr) return { ok: false as const, message: upErr.message };
 
   const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
-  const avatar_url = pub.publicUrl;
+  const avatar_url = withAvatarCacheBust(pub.publicUrl);
 
   const { error: dbErr } = await supabase
     .from("profiles")
@@ -140,7 +141,8 @@ export async function getSuggestionProfilePreview(
   }
 
   const { data: peerUser } = await svc.from("users").select("onboarding_status").eq("id", peerUserId).maybeSingle();
-  if (!peerUser || peerUser.onboarding_status !== "complete") {
+  const ost = peerUser?.onboarding_status;
+  if (!peerUser || (ost !== "complete" && ost !== "in_progress")) {
     return { ok: false as const, message: "Profile not available." };
   }
 
