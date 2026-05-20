@@ -1,5 +1,5 @@
 /**
- * Seeds ~20 curated marketplace intents owned by MARKETPLACE_DEMO_INBOX_USER_ID (typically your admin user).
+ * Seeds curated Explore demos for MARKETPLACE_DEMO_INBOX_USER_ID (seven listings by default).
  * Connection attempts route server-side to the same inbox user via is_demo_listing + MARKETPLACE_DEMO_INBOX_USER_ID.
  *
  * Usage:
