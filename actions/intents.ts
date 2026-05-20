@@ -417,6 +417,9 @@ export type SuggestionCard = {
   peer_languages: string[] | null;
 };
 
+/** Bumped when hybrid discovery logging shape changes (admin pairs this with migrations). */
+const HYBRID_DISCOVERY_LOG_PIPELINE = "071-eligibility-meta";
+
 export async function computeHybridSuggestions(intentId: string): Promise<
   | { ok: true; suggestions: SuggestionCard[] }
   | { ok: false; message: string }
@@ -535,6 +538,8 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     "demand_vs_supply_embedding";
   let intentDemandFallbackAttempted = false;
   let intentDemandFallbackRowCount: number | null = null;
+  let supplyTierMaxRowsSeen = 0;
+  let neighborSupplyRowsCount: number | null = null;
 
   for (const tier of MATCH_TIERS) {
     const { data, error: tierErr } = await supabase.rpc("match_profiles", {
@@ -550,6 +555,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
       break;
     }
     const next = (data ?? []) as SupplyRpcRow[];
+    supplyTierMaxRowsSeen = Math.max(supplyTierMaxRowsSeen, next.length);
     if (next.length > 0) {
       supplyRows = next;
       appliedTier = tier.key;
@@ -572,6 +578,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
       rpcError = fbErr;
     } else {
       const next = (fbData ?? []) as SupplyRpcRow[];
+      neighborSupplyRowsCount = next.length;
       if (next.length > 0) {
         supplyRows = next;
         appliedTier = "demand_supply_neighbor_fallback";
@@ -607,6 +614,20 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   }
 
   if (rpcError) {
+    await logPairingScoreEvent({
+      source: "hybrid_suggestion",
+      actor_user_id: user.id,
+      anchor_intent_id: intentId,
+      excluded_reason: "discovery_rpc_error",
+      meta: {
+        pipeline: HYBRID_DISCOVERY_LOG_PIPELINE,
+        supabase_message: rpcError.message,
+        supply_tier_max_rows_seen: supplyTierMaxRowsSeen,
+        neighbor_supply_row_count: neighborSupplyRowsCount,
+        intent_demand_fallback_attempted: intentDemandFallbackAttempted,
+        intent_demand_fallback_row_count: intentDemandFallbackRowCount,
+      },
+    });
     return { ok: false, message: rpcError.message };
   }
 
@@ -616,6 +637,16 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     .slice(0, POOL_SIZE);
 
   if (poolRows.length === 0) {
+    let eligibility: unknown = null;
+    const { data: eligData, error: eligErr } = await supabase.rpc("discovery_eligibility_counts", {
+      p_exclude_user_id: user.id,
+    });
+    if (eligErr) {
+      eligibility = { rpc_error: eligErr.message };
+    } else {
+      eligibility = eligData;
+    }
+
     await logPairingScoreEvent({
       source: "hybrid_suggestion",
       actor_user_id: user.id,
@@ -623,6 +654,15 @@ export async function computeHybridSuggestions(intentId: string): Promise<
       excluded_reason:
         supplyRows.length === 0 ? "empty_rpc_retrieval" : "all_candidates_blocked_or_truncated",
       meta: {
+        pipeline: HYBRID_DISCOVERY_LOG_PIPELINE,
+        anchor_user_id: user.id,
+        p_location_for_rpc: intent.location_filter,
+        target_embedding_dims:
+          targetEmbeddingRpc.startsWith("[") && targetEmbeddingRpc.endsWith("]")
+            ? targetEmbeddingRpc.slice(1, -1).split(",").filter(Boolean).length
+            : null,
+        supply_tier_max_rows_seen: supplyTierMaxRowsSeen,
+        neighbor_supply_row_count: neighborSupplyRowsCount,
         supply_rows_before_dedupe: supplyRows.length,
         blocking_peer_count: blocking.size,
         applied_tier: appliedTier,
@@ -630,6 +670,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
         retrieval_model: retrievalModel,
         intent_demand_fallback_attempted: intentDemandFallbackAttempted,
         intent_demand_fallback_row_count: intentDemandFallbackRowCount,
+        eligibility,
       },
     });
   }
@@ -767,6 +808,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
         compatibility_reason: card.compatibility_reason,
         excluded_reason: index >= 3 ? "not_in_top_3_after_sort" : null,
         meta: {
+          pipeline: HYBRID_DISCOVERY_LOG_PIPELINE,
           pool_size: poolRows.length,
           match_tier: logMeta.tier,
           require_location_match: logMeta.require_location_match,

@@ -16,13 +16,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 
-function formatMetaPreview(meta: Record<string, unknown>) {
+function PairingMetaCell({ meta }: { meta: Record<string, unknown> }) {
+  let full: string;
   try {
-    const s = JSON.stringify(meta);
-    return s.length > 160 ? `${s.slice(0, 160)}…` : s;
+    full = JSON.stringify(meta, null, 2);
   } catch {
-    return "—";
+    full = "—";
   }
+  return (
+    <details className="max-w-[min(420px,85vw)]">
+      <summary className="cursor-pointer select-none font-mono text-[10px] text-sky-400 hover:underline">
+        Meta ({full.length.toLocaleString()} chars)
+      </summary>
+      <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-white/10 bg-black/50 p-2 text-[10px] leading-relaxed text-slate-300">
+        {full}
+      </pre>
+    </details>
+  );
 }
 
 export default function AdminDashboard() {
@@ -286,8 +296,8 @@ export default function AdminDashboard() {
                       <td className="whitespace-nowrap px-2 py-2">{r.selected_top == null ? "—" : r.selected_top ? "yes" : "no"}</td>
                       <td className="max-w-[140px] break-words px-2 py-2 text-slate-400">{r.excluded_reason ?? "—"}</td>
                       <td className="max-w-[160px] break-words px-2 py-2 text-slate-400">{r.compatibility_reason ?? "—"}</td>
-                      <td className="max-w-[200px] break-all px-2 py-2 font-mono text-[10px] text-slate-500" title={formatMetaPreview(r.meta)}>
-                        {formatMetaPreview(r.meta)}
+                      <td className="max-w-[160px] px-2 py-2 align-top text-slate-400">
+                        <PairingMetaCell meta={r.meta} />
                       </td>
                     </tr>
                   ))

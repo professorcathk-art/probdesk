@@ -14,6 +14,7 @@ export type PairingScoreLogPayload = {
   selected_top?: boolean | null;
   match_score?: number | null;
   compatibility_reason?: string | null;
+  /** Known: empty_rpc_retrieval, discovery_rpc_error, not_in_top_3_after_sort, … */
   excluded_reason?: string | null;
   meta?: Record<string, unknown>;
 };
