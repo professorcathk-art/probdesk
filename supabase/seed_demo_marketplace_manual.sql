@@ -4,7 +4,7 @@
 -- 若你看到「約 120 行、$demo0$」交友草稿，那是舊緩存；請在編輯器「從磁碟重新載入」此檔。正確約 65 行，且含「羽毛球教練」「裝修師傅」。
 --
 -- Replace YOUR_USER_UUID with an existing profiles.user_id (e.g. admin), then run in Supabase SQL Editor.
--- Requires is_demo_listing (migration 049) and must_haves (migration 054). Deletes prior demo intents for that user, then inserts 7 rows.
+-- Requires is_demo_listing (migration 049) and must_haves (migration 054). Deletes prior demo intents for that user, then inserts 11 rows.
 --
 -- After wiping auth.users / all users:
 -- 1) Authentication → Add user (email/password or magic link) for your admin.
@@ -63,6 +63,18 @@ Tags: fundraising, AI, English$demo_nl_0$, 'Global / Remote'::text, $demo_nl_0_m
 標籤：automation、freelance、中文$demo_nl_5$, 'Global / Remote'::text, $demo_nl_5_mh$有實際串接 API 與建立自動化工作流的成功案例；溝通能力佳，能快速理解商業邏輯與痛點；按專案計件收費或時薪制皆可討論。$demo_nl_5_mh$),
     ($demo_nl_6$【尋找靠譜裝修師傅】近期購入位於九龍區約 400 呎的二手居屋，準備進行全屋翻新。希望尋找一位手工細膩、溝通透明的裝修統籌或師傅。重視水電等隱蔽工程的品質，風格偏向日式木質簡約風。
 
-標籤：renovation、services、中文$demo_nl_6$, 'Hong Kong'::text, $demo_nl_6_mh$能提供過往完工的實景照片或安排參觀；報價單條列清晰，不亂加隱藏收費；好溝通、願意耐心解釋施工細節；工期準確，不隨意拖延。$demo_nl_6_mh$)
+標籤：renovation、services、中文$demo_nl_6$, 'Hong Kong'::text, $demo_nl_6_mh$能提供過往完工的實景照片或安排參觀；報價單條列清晰，不亂加隱藏收費；好溝通、願意耐心解釋施工細節；工期準確，不隨意拖延。$demo_nl_6_mh$),
+    ($demo_nl_7$【香港｜認真交往】我 32 歲，在金融機構做風控分析，平時喜歡爬山、咖啡館看書，也希望對方願意一起規劃週末與長假。想找一位價值觀接近、願意深度溝通的伴侶——不一定要話很多，但要能好好聽彼此說、也把感受講清楚。希望感情節奏踏實一些：先從聊天與散步開始，彼此舒服再談下一步。
+
+標籤：dating、伴侶、香港$demo_nl_7$, '香港'::text, $demo_nl_7_mh$須為單身且願意認真交往；最好長居香港或深港通勤可接受；希望你不抽菸、酒量適度；能接受每月至少一次深度約會（不只吃飯打卡）；若你也喜歡戶外或閱讀更佳。$demo_nl_7_mh$),
+    ($demo_nl_8$Seeking a mentor who has scaled B2B SaaS from 0→1 in North America. I'm a PM turning founder; strongest in discovery research but learning outbound-heavy GTM. Would love structured monthly calls plus async feedback on deck + pricing. Happy to trade user research sprints or competitor teardowns.
+
+Tags: mentorship, B2B SaaS, English$demo_nl_8$, 'Remote / NA'::text, $demo_nl_8_mh$Must have led revenue growth at an early-stage SaaS (<50 people); comfortable reviewing outbound sequences; prefers candid feedback over cheerleading; timezone overlap with US ET mornings at least twice a month.$demo_nl_8_mh$),
+    ($demo_nl_9$天使輪募資中：智慧健身房 SaaS（會員、課表、教練分潤）。已接入 12 間付費門店，月均留存與續約數據可提供。希望投資人熟悉連鎖服務業或健身產業，能協助談區域代理與銀行授信。
+
+標籤：fundraising、健身 SaaS、中文$demo_nl_9$, '台灣'::text, $demo_nl_9_mh$投資閾值與交割時程可公開討論；希望投資方能協助介紹連鎖決策者；接受合理的董事會資訊權；謝絕要求過早買回或不合理對賭。$demo_nl_9_mh$),
+    ($demo_nl_10$Looking for pre-seed investors in consumer health journaling apps — emphasis on privacy-by-design and clinician-friendly exports. MAU 8k, week-4 retention 22%. Raising to deepen onboarding + community moderation tooling.
+
+Tags: fundraising, digital health, English$demo_nl_10$, 'Remote'::text, $demo_nl_10_mh$Understand consumer subscription ethics; comfortable with HIPAA-aligned roadmap questions; intros to digital health operators valued; transparent data room.$demo_nl_10_mh$)
   ) as v(natural_language_input, location_filter, must_haves);
 end $$;

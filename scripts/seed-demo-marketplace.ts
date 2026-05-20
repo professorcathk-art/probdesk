@@ -1,5 +1,5 @@
 /**
- * Seeds curated Explore demos for MARKETPLACE_DEMO_INBOX_USER_ID (seven listings by default).
+ * Seeds curated Explore demos for MARKETPLACE_DEMO_INBOX_USER_ID (`DEMO_SHOWCASE_INTENTS`, currently 11 rows).
  * Connection attempts route server-side to the same inbox user via is_demo_listing + MARKETPLACE_DEMO_INBOX_USER_ID.
  *
  * Usage:

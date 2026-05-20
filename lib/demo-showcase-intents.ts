@@ -1,6 +1,6 @@
 /**
- * Explore marketplace demo seed — exactly seven public listings (`npm run seed:demo-marketplace`).
- * `natural_language_input` = authoring `content` + tag line · `must_haves` = authoring `expectations`.
+ * Explore marketplace demo seed (`npm run seed:demo-marketplace`).
+ * Listing body + optional tag footer · expectations (`must_haves`).
  */
 export type ShowcaseIntentSeed = {
   natural_language_input: string;
@@ -9,7 +9,7 @@ export type ShowcaseIntentSeed = {
   must_haves?: string | null;
 };
 
-/** Seven scripted Explore cards — text aligned to your authoring JSON (content / expectations / location / tags). */
+/** Scripted Explore demos (11 rows): business／服務 + 交往／導師／募資補充。 */
 export const DEMO_SHOWCASE_INTENTS: ShowcaseIntentSeed[] = [
   {
     natural_language_input:
@@ -59,5 +59,33 @@ export const DEMO_SHOWCASE_INTENTS: ShowcaseIntentSeed[] = [
     location_filter: "Hong Kong",
     must_haves:
       "能提供過往完工的實景照片或安排參觀；報價單條列清晰，不亂加隱藏收費；好溝通、願意耐心解釋施工細節；工期準確，不隨意拖延。",
+  },
+  {
+    natural_language_input:
+      "【香港｜認真交往】我 32 歲，在金融機構做風控分析，平時喜歡爬山、咖啡館看書，也希望對方願意一起規劃週末與長假。想找一位價值觀接近、願意深度溝通的伴侶——不一定要話很多，但要能好好聽彼此說、也把感受講清楚。希望感情節奏踏實一些：先從聊天與散步開始，彼此舒服再談下一步。\n\n標籤：dating、伴侶、香港",
+    location_filter: "香港",
+    must_haves:
+      "須為單身且願意認真交往；最好長居香港或深港通勤可接受；希望你不抽菸、酒量適度；能接受每月至少一次深度約會（不只吃飯打卡）；若你也喜歡戶外或閱讀更佳。",
+  },
+  {
+    natural_language_input:
+      "Seeking a mentor who has scaled B2B SaaS from 0→1 in North America. I'm a PM turning founder; strongest in discovery research but learning outbound-heavy GTM. Would love structured monthly calls plus async feedback on deck + pricing. Happy to trade user research sprints or competitor teardowns.\n\nTags: mentorship, B2B SaaS, English",
+    location_filter: "Remote / NA",
+    must_haves:
+      "Must have led revenue growth at an early-stage SaaS (<50 people); comfortable reviewing outbound sequences; prefers candid feedback over cheerleading; timezone overlap with US ET mornings at least twice a month.",
+  },
+  {
+    natural_language_input:
+      "天使輪募資中：智慧健身房 SaaS（會員、課表、教練分潤）。已接入 12 間付費門店，月均留存與續約數據可提供。希望投資人熟悉連鎖服務業或健身產業，能協助談區域代理與銀行授信。\n\n標籤：fundraising、健身 SaaS、中文",
+    location_filter: "台灣",
+    must_haves:
+      "投資閾值與交割時程可公開討論；希望投資方能協助介紹連鎖決策者；接受合理的董事會資訊權；謝絕要求過早買回或不合理對賭。",
+  },
+  {
+    natural_language_input:
+      "Looking for pre-seed investors in consumer health journaling apps — emphasis on privacy-by-design and clinician-friendly exports. MAU 8k, week-4 retention 22%. Raising to deepen onboarding + community moderation tooling.\n\nTags: fundraising, digital health, English",
+    location_filter: "Remote",
+    must_haves:
+      "Understand consumer subscription ethics; comfortable with HIPAA-aligned roadmap questions; intros to digital health operators valued; transparent data room.",
   },
 ];
