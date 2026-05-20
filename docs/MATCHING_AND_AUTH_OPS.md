@@ -2,6 +2,8 @@
 
 This note answers common operations questions for Vennode / Probdesk.
 
+The **member-facing** UI intentionally omits short AI “compat note” paragraphs on discovery cards and saved recommendations so judgment stays on profile fields and listings; **admin** `pairing_score_events` still stores `compatibility_reason` for debugging.
+
 ## Pairing score log (Admin)
 
 Rows are written **server-side** with the Supabase **service role** into `pairing_score_events`.

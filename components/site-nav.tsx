@@ -67,7 +67,7 @@ export function SiteNav({
   const { lang, setLang, strings } = useLanguage();
 
   return (
-    <header className="sticky top-0 z-[200] isolate touch-manipulation border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-[200] isolate touch-manipulation border-b border-white/10 bg-slate-950/70 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-6xl flex-col px-4 md:flex-row md:items-center md:justify-between md:gap-4 md:px-6 md:py-4">
         <Link
           href="/"

@@ -65,14 +65,6 @@ function truncateText(s: string | null | undefined, max: number): string {
   return `${t.slice(0, max - 1)}…`;
 }
 
-/** Hide legacy admin cold-start placeholder stored on older matches. */
-function compatibilityReasonForDisplay(reason: string | null | undefined): string | null {
-  const t = reason?.trim();
-  if (!t) return null;
-  if (t === "Manual system match (admin cold-start).") return null;
-  return reason ?? null;
-}
-
 export function IntentCardRequestsList({
   intentId,
   userId,
@@ -139,8 +131,6 @@ export function IntentCardRequestsList({
           statusLabel = d.tagStatusAwaitingTheirReply;
         }
 
-        const compatDisplay = compatibilityReasonForDisplay(m.compatibility_reason);
-
         const showAnonymousPreview = outboundFromCard || systemMatch;
 
         return (
@@ -170,9 +160,6 @@ export function IntentCardRequestsList({
                 {showAnonymousPreview ? (
                   <div>
                     <p className="text-sm font-medium text-slate-100">{d.peerAnonymous}</p>
-                    {(pendingOutbound || pendingSystem || m.status !== "Pending") && compatDisplay ? (
-                      <p className="mt-1 text-xs leading-relaxed text-slate-500">{truncateText(compatDisplay, 220)}</p>
-                    ) : null}
                   </div>
                 ) : null}
 
@@ -180,13 +167,6 @@ export function IntentCardRequestsList({
                   <p className="text-xs leading-relaxed text-slate-400">
                     <span className="font-medium text-slate-500">{d.yourInviteNote}: </span>
                     {truncateText(m.introductory_context, 200)}
-                  </p>
-                ) : null}
-
-                {(outboundFromCard || systemMatch) && compatDisplay ? (
-                  <p className="text-xs leading-relaxed text-slate-400">
-                    <span className="font-medium text-slate-500">{d.matchContext}: </span>
-                    {truncateText(compatDisplay, 280)}
                   </p>
                 ) : null}
 

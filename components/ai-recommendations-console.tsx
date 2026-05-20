@@ -100,7 +100,6 @@ export function AiRecommendationsConsole(props: {
                           </span>
                         </p>
                       ) : null}
-                      <p className="text-sm leading-relaxed text-slate-200">{truncateText(row.reason, 420)}</p>
                       <div className="flex flex-wrap gap-2 pt-1">
                         <Button
                           type="button"

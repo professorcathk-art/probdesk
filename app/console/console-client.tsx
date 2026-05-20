@@ -917,7 +917,7 @@ export function ConsoleClient({
           }
         }}
       >
-        <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-slate-950/95 text-slate-50 sm:max-w-3xl">
+        <DialogContent className="max-h-[min(92dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem))] overflow-y-auto overscroll-contain border-white/10 bg-slate-950/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-slate-50 sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{t.freshMatchesTitle}</DialogTitle>
             <DialogDescription className="text-slate-400">{t.freshMatchesSubtitle}</DialogDescription>
@@ -988,7 +988,6 @@ export function ConsoleClient({
                         <p className="mt-2 line-clamp-3 text-sm text-slate-200">{s.natural_language_input.trim()}</p>
                       </div>
                     ) : null}
-                    <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-slate-500">{s.compatibility_reason}</p>
                     <div className="mt-5 flex flex-col gap-2">
                       <Button
                         type="button"
