@@ -1,5 +1,15 @@
+-- AUTO-GENERATED from lib/demo-showcase-intents.ts — do not hand-edit listings here.
+-- Regenerate: npm run gen:demo-marketplace-sql
+--
 -- Replace YOUR_USER_UUID with an existing profiles.user_id (e.g. admin), then run in Supabase SQL Editor.
--- Requires is_demo_listing + must_haves (migrations 049, 054). Deletes prior demo intents for that user, then inserts 27 rows.
+-- Requires is_demo_listing (migration 049) and must_haves (migration 054). Deletes prior demo intents for that user, then inserts 27 rows.
+--
+-- After wiping auth.users / all users:
+-- 1) Authentication → Add user (email/password or magic link) for your admin.
+-- 2) Confirm email if required; sign in once so public.users / profiles rows exist (trigger handle_new_auth_user),
+--    or insert matching public.users + profiles manually if triggers did not run.
+-- 3) Dashboard → SQL → select id from auth.users where email = 'your-admin@...'; copy UUID into demo_owner below.
+-- 4) Embeddings are NULL — re-save intents in the app or run your embedding backfill for hybrid matching.
 
 do $$
 declare
