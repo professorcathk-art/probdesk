@@ -251,7 +251,16 @@ as $$
     limit 1
   ) li on true
   where pr.supply_embedding is not null
-    and u.onboarding_status in ('complete', 'in_progress')
+    and (
+      u.onboarding_status in ('complete', 'in_progress')
+      or exists (
+        select 1
+        from public.intent_requests ir_ob
+        where ir_ob.user_id = pr.user_id
+          and ir_ob.status = 'active'
+          and coalesce(ir_ob.demand_embedding, ir_ob.embedding) is not null
+      )
+    )
     and (
       not coalesce(p_require_location_match, true)
       or (
@@ -329,7 +338,16 @@ as $$
     order by ir.updated_at desc nulls last, ir.created_at desc
     limit 1
   ) li on true
-  where u.onboarding_status in ('complete', 'in_progress')
+  where (
+      u.onboarding_status in ('complete', 'in_progress')
+      or exists (
+        select 1
+        from public.intent_requests ir_ob
+        where ir_ob.user_id = pr.user_id
+          and ir_ob.status = 'active'
+          and coalesce(ir_ob.demand_embedding, ir_ob.embedding) is not null
+      )
+    )
     and (
       not coalesce(p_require_location_match, true)
       or (
@@ -346,7 +364,7 @@ as $$
 $$;
 
 -- -----------------------------------------------------------------------------
--- Discovery diagnostics (see migration 071).
+-- Discovery diagnostics (see migrations 071–073).
 -- -----------------------------------------------------------------------------
 create or replace function public.discovery_eligibility_counts(p_exclude_user_id uuid)
 returns jsonb
@@ -363,7 +381,23 @@ as $$
        where u.onboarding_status = 'complete' and u.id <> p_exclude_user_id),
     'users_discoverable_onboarding_excluding_anchor',
       (select count(*)::int from public.users u
-       where u.onboarding_status in ('complete', 'in_progress') and u.id <> p_exclude_user_id),
+       where u.id <> p_exclude_user_id
+         and (
+           u.onboarding_status in ('complete', 'in_progress')
+           or exists (
+             select 1 from public.intent_requests irx
+             where irx.user_id = u.id
+               and irx.status = 'active'
+               and coalesce(irx.demand_embedding, irx.embedding) is not null
+           )
+         )),
+    'users_pending_with_embedded_intent_excluding_anchor',
+      (select count(distinct ir.user_id)::int from public.intent_requests ir
+       inner join public.users u on u.id = ir.user_id
+       where ir.user_id <> p_exclude_user_id
+         and ir.status = 'active'
+         and coalesce(ir.demand_embedding, ir.embedding) is not null
+         and u.onboarding_status = 'pending'),
     'distinct_users_with_active_embedded_intent_excluding_anchor',
       (select count(distinct ir.user_id)::int from public.intent_requests ir
        where ir.status = 'active'

@@ -141,7 +141,11 @@ export async function bootstrapIntentFromLanding(naturalLanguageInput: string) {
     return { ok: false as const, message: error?.message ?? "Insert failed" };
   }
 
-  await supabase.from("users").update({ onboarding_status: "in_progress" }).eq("id", user.id);
+  await supabase
+    .from("users")
+    .update({ onboarding_status: "in_progress" })
+    .eq("id", user.id)
+    .eq("onboarding_status", "pending");
 
   let questions: string[] = [];
   try {
@@ -418,7 +422,7 @@ export type SuggestionCard = {
 };
 
 /** Bumped when hybrid discovery logging shape changes (admin pairs this with migrations). */
-const HYBRID_DISCOVERY_LOG_PIPELINE = "072-discover-in-progress";
+const HYBRID_DISCOVERY_LOG_PIPELINE = "073-pending-embedded-discoverable";
 
 export async function computeHybridSuggestions(intentId: string): Promise<
   | { ok: true; suggestions: SuggestionCard[] }
@@ -938,6 +942,12 @@ export async function createConsoleIntent(
 
   if (error || !inserted) return { ok: false as const, message: error?.message ?? "Insert failed" };
 
+  await supabase
+    .from("users")
+    .update({ onboarding_status: "in_progress" })
+    .eq("id", user.id)
+    .eq("onboarding_status", "pending");
+
   const { data: profForSupply } = await supabase
     .from("profiles")
     .select("bio, industry, superpower, skills_tags, languages")
@@ -1033,6 +1043,12 @@ export async function updateConsoleIntent(
     .eq("user_id", user.id);
 
   if (error) return { ok: false as const, message: error.message };
+
+  await supabase
+    .from("users")
+    .update({ onboarding_status: "in_progress" })
+    .eq("id", user.id)
+    .eq("onboarding_status", "pending");
 
   const { data: profForSupply } = await supabase
     .from("profiles")

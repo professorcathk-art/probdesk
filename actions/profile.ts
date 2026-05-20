@@ -142,7 +142,24 @@ export async function getSuggestionProfilePreview(
 
   const { data: peerUser } = await svc.from("users").select("onboarding_status").eq("id", peerUserId).maybeSingle();
   const ost = peerUser?.onboarding_status;
-  if (!peerUser || (ost !== "complete" && ost !== "in_progress")) {
+  if (!peerUser) {
+    return { ok: false as const, message: "Profile not available." };
+  }
+
+  let discoverablePending = false;
+  if (ost === "pending") {
+    const { data: intentEmbRows } = await svc
+      .from("intent_requests")
+      .select("demand_embedding, embedding")
+      .eq("user_id", peerUserId)
+      .eq("status", "active")
+      .limit(8);
+    discoverablePending = (intentEmbRows ?? []).some(
+      (r) => r.demand_embedding != null || r.embedding != null,
+    );
+  }
+
+  if (ost !== "complete" && ost !== "in_progress" && !discoverablePending) {
     return { ok: false as const, message: "Profile not available." };
   }
 
@@ -453,6 +470,12 @@ export async function updateMyProfileIdentity(fields: {
     );
 
   if (error) return { ok: false as const, message: error.message };
+
+  await supabase
+    .from("users")
+    .update({ onboarding_status: "in_progress" })
+    .eq("id", user.id)
+    .eq("onboarding_status", "pending");
 
   revalidatePath("/console");
   revalidatePath("/profile");
