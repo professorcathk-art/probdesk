@@ -41,12 +41,26 @@ begin
     true,
     null
   from (values
-    ($demo_nl_0$We're building an AI SaaS wedge for legal teams — workflows that shave hours off research, drafting, and client updates. Pilot firms are live, MVP is credible, and the story for mid‑size firms is sharpening. I'd love an easy virtual coffee with angels or operators who understand regulated B2B SaaS: not hustling for a term sheet tomorrow, just blunt feedback on narrative, roadmap, and what credible diligence looks like downstream.$demo_nl_0$, 'Global / Remote'::text, $demo_nl_0_mh$Experience investing in, advising, or operating AI / B2B SaaS (legaltech is a plus); comfortable with ~30‑minute exploratory video calls; prefers concrete pointers and introductions over cheerleading; English is fine.$demo_nl_0_mh$),
-    ($demo_nl_1$【尋找技術共同創辦人｜AI 應用】我在產品端約五年，正把「AI 應用工具的商業構想」收成可賣得的產品：已有早期客戶嘗試與對價紀錄，缺的是工程和我想像中一樣偏執、能扛起主幹的人。我特別需要你對 LLM 應用層（RAG、工具鏈、評估與品質）有感，對可維護上線的工程有堅持，而不是堆砌 demo。若你接受創辦節奏、願意在優先級上和我正面碰撞，很值得從一場視訊深聊開始。$demo_nl_1$, 'Global / Remote'::text, $demo_nl_1_mh$能以全端或後端身分推進，熟 API 設計與整合 · 可全職，或至少每週 20 小時固定產出 · 接受遠距，但對里程碑與口頭約定要能守紀律 · 願公開討論股權、投入與補貼，避免只靠默契。$demo_nl_1_mh$),
-    ($demo_nl_2$【手搖飲新品牌｜徵求品味與執行並重的合夥人】我長年做餐飲營運與行銷，手上已有可作首店投入的資金，港島也有一兩個可談的舖位眉目。接下來想找的是真正能「定下茶譜」的人：對清爽路線與質感表現有標準，能扛研發線、成本控制與 SOP，並願意一起把第一家店做到值得被街拍。你若相信質感來自無數小細節，我會認真對待每一次試茶與對帳會議。$demo_nl_2$, 'Hong Kong'::text, $demo_nl_2_mh$手搖飲或精品茶後場／店長級實務；懂採購、報價與衛生管理 · 人常駐香港，方便備料試作與看場 · 願將分工與時間表落成文字，對股東間的紀錄保持透明 · 對「首店標準」有潔癖者不會吃虧。$demo_nl_2_mh$),
-    ($demo_nl_3$【尋找羽毛球教練】球齡半年左右，心肺在進步，但對發力順序跟腳步總是很疑惑，常常「覺得有出力卻控球不穩」。想找願意把動作拆細、可搭配錄影回放說明的教練。目標是每週一到兩堂，半年內能更有餘裕地打一場輕鬆的業餘雙打或小賽，我會把功課當運動紀律在做。$demo_nl_3$, 'Hong Kong'::text, $demo_nl_3_mh$具教練證或可驗證的長期指導紀錄 · 以九龍或港島館為主協調場地 · 能清楚說明「為何這樣發力」，不是只叫你用力 · 對遲到與頻繁改期低容忍；態度仍可輕鬆，但對課堂結構認真。$demo_nl_3_mh$),
-    ($demo_nl_4$【寵物品牌｜徵 UGC／短影音創作者合作】新品是一支智慧貓咪餵食器，正在找家裡有貓、也懂短影音節奏（Reels／TikTok）的創作者：真實開箱、幾個生活化場景、以及為什麼日常會省下心的瞬間——口吻自然，不要電視購物式硬廣。品牌方可配合拍攝週程與合約細節，酬勞與素材授權能先寫清楚，避免創作過程卡住。如果你對貓的毛髮質感跟光影同樣龜毛，請帶作品集私訊。$demo_nl_4$, 'Hong Kong'::text, $demo_nl_4_mh$附短影音作品連結／檔（若為非公開可加浮水印） · 家中有貓，貓咪可配合短暫布景與機器運轉錄影 · 能自理剪輯與字幕，收音至少清晰 · 願事前用文件對齊交付清單、稿酬／分潤與肖像授權。$demo_nl_4_mh$),
-    ($demo_nl_5$【尋找自動化／流程顧問（微型專案）】團隊被跨表抄寫、表單匯總和通知延遲磨到沒耐性，需要熟悉 Zapier、Make（Integromat）或 Python 自動化／爬蟲的顧問，用幾個「一次建好、接下來會自己跑」的流程幫忙解痛。你不用坐班，但需要願意在前期把工作流的商業規則問透；我對專業報價有尊重，可先從試點估時估價，再決定規模化。$demo_nl_5$, 'Global / Remote'::text, $demo_nl_5_mh$能展示可查證案例（Webhook、OAuth、排程或多系統對接皆可） · 願先做短工作坊式訪談，並把試點與後續擴充分開報價 · 中文為主／中英夾雜都行，但需要回覆可追溯 · 交付附簡短操作說明，方便我們內部接手。$demo_nl_5_mh$),
-    ($demo_nl_6$【居屋全屋翻新｜徵細膩統籌或師傅班底】新近買進九龍一個約 400 呎二手居屋，自住用途準備全屋翻新。我最在意的是水電、防水這些「蓋回去就看不到」的工序；視覺上偏好日式木質簡約，但比起造型更在意收口、門片縫隙與收納動線順不順手。你若願意帶我看工地或完工案、報價能列清楚工項／物料級距而不是模糊套餐，那我們從丈量與作息訪談開始就很好。$demo_nl_6$, 'Hong Kong'::text, $demo_nl_6_mh$能給過往案子照片或協調看實際工地 · 正式報價需條列工項／品牌／級距，避免靠口頭追加 · 對水電規劃要能講出為何這樣做，而不是含糊帶過 · 工期願落成文字，對重大延期需提前協商；經常拖延工期的班底請跳過。$demo_nl_6_mh$)
+    ($demo_nl_0$[AI SaaS] Building an AI-driven productivity tool for legal professionals. We have early traction and a working MVP. Looking for an angel investor who understands the B2B SaaS space for a casual virtual coffee to share our vision. Not looking for an immediate check, just building meaningful relationships and seeking feedback.
+
+Tags: fundraising, AI, English$demo_nl_0$, 'Global / Remote'::text, $demo_nl_0_mh$Experience investing in or advising AI/SaaS startups. Willing to have a 30-min no-pressure chat. Brings strategic value and industry insights beyond just capital.$demo_nl_0_mh$),
+    ($demo_nl_1$【尋找技術合夥人】我是一名有 5 年經驗的產品經理，目前正在籌備一個 AI 應用工具，已有清晰的商業模式與初期客戶名單。尋找一位對打造偉大產品有極致追求、技術功底深厚（尤其是 LLM 應用層）的技術共同創辦人（Technical Co-founder）。
+
+標籤：co-founder、tech、中文$demo_nl_1$, 'Global / Remote'::text, $demo_nl_1_mh$具備全端開發與 API 串接經驗；能全職投入或每週承諾至少 20 小時；心智堅韌，願意一起經歷創業的起伏；地點不限，接受遠端非同步協作。$demo_nl_1_mh$),
+    ($demo_nl_2$【創立手搖飲新品牌】本人有豐富的餐飲營運與行銷經驗，手上有穩定的資金與潛在店面資源（港島區）。現正尋找一位真正懂茶、具備獨立研發飲品能力的合夥人，一起打造主打健康、質感的全新奶茶品牌。
+
+標籤：f&b、business、中文$demo_nl_2$, 'Hong Kong'::text, $demo_nl_2_mh$必須具備手搖飲店實務經驗，熟悉原料採購與 SOP 制定；對品質有堅持，有創業野心；人在香港，能實體開會討論與試茶。$demo_nl_2_mh$),
+    ($demo_nl_3$【尋找羽毛球教練】本身是羽毛球初學者（約打過半年），希望找一位有耐心、能針對動作細節調整的教練。希望每週上一到兩堂課，目標是改善發力技巧跟步法，未來能順利參與業餘雙打比賽。
+
+標籤：sports、coach、中文$demo_nl_3$, 'Hong Kong'::text, $demo_nl_3_mh$具備相關教練資格或豐富教學經驗；能安排在九龍或港島區的體育館上課；上課氣氛輕鬆但要求嚴謹，不接受常遲到或臨時改期。$demo_nl_3_mh$),
+    ($demo_nl_4$【貓咪用品 UGC 創作者合作】我們是一個新興的寵物用品品牌，即將推出一款智能貓咪餵食器。正在尋找家裡有養貓、擅長拍攝高質感短影音（Reels/TikTok）的 UGC 創作者，來幫我們拍攝產品開箱與實際使用情境。
+
+標籤：creator、marketing、中文$demo_nl_4$, 'Hong Kong'::text, $demo_nl_4_mh$需提供過往拍攝的短影音作品集；家中有貓且貓咪不排斥新設備；熟悉時下短影音節奏與剪輯技巧；酬勞與合作細節可私訊討論。$demo_nl_4_mh$),
+    ($demo_nl_5$【尋找自動化專家】日常工作有許多重複性的行政與數據處理流程。想尋找一位熟悉 Zapier、Make (Integromat) 或是 Python 爬蟲的自動化專家，以外包或顧問形式協助處理幾個微型專案（Tiny projects），優化我們團隊的工作效率。
+
+標籤：automation、freelance、中文$demo_nl_5$, 'Global / Remote'::text, $demo_nl_5_mh$有實際串接 API 與建立自動化工作流的成功案例；溝通能力佳，能快速理解商業邏輯與痛點；按專案計件收費或時薪制皆可討論。$demo_nl_5_mh$),
+    ($demo_nl_6$【尋找靠譜裝修師傅】近期購入位於九龍區約 400 呎的二手居屋，準備進行全屋翻新。希望尋找一位手工細膩、溝通透明的裝修統籌或師傅。重視水電等隱蔽工程的品質，風格偏向日式木質簡約風。
+
+標籤：renovation、services、中文$demo_nl_6$, 'Hong Kong'::text, $demo_nl_6_mh$能提供過往完工的實景照片或安排參觀；報價單條列清晰，不亂加隱藏收費；好溝通、願意耐心解釋施工細節；工期準確，不隨意拖延。$demo_nl_6_mh$)
   ) as v(natural_language_input, location_filter, must_haves);
 end $$;
