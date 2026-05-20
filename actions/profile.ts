@@ -157,6 +157,14 @@ export async function getSuggestionProfilePreview(
     discoverablePending = (intentEmbRows ?? []).some(
       (r) => r.demand_embedding != null || r.embedding != null,
     );
+    if (!discoverablePending) {
+      const { data: profRow } = await svc
+        .from("profiles")
+        .select("supply_embedding")
+        .eq("user_id", peerUserId)
+        .maybeSingle();
+      discoverablePending = profRow?.supply_embedding != null;
+    }
   }
 
   if (ost !== "complete" && ost !== "in_progress" && !discoverablePending) {

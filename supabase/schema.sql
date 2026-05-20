@@ -252,16 +252,6 @@ as $$
   ) li on true
   where pr.supply_embedding is not null
     and (
-      u.onboarding_status in ('complete', 'in_progress')
-      or exists (
-        select 1
-        from public.intent_requests ir_ob
-        where ir_ob.user_id = pr.user_id
-          and ir_ob.status = 'active'
-          and coalesce(ir_ob.demand_embedding, ir_ob.embedding) is not null
-      )
-    )
-    and (
       not coalesce(p_require_location_match, true)
       or (
         coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')) is not null
@@ -339,16 +329,6 @@ as $$
     limit 1
   ) li on true
   where (
-      u.onboarding_status in ('complete', 'in_progress')
-      or exists (
-        select 1
-        from public.intent_requests ir_ob
-        where ir_ob.user_id = pr.user_id
-          and ir_ob.status = 'active'
-          and coalesce(ir_ob.demand_embedding, ir_ob.embedding) is not null
-      )
-    )
-    and (
       not coalesce(p_require_location_match, true)
       or (
         coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')) is not null
@@ -364,7 +344,7 @@ as $$
 $$;
 
 -- -----------------------------------------------------------------------------
--- Discovery diagnostics (see migrations 071–073).
+-- Discovery diagnostics (see migrations 071–073; match_profiles onboarding gate removed in 074).
 -- -----------------------------------------------------------------------------
 create or replace function public.discovery_eligibility_counts(p_exclude_user_id uuid)
 returns jsonb

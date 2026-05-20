@@ -422,7 +422,7 @@ export type SuggestionCard = {
 };
 
 /** Bumped when hybrid discovery logging shape changes (admin pairs this with migrations). */
-const HYBRID_DISCOVERY_LOG_PIPELINE = "073-pending-embedded-discoverable";
+const HYBRID_DISCOVERY_LOG_PIPELINE = "074-supply-embedding-only-pool";
 
 export async function computeHybridSuggestions(intentId: string): Promise<
   | { ok: true; suggestions: SuggestionCard[] }
@@ -693,7 +693,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     .maybeSingle();
 
   const PROFILE_ONLY_STUB =
-    "(No active Explore listing on file — infer complementary fit from profile supply vs your demand.)";
+    "(No posted Explore listing on file — complementary fit is from this member's saved profile / supply embedding vs your request; a listing is optional.)";
 
   const scored = await Promise.all(
     poolRows.map(async (row) => {

@@ -147,10 +147,10 @@ export const STRINGS = {
       freshMatchesSearching: "Finding your best matches…",
       freshMatchesTitle: "Here are your top matches",
       freshMatchesSubtitle:
-        "Up to three suggestions ranked for fit — including people without their own Explore listing. Use Preview profile for discovery-safe details (bio, age bracket, keywords, intent level, and more). Display names and photos stay hidden until mutual acceptance.",
+        "Up to three suggestions ranked for fit. Others can appear from their saved profile alone—posting an Explore listing is optional extra context for the AI and is shown when they have one. Use Preview profile for discovery-safe details (bio, age bracket, keywords, and more). Names and photos stay hidden until mutual acceptance.",
       freshMatchesGotIt: "Got it",
       freshMatchesEmptyState:
-        "No suggestions surfaced this round — strict retrieval plus automatic widen didn't find enough indexed peers yet (profiles need supply embeddings and onboarding complete). Try Explore, revise your request or expectations, or try again later as membership grows.",
+        "No suggestions surfaced this round — retrieval widened automatically but found few indexed peers yet. Peers need a synced profile vector (save Profile after filling basics). Posting a listing is not required. Try Explore, revise your request or expectations, or retry as membership grows.",
       matchQueueTitle: "Your Match Queue (Identities protected)",
       matchQueueDesc:
         'After you tap Find people who fit, Vennode finds nearby people whose requests align with yours. Photos stay protected until someone sends an invite.',
@@ -267,7 +267,7 @@ export const STRINGS = {
       send: "Send",
       sending: "Sending…",
       statusPendingBadge: "Pending",
-      inviteListingLabel: "Listing for this invite",
+      inviteListingLabel: "Their request listing (extra context)",
       outboundListingLabel: "Explore listing you contacted",
       outboundProfileInviteHint:
         "Smart discovery from their profile — they had not posted a separate Explore listing.",
@@ -673,10 +673,10 @@ export const STRINGS = {
       freshMatchesSearching: "正在為你尋找最合適的對象…",
       freshMatchesTitle: "為你找到前列配對",
       freshMatchesSubtitle:
-        "以下最多三位依契合度排序——包含未另外發布探索徵求的對象。「預覽檔案」可查看不含姓名與相片的公開脈絡（簡介、年齡區間、關鍵字、交流步調等）；顯示名稱與大頭貼於雙方同意連結前會保持隱藏。",
+        "以下最多三位依契合度排序。對方即使沒有發布探索徵求，只要已存檔並完成個人檔案向量同步，仍可出現在推薦中；若有發布徵求，會一併顯示為加分背景説明。「預覽檔案」可見不含姓名與相片的脈絡；顯示名稱與大頭貼於雙方同意連結前會保持隱藏。",
       freshMatchesGotIt: "知道了",
       freshMatchesEmptyState:
-        "這次沒有產生推薦——系統已自動放寬向量相似度條件；若仍空白，可能是目前符合條件的對象較少，或對方尚未完成檔案／向量同步與註冊流程。你可改用探索廣場、微調徵求與期望，或稍後再試。",
+        "這次沒有產生推薦——系統已放寬條件，但仍偏少索引對象；對方需在個人檔案填妥基本資料並儲存以完成向量同步。發布徵求不是必要條件。可改用探索廣場、微調你的徵求與期望，或稍後再試。",
       matchQueueTitle: "你的配對佇列（身分受保護）",
       matchQueueDesc:
         "按下「尋找契合對象」後，Vennode 會在附近尋找徵求相近的人。在送出邀請前，大頭貼與身分會保持保護。",
@@ -789,7 +789,7 @@ export const STRINGS = {
       send: "傳送",
       sending: "傳送中…",
       statusPendingBadge: "等待回覆",
-      inviteListingLabel: "此邀請對應的徵求",
+      inviteListingLabel: "對方發布的徵求（額外背景，非必填）",
       outboundListingLabel: "你聯繫的探索廣場徵求",
       outboundProfileInviteHint: "智慧配對依對方個人檔案送出——對方未另外發布探索徵求。",
       inboundDiscoveryBadge: "個人檔案邀請",
