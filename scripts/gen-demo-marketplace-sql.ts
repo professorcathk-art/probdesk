@@ -26,8 +26,10 @@ const valueRows = DEMO_SHOWCASE_INTENTS.map((row, i) => {
   return `    (${nl}, ${loc}, ${mh})`;
 });
 
-const sql = `-- AUTO-GENERATED from lib/demo-showcase-intents.ts — do not hand-edit listings here.
+const sql = `-- AUTO-GENERATED from lib/demo-showcase-intents.ts — do not hand-edit listing rows here.
 -- Regenerate: npm run gen:demo-marketplace-sql
+--
+-- 若你看到「約 120 行、$demo0$」交友草稿，那是舊緩存；請在編輯器「從磁碟重新載入」此檔。正確約 65 行，且含「羽毛球教練」「裝修師傅」。
 --
 -- Replace YOUR_USER_UUID with an existing profiles.user_id (e.g. admin), then run in Supabase SQL Editor.
 -- Requires is_demo_listing (migration 049) and must_haves (migration 054). Deletes prior demo intents for that user, then inserts ${DEMO_SHOWCASE_INTENTS.length} rows.
