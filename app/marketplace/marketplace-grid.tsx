@@ -122,9 +122,20 @@ export function MarketplaceGrid({
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2">
-                    <Badge variant="outline" className="border-white/15 text-slate-200">
-                      {item.location_filter ?? mp.locationUnknown}
-                    </Badge>
+                    <div className="flex flex-wrap justify-end gap-1.5">
+                      {item.recommended ? (
+                        <Badge
+                          variant="outline"
+                          className="border-amber-400/25 text-[10px] font-medium tracking-tight text-amber-100/85"
+                          title={mp.recommendedBadge}
+                        >
+                          {mp.recommendedBadge}
+                        </Badge>
+                      ) : null}
+                      <Badge variant="outline" className="border-white/15 text-slate-200">
+                        {item.location_filter ?? mp.locationUnknown}
+                      </Badge>
+                    </div>
                     <IntentShareButton intentId={item.id} size="sm" variant="ghost" className="h-8 px-2 text-xs" />
                   </div>
                 </div>

@@ -93,6 +93,7 @@ export const STRINGS = {
         "Sign in to browse the full Explore feed, save context for invites, and unlock Smart Matchmaking from Manage.",
       guestPreviewCta: "Sign in to see more",
       guestPreviewFootnote: "Preview mode · listings rotate as members publish.",
+      recommendedBadge: "✨ Recommended",
     },
     exploreIntent: {
       kicker: "Shared Explore link",
@@ -626,6 +627,7 @@ export const STRINGS = {
         "登入後可瀏覽完整探索廣場、發送邀請並使用管理中心與智慧配對等功能。",
       guestPreviewCta: "登入查看更多",
       guestPreviewFootnote: "預覽模式 · 徵求會隨成員公開內容而更新。",
+      recommendedBadge: "✨ 推薦",
     },
     exploreIntent: {
       kicker: "探索徵求 · 分享連結",

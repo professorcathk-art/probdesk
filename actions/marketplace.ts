@@ -2,6 +2,7 @@
 
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { embeddingVectorForRpc } from "@/lib/vector-literal";
 
 export type MarketplaceListing = {
   id: string;
@@ -11,6 +12,11 @@ export type MarketplaceListing = {
   user_id: string;
   is_demo_listing?: boolean;
   must_haves?: string | null;
+  /**
+   * Set when Explore blended ranking surfaced this listing (supply vs listing demand similarity > 0.75).
+   * Absent/false on deep links or when the viewer has no profile embedding.
+   */
+  recommended?: boolean;
   /** Profile field — shown on Explore / home cards */
   gender: string | null;
   /** `skills_tags` ∪ `languages` from profile, deduped */
@@ -18,6 +24,26 @@ export type MarketplaceListing = {
 };
 
 type ListingRow = Omit<MarketplaceListing, "gender" | "interest_keywords">;
+
+type BlendedExploreRpcRow = {
+  id: string;
+  natural_language_input: string;
+  location_filter: string | null;
+  extracted_persona: Record<string, unknown> | null;
+  user_id: string;
+  is_demo_listing: boolean | null;
+  must_haves: string | null;
+  is_recommended: boolean;
+};
+
+function trySupplyEmbeddingForRpc(raw: unknown): string | null {
+  if (raw == null) return null;
+  try {
+    return embeddingVectorForRpc(raw);
+  } catch {
+    return null;
+  }
+}
 
 function mergeInterestKeywords(skills: unknown, langs: unknown): string[] {
   const s = Array.isArray(skills) ? skills : [];
@@ -70,18 +96,32 @@ export async function listMarketplaceListings(options?: { guestPreview?: boolean
     const guestPreview = Boolean(options?.guestPreview);
     const fetchLimit = guestPreview ? 21 : 60;
 
-    const { data, error } = await supabase
-      .from("intent_requests")
-      .select(
-        "id, natural_language_input, location_filter, extracted_persona, user_id, is_demo_listing, must_haves",
-      )
-      .eq("is_marketplace_public", true)
-      .eq("status", "active")
-      .order("created_at", { ascending: false })
-      .limit(fetchLimit);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    let p_supply_embedding: string | null = null;
+    if (user) {
+      const { data: profile } = await supabase.from("profiles").select("supply_embedding").eq("user_id", user.id).maybeSingle();
+      p_supply_embedding = trySupplyEmbeddingForRpc(profile?.supply_embedding);
+    }
+
+    const { data: blended, error } = await supabase.rpc("get_blended_explore_intents", {
+      p_supply_embedding,
+      p_limit: fetchLimit,
+    });
 
     if (error) return { error: error.message };
-    let raw = (data ?? []) as ListingRow[];
+    let raw: ListingRow[] = ((blended ?? []) as BlendedExploreRpcRow[]).map((r) => ({
+      id: r.id,
+      natural_language_input: r.natural_language_input,
+      location_filter: r.location_filter,
+      extracted_persona: r.extracted_persona,
+      user_id: r.user_id,
+      is_demo_listing: r.is_demo_listing ?? undefined,
+      must_haves: r.must_haves ?? undefined,
+      recommended: Boolean(r.is_recommended),
+    }));
     let moreAvailable = false;
     if (guestPreview && raw.length > 20) {
       moreAvailable = true;
