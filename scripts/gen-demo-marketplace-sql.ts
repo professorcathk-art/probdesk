@@ -8,7 +8,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 function dollarQuote(body: string, tag: string): string {
   const open = `$${tag}$`;
   if (body.includes(open)) {
-    throw new Error(`Natural language contains delimiter ${open}; bump tag scheme.`);
+    throw new Error(`Text contains delimiter ${open}; bump tag scheme.`);
   }
   return `${open}${body}${open}`;
 }
@@ -20,11 +20,14 @@ const valueRows = DEMO_SHOWCASE_INTENTS.map((row, i) => {
     row.location_filter === null
       ? "null::text"
       : `'${String(row.location_filter).replace(/'/g, "''")}'::text`;
-  return `    (${nl}, ${loc})`;
+  const mhRaw = row.must_haves?.trim();
+  const mh =
+    mhRaw && mhRaw.length > 0 ? dollarQuote(mhRaw, `${tag}_mh`) : "null::text";
+  return `    (${nl}, ${loc}, ${mh})`;
 });
 
 const sql = `-- Replace YOUR_USER_UUID with an existing profiles.user_id (e.g. admin), then run in Supabase SQL Editor.
--- Requires is_demo_listing (migration 049). Deletes prior demo intents for that user, then inserts ${DEMO_SHOWCASE_INTENTS.length} rows.
+-- Requires is_demo_listing + must_haves (migrations 049, 054). Deletes prior demo intents for that user, then inserts ${DEMO_SHOWCASE_INTENTS.length} rows.
 
 do $$
 declare
@@ -38,6 +41,7 @@ begin
     user_id,
     natural_language_input,
     location_filter,
+    must_haves,
     extracted_persona,
     status,
     is_marketplace_public,
@@ -48,6 +52,7 @@ begin
     demo_owner,
     v.natural_language_input,
     v.location_filter,
+    v.must_haves,
     '{}'::jsonb,
     'active',
     true,
@@ -55,7 +60,7 @@ begin
     null
   from (values
 ${valueRows.join(",\n")}
-  ) as v(natural_language_input, location_filter);
+  ) as v(natural_language_input, location_filter, must_haves);
 end $$;
 `;
 

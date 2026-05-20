@@ -93,9 +93,11 @@ export function ConnectModal({
         <DialogContent className="max-h-[min(90vh,720px)] overflow-y-auto border-white/10 bg-slate-950/90 text-slate-50 backdrop-blur-xl">
           <DialogHeader>
             <DialogTitle className="text-lg">{cm.title}</DialogTitle>
-            <DialogDescription className="text-slate-400">
-              {cm.descriptionBeforeHeadline} {headline}
-              {cm.descriptionAfterHeadline}
+            <DialogDescription className="space-y-2 text-slate-400">
+              <span className="block leading-relaxed">{cm.subtitle}</span>
+              {headline.trim() ? (
+                <span className="block text-sm text-slate-500">{headline}</span>
+              ) : null}
             </DialogDescription>
           </DialogHeader>
           <Textarea

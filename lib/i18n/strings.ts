@@ -38,22 +38,22 @@ export const STRINGS = {
         "Whether you're looking for a co-founder, a mentor, or a life partner—tell us what you need, and meet people who are just as serious.",
       useCasePartnerTitle: "Find a partner",
       useCasePartnerBody:
-        "Romantic or life partnership — start with an honest ask and mutual consent before identities unlock.",
+        "Write down exactly what you want in a partner. Let our AI find matches with aligned values, and reveal identities only when you both say yes.",
       useCaseFriendsTitle: "Find friends",
       useCaseFriendsBody:
-        "Shared hobbies, cities, or seasons of life — meet people looking for the same kind of friendship.",
+        "Enter your hobbies or current city. The system will suggest like-minded people, so you can skip the awkward small talk and just send an invite.",
       useCaseInvestorsTitle: "Find investors",
       useCaseInvestorsBody:
-        "Warm intros beat cold decks — share context first and reveal identity only when both sides agree.",
+        "Post your startup idea and funding needs anonymously. Wait for interested backers to match with you, then share your full pitch deck securely.",
       useCaseCofounderTitle: "Find a co-founder",
       useCaseCofounderBody:
-        "Ship something meaningful with someone who matches your pace, skills, and values — not random DMs.",
+        "List the skills you're missing and your current progress. AI will match you with complementary builders who are ready to get to work.",
       useCaseMentorTitle: "Find a mentor",
       useCaseMentorBody:
-        "Ask for guidance with context; curated introductions respect both sides before anyone reveals identity.",
+        "Describe your current career or startup bottleneck. Let the system find industry veterans who have the exact experience to guide you.",
       useCaseNetworkTitle: "Professional networking",
       useCaseNetworkBody:
-        "High-signal connections for hiring, partnerships, and peer learning — without endless feed scrolling.",
+        "Tell us who you're looking to hire or what expertise you offer. Skip the endless searching—AI brings high-matching professionals straight to you.",
       featureSmartTitle: "Smart Matchmaking",
       featureSmartBody:
         "Our AI understands what you're really looking for and recommends high-quality connections.",
@@ -126,7 +126,7 @@ export const STRINGS = {
     console: {
       kicker: "Manage",
       title: "Your requests & connections",
-      subtitle: "Manage what you're looking for, respond to intros, and chat with mutual connections — organized in tabs.",
+      subtitle: "Manage what you're looking for, respond to intros, and chat with mutual connections.",
       signOut: "Sign out",
       tabIntents: "Requests",
       tabRequests: "Invitations",
@@ -323,7 +323,7 @@ export const STRINGS = {
         "Structured profile preview did not load in this strip — tap Preview profile for discovery-safe bio, traits, and more.",
       aiRecIntentMergedTitle: "Saved suggestions & invitations",
       aiRecIntentMergedHint:
-        "Inbound invites, outbound statuses, and AI discovery matches for this request are grouped here. Inbounds include a factual profile preview — no display name or photo until mutual acceptance. Matches from Find people who fit stay until you dismiss or send an invite (also visible under Invitations).",
+        "Review your AI matches and incoming invites here. Identities remain private until mutual acceptance.",
       aiRecIntentMergedEmpty:
         "No invitations or saved suggestions yet. Tap “Find people who fit” above to generate matches.",
       intentDashboard: {
@@ -439,17 +439,17 @@ export const STRINGS = {
       gotIt: "Got it",
     },
     connectModal: {
-      title: "Send a context message",
-      descriptionBeforeHeadline: "Explain why you fit",
-      descriptionAfterHeadline: ". This stays double-blind until mutual acceptance.",
+      title: "Write an intro",
+      subtitle:
+        "Tell them why you're a great match! Don't worry, your identity remains private until you both agree to connect.",
       placeholder:
-        "Signal credibility, constraints, and what you bring — concise and respectful.",
+        "Hi! I think we'd be a great fit because... (A sincere intro goes a long way!)",
       cancel: "Cancel",
       sendBusy: "Sending…",
       confirmSend: "Send invite",
-      previewNoticeTitle: "What recipients see while they decide",
+      previewNoticeTitle: "What will they see?",
       previewNoticeBody:
-        "They always get a safe preview of your profile—role-style headline, summary, and a few credibility signals. Your real name, photo, album, and external links stay hidden until you both accept.",
+        "They will only see your basic summary and traits for now. Your real name, photos, and full profile will only unlock after mutual acceptance. Say hi with confidence!",
     },
     common: {
       copied: "Copied link",
@@ -572,22 +572,22 @@ export const STRINGS = {
         "無論是尋找創業夥伴、人生導師，還是另一半，只要說出你的期待，就能遇見同樣真誠的人。",
       useCasePartnerTitle: "找伴侶",
       useCasePartnerBody:
-        "感情或人生伴侶——先以真誠的徵求與雙向同意開始，必要時才揭露身分。",
+        "寫下你對另一半的真實期待。讓 AI 為你尋找價值觀契合的對象，雙方點頭後再揭露身分，讓交友回歸純粹。",
       useCaseFriendsTitle: "找朋友",
       useCaseFriendsBody:
-        "興趣、城市或人生階段相近——認識也想建立同樣友誼的人。",
+        "輸入你的興趣或所在城市。系統會自動推薦頻率相近的新朋友，不用尷尬搭訕，點擊發送邀請就能自然認識。",
       useCaseInvestorsTitle: "找投資者",
       useCaseInvestorsBody:
-        "有溫度的引薦勝過冷冰冰的推銷——先交流脈絡，雙方同意後再揭露身分。",
+        "匿名發布你的創業構想與所需資源。靜靜等待對該領域有興趣的投資人配對成功，確認意向後再交換詳細簡報。",
       useCaseCofounderTitle: "找共同創辦人",
       useCaseCofounderBody:
-        "與節奏、技能與價值觀契合的人一起做事——而不是海量私訊裡碰運氣。",
+        "列出你欠缺的技能與目前的進度。AI 會為你匹配能力互補、且準備好投入心力的創業夥伴，補齊你的夢幻團隊。",
       useCaseMentorTitle: "找導師",
       useCaseMentorBody:
-        "帶著脈絡尋求指引；精選介紹在雙方同意前都會保護彼此身分。",
+        "清楚描述你目前遇到的職場或創業瓶頸。讓系統為你匹配願意分享經驗的資深前輩，精準獲取你需要的專屬指引。",
       useCaseNetworkTitle: "專業人脈",
       useCaseNetworkBody:
-        "徵才、合作與同儕學習——更高訊號的連結，少一些無止境動態滑動。",
+        "告訴我們你想招募的人才，或是你能提供的專業。不用大海撈針，AI 直接把高度吻合的專業人士送到你面前。",
       featureSmartTitle: "智慧配對",
       featureSmartBody:
         "我們的 AI 理解你真正想找什麼，為你推薦更適合的連結。",
@@ -659,19 +659,19 @@ export const STRINGS = {
     console: {
       kicker: "管理中心",
       title: "你的徵求與連結",
-      subtitle: "管理你想找什麼、回覆介紹，以及與已連結對象聊天——分頁整理。",
+      subtitle: "管理你正在尋找的人、回覆介紹，以及與已連結的對象交流。",
       signOut: "登出",
-      tabIntents: "徵求",
+      tabIntents: "尋找對象",
       tabRequests: "邀請",
       tabConnections: "連結",
-      yourIntents: "你的徵求",
-      createIntent: "新增徵求",
+      yourIntents: "你尋找的對象",
+      createIntent: "新增尋找對象",
       noIntentsTitle: "尚無徵求",
       noIntentsDesc: "請新增一則，或先完成註冊引導。",
       intentCardTitle: "徵求",
       locationUnset: "未設定地區",
       edit: "編輯",
-      listOnSquare: "在探索廣場公開這則徵求",
+      listOnSquare: "在探索廣場公開這項尋找",
       listOnSquareHint: "對方同意前，來訊維持匿名。",
       pauseMatching: "暫停接收推薦",
       resumeMatching: "恢復接收推薦",
@@ -851,7 +851,7 @@ export const STRINGS = {
         "卡片上若未顯示完整欄位，請點「預覽檔案」查看依隱私規則提供的簡介、特質與更多脈絡。",
       aiRecIntentMergedTitle: "已儲存的 AI 建議與邀請",
       aiRecIntentMergedHint:
-        "與此徵求相關的來訊邀請、你送出的邀請紀錄，以及「尋找契合對象」產生的建議統一整理在此（避免重複區塊）。來訊附有對方已存檔案的預覽——雙方同意連結前不含真實姓名與頭像；建議可隨時移除或發送邀請，亦會顯示在「邀請」分頁。",
+        "在此查看 AI 推薦與來訊邀請。雙方同意配對前，真實身分將絕對保密。",
       aiRecIntentMergedEmpty:
         "目前尚無邀請或已儲存建議。請先按上方「尋找契合對象」產生人選；有人問候時也會顯示於此。",
       intentDashboard: {
@@ -886,7 +886,7 @@ export const STRINGS = {
         theirOpeningMessage: "對方的開場訊息",
       },
       quotaAdminBypass: "管理員 · 徵求數與每日邀請無上限",
-      quotaActiveRequests: "進行中的徵求",
+      quotaActiveRequests: "尋找中",
       quotaInvitesToday: "今日尚可發送邀請（UTC）",
       intentLimitMessage:
         "同時最多可有 3 則「進行中」徵求。請先暫停或整理現有徵求，再新增或恢復。",
@@ -963,16 +963,16 @@ export const STRINGS = {
       gotIt: "了解",
     },
     connectModal: {
-      title: "傳送開場訊息",
-      descriptionBeforeHeadline: "說明你為何適合",
-      descriptionAfterHeadline: "。在雙方同意前，身分仍為雙向匿名。",
-      placeholder: "簡潔誠懇地說明你的優勢、限制與你能提供的價值。",
+      title: "寫封開場白",
+      subtitle:
+        "跟對方分享為什麼你們很契合吧！別擔心，在雙方點頭同意前，你的真實身分將絕對保密。",
+      placeholder: "嗨！我覺得我們很適合，因為...（簡單真誠的介紹最能打動人心喔）",
       cancel: "取消",
       sendBusy: "傳送中…",
       confirmSend: "發送邀請",
-      previewNoticeTitle: "對方在決定前會看到什麼",
+      previewNoticeTitle: "對方會看到什麼？",
       previewNoticeBody:
-        "對方會看到你經過模糊化的預覽（角色式標題、摘要與少數可信訊號）。真實姓名、照片、相簿與外部連結須待雙方都接受後才會揭露。",
+        "對方目前只會看到你的「個人摘要」與基本特質。你的真實姓名、照片與詳細資料，只有在雙方都同意後才會為彼此解鎖。放心地打聲招呼吧！",
     },
     common: {
       copied: "已複製連結",

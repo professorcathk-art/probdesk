@@ -41,6 +41,7 @@ async function main() {
     user_id: owner,
     natural_language_input: d.natural_language_input,
     location_filter: d.location_filter,
+    must_haves: d.must_haves?.trim() || null,
     extracted_persona: {},
     status: "active",
     is_marketplace_public: true,

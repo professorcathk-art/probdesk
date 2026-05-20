@@ -17,40 +17,52 @@ type Body = {
 };
 
 export async function POST(req: Request) {
-  let body: Body;
   try {
-    body = (await req.json()) as Body;
-  } catch {
-    return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
-  }
+    let body: Body;
+    try {
+      body = (await req.json()) as Body;
+    } catch {
+      return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
+    }
 
-  if (typeof body.website === "string" && body.website.trim().length > 0) {
+    if (typeof body.website === "string" && body.website.trim().length > 0) {
+      return NextResponse.json({ ok: true }, { status: 200 });
+    }
+
+    const email = typeof body.email === "string" ? body.email.trim() : "";
+    const name = typeof body.name === "string" ? body.name.trim().slice(0, 120) : "";
+    const subject = typeof body.subject === "string" ? body.subject.trim().slice(0, 200) : "";
+    const message = typeof body.message === "string" ? body.message.trim() : "";
+
+    if (!EMAIL_RE.test(email) || subject.length < 2 || message.length < 20 || message.length > 8000) {
+      return NextResponse.json({ ok: false, error: "validation" }, { status: 400 });
+    }
+
+    const supportTo =
+      process.env["CONTACT_SUPPORT_EMAIL"]?.trim().replace(/^mailto:/i, "") || DEFAULT_SUPPORT_EMAIL;
+
+    const result = await sendContactSupportEmail({
+      supportTo,
+      replyTo: email,
+      subject,
+      message,
+      name: name || undefined,
+    });
+
+    if (!result.ok) {
+      const { fault, detail } = result.failure;
+      console.error("[api/contact] email send failed", { fault, detail, supportTo });
+      /** 503 = missing/misconfigured Resend env; 502 = Resend API rejected or network error */
+      const status = fault === "configuration" ? 503 : 502;
+      return NextResponse.json(
+        { ok: false, error: fault === "configuration" ? "misconfigured" : "send_failed" },
+        { status },
+      );
+    }
+
     return NextResponse.json({ ok: true }, { status: 200 });
+  } catch (err) {
+    console.error("[api/contact] unexpected error", err);
+    return NextResponse.json({ ok: false, error: "internal" }, { status: 500 });
   }
-
-  const email = typeof body.email === "string" ? body.email.trim() : "";
-  const name = typeof body.name === "string" ? body.name.trim().slice(0, 120) : "";
-  const subject = typeof body.subject === "string" ? body.subject.trim().slice(0, 200) : "";
-  const message = typeof body.message === "string" ? body.message.trim() : "";
-
-  if (!EMAIL_RE.test(email) || subject.length < 2 || message.length < 20 || message.length > 8000) {
-    return NextResponse.json({ ok: false, error: "validation" }, { status: 400 });
-  }
-
-  const supportTo =
-    process.env["CONTACT_SUPPORT_EMAIL"]?.trim().replace(/^mailto:/i, "") || DEFAULT_SUPPORT_EMAIL;
-
-  const result = await sendContactSupportEmail({
-    supportTo,
-    replyTo: email,
-    subject,
-    message,
-    name: name || undefined,
-  });
-
-  if (!result.ok) {
-    return NextResponse.json({ ok: false, error: "send_failed", detail: result.error }, { status: 502 });
-  }
-
-  return NextResponse.json({ ok: true }, { status: 200 });
 }

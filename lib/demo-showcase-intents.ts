@@ -5,6 +5,8 @@
 export type ShowcaseIntentSeed = {
   natural_language_input: string;
   location_filter: string | null;
+  /** Shown under Expectations on Explore cards when set (intent_requests.must_haves). */
+  must_haves?: string | null;
 };
 
 export const DEMO_SHOWCASE_INTENTS: ShowcaseIntentSeed[] = [
@@ -107,5 +109,56 @@ export const DEMO_SHOWCASE_INTENTS: ShowcaseIntentSeed[] = [
     natural_language_input:
       "想組一個「週末創業讀書會」，每月一次線下（吉隆坡），分享融资、团队与文化话题，欢迎认真参与者。",
     location_filter: "Kuala Lumpur",
+  },
+
+  // Phase 19 — business, services, gigs & networking (beyond dating-only demos)
+  {
+    natural_language_input:
+      "[AI SaaS] We're building an AI-driven productivity assistant for legal teams — early traction and a working MVP. Looking for an angel investor who understands B2B SaaS for a low-pressure virtual coffee: share our vision, trade feedback, and explore fit. Not asking for an immediate cheque — relationships and honest input first.\n\nTags: fundraising, AI, English",
+    location_filter: "Global / Remote",
+    must_haves:
+      "Experience investing in or advising AI/SaaS startups · up for a 30-minute, no-obligation chat · brings strategic perspective and sector insight beyond capital alone.",
+  },
+  {
+    natural_language_input:
+      "【尋找技術合夥人】我有約 5 年產品經驗，正在規劃一款 AI 應用工具，商業模式與早期客戶名單已具雛形。希望找到對產品極致執著、技術底子紮實（尤其 LLM 應用層）的技術共同創辦人（Technical Co-founder），一起把事情做深做穩。\n\n標籤：co-founder、tech、中文",
+    location_filter: "Global / Remote",
+    must_haves:
+      "具全端開發與 API 整合經驗 · 可全職投入，或每週至少 20 小時承諾 · 心理韌性佳，願一起走創業的高低起伏 · 地點不限，接受遠端非同步協作。",
+  },
+  {
+    natural_language_input:
+      "【創立手搖飲新品牌】本人具多年餐飲營運與行銷背景，資金與港島區潛在店面資源已就位。徵求一位真正懂茶、能獨立研發配方與把控風味的夥伴，共同打造偏健康、質感路線的新一代奶茶品牌。\n\n標籤：f&b、business、中文",
+    location_filter: "Hong Kong",
+    must_haves:
+      "須具手搖飲門市實務經驗，熟悉原料採購與 SOP · 對品質有堅持、有創業企圖心 · 人在香港，方便實體試茶與開會。",
+  },
+  {
+    natural_language_input:
+      "【尋找羽毛球教練】初學者（約半年球齡），想改善發力與步法，目標有朝一日能順利打業餘雙打賽事。偏好耐心、會拆解動作細節的教練；希望每週 1–2 堂。\n\n標籤：sports、coach、中文",
+    location_filter: "Hong Kong",
+    must_haves:
+      "具教練資格或長期教學經驗 · 可在九龍或港島場地上課 · 態度輕鬆但規劃嚴謹；婉拒經常遲到或臨時爽約。",
+  },
+  {
+    natural_language_input:
+      "【貓咪用品 UGC 合作】新興寵物用品品牌將推出智慧貓咪餵食器，徵求家中有貓、擅長高質感短影音（Reels／TikTok）的創作者，拍攝開箱與真實使用情境，協助品牌在社群起步。\n\n標籤：creator、marketing、中文",
+    location_filter: "Hong Kong",
+    must_haves:
+      "需提供短影音作品集 · 家中有貓且貓咪可適應新品測試 · 熟悉短片節奏與剪輯 · 報酬與合作細節可另議。",
+  },
+  {
+    natural_language_input:
+      "【尋找自動化顧問】團隊日常有不少重複的行政與資料處理流程，想找熟悉 Zapier、Make（Integromat）或 Python 自動化／爬蟲的專家，以外包或顧問方式承接幾個小型專案，逐步拉高營運效率。\n\n標籤：automation、freelance、中文",
+    location_filter: "Global / Remote",
+    must_haves:
+      "有實際 API 串接與自動化工作流成功案例 · 溝通清楚，能快速理解業務流程與痛點 · 可按專案計價或時薪另行商議。",
+  },
+  {
+    natural_language_input:
+      "【尋找可靠裝修師傅／統籌】近日購入九龍區約 400 呎二手居屋，預備全屋翻新；重視水電與隱蔽工程品質，風格偏好日式木質簡約。想找手工細緻、報價透明、說明清楚的對象長期配合。\n\n標籤：renovation、services、中文",
+    location_filter: "Hong Kong",
+    must_haves:
+      "可出示完工實景或安排參觀 · 報價條列清楚，不加隱藏費用 · 願意耐心解釋工序與物料 · 工期掌控穩定，少臨時拖延。",
   },
 ];
