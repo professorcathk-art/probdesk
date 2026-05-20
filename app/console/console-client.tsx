@@ -994,14 +994,6 @@ export function ConsoleClient({
                         {langs.join(", ")}
                       </p>
                     ) : null}
-                    {s.discovery_source === "intent" && s.natural_language_input.trim() ? (
-                      <div className="mt-4 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] px-3 py-3">
-                        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-emerald-400/90">
-                          {t.inviteListingLabel}
-                        </p>
-                        <p className="mt-2 line-clamp-3 text-sm text-slate-200">{s.natural_language_input.trim()}</p>
-                      </div>
-                    ) : null}
                     <div className="mt-5 flex flex-col gap-2">
                       <Button
                         type="button"
