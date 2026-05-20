@@ -534,6 +534,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   let retrievalModel: "demand_vs_supply_embedding" | "demand_vs_peer_intent_demand" =
     "demand_vs_supply_embedding";
   let intentDemandFallbackAttempted = false;
+  let intentDemandFallbackRowCount: number | null = null;
 
   for (const tier of MATCH_TIERS) {
     const { data, error: tierErr } = await supabase.rpc("match_profiles", {
@@ -594,6 +595,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
       rpcError = crossErr;
     } else {
       const next = (crossData ?? []) as SupplyRpcRow[];
+      intentDemandFallbackRowCount = next.length;
       if (next.length > 0) {
         supplyRows = next;
         appliedTier = "demand_cross_intent_fallback";
@@ -627,6 +629,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
         applied_max_distance: appliedMax,
         retrieval_model: retrievalModel,
         intent_demand_fallback_attempted: intentDemandFallbackAttempted,
+        intent_demand_fallback_row_count: intentDemandFallbackRowCount,
       },
     });
   }

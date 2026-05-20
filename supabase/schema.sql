@@ -251,12 +251,15 @@ as $$
     limit 1
   ) li on true
   where pr.supply_embedding is not null
-    and coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')) is not null
-    and length(trim(coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')))) > 0
     and u.onboarding_status = 'complete'
     and (
       not coalesce(p_require_location_match, true)
-      or lower(trim(coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')))) = lower(trim(p_location))
+      or (
+        coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')) is not null
+        and length(trim(coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')))) > 0
+        and lower(trim(coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')))) =
+          lower(trim(p_location))
+      )
     )
     and (p_exclude_user_id is null or pr.user_id <> p_exclude_user_id)
     and (pr.supply_embedding <=> target_embedding) <= p_threshold
@@ -327,12 +330,14 @@ as $$
     limit 1
   ) li on true
   where u.onboarding_status = 'complete'
-    and coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')) is not null
-    and length(trim(coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')))) > 0
     and (
       not coalesce(p_require_location_match, true)
-      or lower(trim(coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')))) =
-        lower(trim(p_location))
+      or (
+        coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')) is not null
+        and length(trim(coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')))) > 0
+        and lower(trim(coalesce(nullif(trim(pr.location), ''), nullif(trim(li.location_filter), '')))) =
+          lower(trim(p_location))
+      )
     )
     and (p_exclude_user_id is null or pr.user_id <> p_exclude_user_id)
     and (li.cand_vec <=> target_embedding) <= p_threshold
