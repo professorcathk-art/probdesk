@@ -13,8 +13,8 @@ export type MarketplaceListing = {
   is_demo_listing?: boolean;
   must_haves?: string | null;
   /**
-   * Set when Explore blended ranking surfaced this listing (supply vs listing demand similarity > 0.75).
-   * Absent/false on deep links or when the viewer has no profile embedding.
+   * Blended Explore: listing marked when best cosine score (supply vs listing demand OR your active
+   * intent vs listing demand) exceeds 0.75. Order uses continuous similarity when any viewer vector exists.
    */
   recommended?: boolean;
   /** Profile field — shown on Explore / home cards */
@@ -36,7 +36,7 @@ type BlendedExploreRpcRow = {
   is_recommended: boolean;
 };
 
-function trySupplyEmbeddingForRpc(raw: unknown): string | null {
+function tryPgvectorForRpc(raw: unknown): string | null {
   if (raw == null) return null;
   try {
     return embeddingVectorForRpc(raw);
@@ -101,13 +101,27 @@ export async function listMarketplaceListings(options?: { guestPreview?: boolean
     } = await supabase.auth.getUser();
 
     let p_supply_embedding: string | null = null;
+    let p_viewer_demand_embedding: string | null = null;
     if (user) {
-      const { data: profile } = await supabase.from("profiles").select("supply_embedding").eq("user_id", user.id).maybeSingle();
-      p_supply_embedding = trySupplyEmbeddingForRpc(profile?.supply_embedding);
+      const [{ data: profile }, intentRes] = await Promise.all([
+        supabase.from("profiles").select("supply_embedding").eq("user_id", user.id).maybeSingle(),
+        supabase
+          .from("intent_requests")
+          .select("demand_embedding, embedding")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .order("updated_at", { ascending: false })
+          .limit(1),
+      ]);
+      p_supply_embedding = tryPgvectorForRpc(profile?.supply_embedding);
+      const intentRow = intentRes.data?.[0];
+      const demandEmb = intentRow?.demand_embedding ?? intentRow?.embedding;
+      p_viewer_demand_embedding = tryPgvectorForRpc(demandEmb);
     }
 
     const { data: blended, error } = await supabase.rpc("get_blended_explore_intents", {
       p_supply_embedding,
+      p_viewer_demand_embedding,
       p_limit: fetchLimit,
     });
 

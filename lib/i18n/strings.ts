@@ -74,6 +74,8 @@ export const STRINGS = {
       title: "Explore",
       description:
         "Profiles stay protected until mutual acceptance — when you send an invite, a thoughtful opening message makes a big difference.",
+      personalizationHint:
+        "Order reflects fit with your profile (“supply”) and your latest active Manage request — closer matches appear first.",
       backManage: "Back to Manage",
       loadErrorPrefix: "Could not load listings:",
       anonymous: "Anonymous user",
@@ -608,6 +610,8 @@ export const STRINGS = {
       title: "探索廣場",
       description:
         "雙方同意前個人檔案受到保護——發送邀請時附上一則用心的開場訊息會大大提高成功率！",
+      personalizationHint:
+        "徵求順序會參考你的個人檔案向量與目前最新使用中徵求——越契合會越靠前呈現。",
       backManage: "返回管理中心",
       loadErrorPrefix: "無法載入清單：",
       anonymous: "匿名用戶",

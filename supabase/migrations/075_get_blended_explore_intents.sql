@@ -1,3 +1,5 @@
+-- Historical: initial 2-arg RPC. Migrate 076 drops this signature and installs 3-arg (supply + viewer intent demands).
+--
 -- Phase 20: blended Explore feed — rank by cosine similarity vs viewer supply_embedding when present,
 -- then chronological for the tail. Matches existing convention: similarity = 1 - (demand_vec <=> supply_vec).
 

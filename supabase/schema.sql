@@ -390,10 +390,14 @@ as $$
 $$;
 
 -- -----------------------------------------------------------------------------
--- Explore marketplace: blended feed (Phase 20) — cosine similarity vs viewer supply, then chronological.
+-- Explore marketplace: blended feed (Phase 20) — viewer supply_embedding and/or viewer intent
+-- demand_embedding vs listing demand_embeddings; similarity-sorted cohort, then chronological.
 -- -----------------------------------------------------------------------------
+drop function if exists public.get_blended_explore_intents(vector(1536), int);
+
 create or replace function public.get_blended_explore_intents(
   p_supply_embedding vector(1536) default null,
+  p_viewer_demand_embedding vector(1536) default null,
   p_limit int default 60
 )
 returns table (
@@ -430,37 +434,43 @@ as $$
     select
       b.*,
       case
-        when p_supply_embedding is not null and b.cand_vec is not null
-          then (
-            (1::double precision - (b.cand_vec <=> p_supply_embedding)::double precision)
-          )::float
+        when p_supply_embedding is not null and b.cand_vec is not null then
+          (1::double precision - (b.cand_vec <=> p_supply_embedding)::double precision)::float
         else null::float
-      end as similarity,
+      end as sim_supply,
       case
-        when p_supply_embedding is not null
-          and b.cand_vec is not null
-          and (
-            (1::double precision - (b.cand_vec <=> p_supply_embedding)::double precision)
-          )::float > 0.75
-        then true
-        else false
-      end as is_recommended
+        when p_viewer_demand_embedding is not null and b.cand_vec is not null then
+          (1::double precision - (b.cand_vec <=> p_viewer_demand_embedding)::double precision)::float
+        else null::float
+      end as sim_viewer_demands
     from base b
+  ),
+  blended as (
+    select
+      s.*,
+      case
+        when s.sim_supply is not null and s.sim_viewer_demands is not null then
+          greatest(s.sim_supply, s.sim_viewer_demands)::float
+        when s.sim_supply is not null then s.sim_supply
+        when s.sim_viewer_demands is not null then s.sim_viewer_demands
+        else null::float
+      end as similarity
+    from scored s
   )
   select
-    s.id,
-    s.natural_language_input,
-    s.location_filter,
-    s.extracted_persona,
-    s.user_id,
-    s.is_demo_listing,
-    s.must_haves,
-    s.is_recommended
-  from scored s
+    b.id,
+    b.natural_language_input,
+    b.location_filter,
+    b.extracted_persona,
+    b.user_id,
+    b.is_demo_listing,
+    b.must_haves,
+    (b.similarity is not null and b.similarity > 0.75) as is_recommended
+  from blended b
   order by
-    case when s.is_recommended then 0 else 1 end asc,
-    case when s.is_recommended then s.similarity end desc nulls last,
-    s.created_at desc
+    case when b.similarity is not null then 0 else 1 end asc,
+    b.similarity desc nulls last,
+    b.created_at desc
   limit greatest(1, least(coalesce(p_limit, 60), 120));
 $$;
 
@@ -639,7 +649,8 @@ grant execute on function public.match_profiles(vector(1536), text, float, int, 
 grant execute on function public.match_intents_cross_demand(vector(1536), text, float, int, uuid, boolean)
   to authenticated;
 grant execute on function public.discovery_eligibility_counts(uuid) to authenticated;
-grant execute on function public.get_blended_explore_intents(vector(1536), int) to anon, authenticated;
+grant execute on function public.get_blended_explore_intents(vector(1536), vector(1536), int)
+  to anon, authenticated;
 
 -- -----------------------------------------------------------------------------
 -- Storage (avatars) — see migrations/045_phase3_avatars_storage.sql for policies
