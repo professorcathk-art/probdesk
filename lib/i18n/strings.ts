@@ -319,6 +319,11 @@ export const STRINGS = {
       aiRecSourceSync: "Discovery run",
       aiRecSourceBackground: "Embedding match",
       aiRecBlockedPeer: "You have a pending or accepted connection with this person — invite blocked.",
+      aiRecIntentMergedTitle: "Saved suggestions & invitations",
+      aiRecIntentMergedHint:
+        "Inbound invites, outbound statuses, and AI discovery matches for this request are grouped here. Inbounds include a factual profile preview — no display name or photo until mutual acceptance. Matches from Find people who fit stay until you dismiss or send an invite (also visible under Invitations).",
+      aiRecIntentMergedEmpty:
+        "No invitations or saved suggestions yet. Tap “Find people who fit” above to generate matches.",
       intentDashboard: {
         sectionTitle: "Invitations & suggestions",
         sectionHint:
@@ -840,6 +845,11 @@ export const STRINGS = {
       aiRecSourceSync: "探索跑分",
       aiRecSourceBackground: "嵌入比對",
       aiRecBlockedPeer: "與對方已有待處理或已連結紀錄，無法重複邀請。",
+      aiRecIntentMergedTitle: "已儲存的 AI 建議與邀請",
+      aiRecIntentMergedHint:
+        "與此徵求相關的來訊邀請、你送出的邀請紀錄，以及「尋找契合對象」產生的建議統一整理在此（避免重複區塊）。來訊附有對方已存檔案的預覽——雙方同意連結前不含真實姓名與頭像；建議可隨時移除或發送邀請，亦會顯示在「邀請」分頁。",
+      aiRecIntentMergedEmpty:
+        "目前尚無邀請或已儲存建議。請先按上方「尋找契合對象」產生人選；有人問候時也會顯示於此。",
       intentDashboard: {
         sectionTitle: "此徵求的邀請與推薦",
         sectionHint:

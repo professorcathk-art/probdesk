@@ -20,7 +20,7 @@ import { ConnectModal } from "@/components/connect-modal";
 import { CreditsLimitModal } from "@/components/credits-limit-modal";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { InviteQuotaPill } from "@/components/invite-quota-pill";
-import { IntentCardRequestsList, intentManageTabNeedsAttention } from "@/components/intent-card-requests-list";
+import { IntentCardRequestsList, intentManageTabNeedsAttention, filterMatchesForIntentCard } from "@/components/intent-card-requests-list";
 import { IntentMustHavesCallout } from "@/components/intent-must-haves-callout";
 import { IntentShareButton } from "@/components/intent-share-button";
 import { IntentSnippet } from "@/components/intent-snippet";
@@ -53,6 +53,7 @@ import {
 } from "@/lib/intent-draft";
 import { aiRecommendationToSuggestionCard } from "@/lib/ai-recommendation-to-suggestion-card";
 import { displayProfileAgeGroup } from "@/lib/display-age-group";
+import { peerGenderLabelFromSlug } from "@/lib/peer-profile-labels";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
 
@@ -94,20 +95,13 @@ export function ConsoleClient({
   const cr = strings.credits;
 
   function peerGenderLabel(raw: string | null): string | null {
-    switch (raw?.trim()) {
-      case "woman":
-        return t.genderWoman;
-      case "man":
-        return t.genderMan;
-      case "non_binary":
-        return t.genderNonBinary;
-      case "prefer_not_say":
-        return t.genderPreferNotSay;
-      case "other":
-        return t.genderOther;
-      default:
-        return null;
-    }
+    return peerGenderLabelFromSlug(raw, {
+      genderWoman: t.genderWoman,
+      genderMan: t.genderMan,
+      genderNonBinary: t.genderNonBinary,
+      genderPreferNotSay: t.genderPreferNotSay,
+      genderOther: t.genderOther,
+    });
   }
 
   const { refresh: refreshCredits, outOfCredits } = useConnectionCredits(userId);
@@ -564,29 +558,49 @@ export function ConsoleClient({
                         </div>
                       </div>
 
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{t.intentDashboard.sectionTitle}</p>
-                          <p className="text-xs leading-relaxed text-slate-500">{t.intentDashboard.sectionHint}</p>
-                        </div>
-                        <IntentCardRequestsList
-                          intentId={intent.id}
-                          userId={userId}
-                          matches={matches}
-                          onRespond={(id, dec) => void onRespond(id, dec)}
-                        />
-                        <AiRecommendationsConsole
-                          variant="intentStrip"
-                          intentId={intent.id}
-                          rows={aiRecommendations}
-                          blockedPeerIds={blockedPeers}
-                          onInvite={(row) => openInviteFromAiRecommendation(row)}
-                          onPreview={(uid) => {
-                            setPreviewPeerId(uid);
-                            setPreviewOpen(true);
-                          }}
-                          onAfterDismiss={() => void router.refresh()}
-                        />
+                      <div className="space-y-4 border-t border-white/10 pt-6">
+                        {(() => {
+                          const invitationRows = filterMatchesForIntentCard(intent.id, userId, matches);
+                          const aiRowsForIntent = aiRecommendations.filter((r) => r.intent_id === intent.id);
+                          const unifiedEmpty = invitationRows.length === 0 && aiRowsForIntent.length === 0;
+                          return (
+                            <>
+                              <div className="space-y-1">
+                                <h3 className="text-lg font-semibold text-white">{t.aiRecIntentMergedTitle}</h3>
+                                <p className="text-xs leading-relaxed text-slate-500">{t.aiRecIntentMergedHint}</p>
+                              </div>
+                              {unifiedEmpty ? (
+                                <div className="rounded-xl border border-dashed border-white/12 bg-black/20 px-4 py-10 text-center">
+                                  <p className="text-sm leading-relaxed text-slate-500">{t.aiRecIntentMergedEmpty}</p>
+                                </div>
+                              ) : (
+                                <div className="space-y-5">
+                                  {invitationRows.length > 0 ? (
+                                    <IntentCardRequestsList
+                                      intentId={intent.id}
+                                      userId={userId}
+                                      matches={matches}
+                                      onRespond={(id, dec) => void onRespond(id, dec)}
+                                    />
+                                  ) : null}
+                                  <AiRecommendationsConsole
+                                    variant="intentStrip"
+                                    hideHeader
+                                    intentId={intent.id}
+                                    rows={aiRecommendations}
+                                    blockedPeerIds={blockedPeers}
+                                    onInvite={(row) => openInviteFromAiRecommendation(row)}
+                                    onPreview={(uid) => {
+                                      setPreviewPeerId(uid);
+                                      setPreviewOpen(true);
+                                    }}
+                                    onAfterDismiss={() => void router.refresh()}
+                                  />
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </CardContent>
                   </Card>
