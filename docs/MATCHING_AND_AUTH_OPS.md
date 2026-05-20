@@ -4,6 +4,10 @@ This note answers common operations questions for Vennode / Probdesk.
 
 The **member-facing** UI intentionally omits short AI “compat note” paragraphs on discovery cards and saved recommendations so judgment stays on profile fields and listings; **admin** `pairing_score_events` still stores `compatibility_reason` for debugging.
 
+Saved AI queues (`listMyAiRecommendations`): candidate profile fields are loaded with the **service role** on the server (RLS prevents members reading each other’s `profiles`). No extra Supabase SQL is required besides `SUPABASE_SERVICE_ROLE_KEY` in the hosting environment.
+
+Discoverability pop-up: **`ConsolePage` must keep a stable `<ConsoleClient>` key per user.** Deriving React `key` from `?cue=` caused a remount when the cue was stripped and `/console` revalidated after hybrid discovery, wiping modal state instantly.
+
 ## Pairing score log (Admin)
 
 Rows are written **server-side** with the Supabase **service role** into `pairing_score_events`.

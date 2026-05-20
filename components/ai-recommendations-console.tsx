@@ -111,71 +111,105 @@ export function AiRecommendationsConsole(props: {
             if (ageLbl) metaBits.push(`${c.peerProfileAgeGroup}: ${ageLbl}`);
             if (loc) metaBits.push(`${c.peerProfileLocation}: ${loc}`);
 
+            const hasRichPreview =
+              metaBits.length > 0 ||
+              Boolean(bio) ||
+              Boolean(industry) ||
+              Boolean(superpower) ||
+              kw.length > 0 ||
+              langs.length > 0;
+
             return (
               <li key={row.id}>
-                <Card className="overflow-hidden rounded-2xl border border-white/12 bg-black/30 shadow-sm backdrop-blur-xl">
-                  <CardContent className="space-y-3 p-4 sm:p-5">
+                <Card
+                  className={cn(
+                    "relative overflow-hidden rounded-2xl border border-white/10",
+                    "bg-gradient-to-br from-slate-950/98 via-slate-950/88 to-indigo-950/30",
+                    "shadow-[0_28px_56px_-28px_rgba(15,23,42,0.88)] backdrop-blur-xl",
+                  )}
+                >
+                  <div
+                    className="pointer-events-none absolute inset-y-4 left-0 w-px rounded-full bg-gradient-to-b from-sky-400 via-sky-400/55 to-transparent"
+                    aria-hidden
+                  />
+                  <CardContent className="space-y-3 p-4 pl-5 sm:p-6 sm:pl-7">
                     <div className="flex gap-4">
-                      <div className="shrink-0 pt-0.5">
+                      <div className="shrink-0 pt-1">
                         <LockedAvatarPreview size="md" />
                       </div>
                       <div className="min-w-0 flex-1 space-y-3">
-                        <div className="flex flex-wrap items-start justify-between gap-2 border-b border-white/5 pb-2">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <Badge variant="outline" className="border-sky-400/40 bg-sky-500/10 text-[11px] font-medium text-sky-100">
+                        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 pb-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge
+                              variant="outline"
+                              className="border-sky-400/45 bg-sky-500/14 text-[11px] font-medium text-sky-100 shadow-[0_0_22px_-6px_rgba(56,189,248,0.45)]"
+                            >
                               {c.aiRecBadge}
                             </Badge>
-                            <Badge variant="outline" className="border-white/15 text-[11px] font-normal text-slate-400">
+                            <Badge variant="outline" className="border-white/14 text-[11px] font-normal text-slate-400">
                               {sourceLabel}
                             </Badge>
                           </div>
-                          <div className="text-right">
-                            <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">{c.matchFitScore}</p>
-                            <p className="text-lg font-semibold tabular-nums text-sky-300">{row.score}</p>
+                          <div className="rounded-xl bg-black/40 px-3 py-1.5 ring-1 ring-white/12">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{c.matchFitScore}</p>
+                            <p className="min-w-[2.75rem] text-center text-xl font-semibold tabular-nums tracking-tight text-sky-200">
+                              {row.score}
+                            </p>
                           </div>
                         </div>
 
-                        {metaBits.length > 0 ? (
-                          <p className="text-xs leading-relaxed text-slate-300">{metaBits.join(" · ")}</p>
-                        ) : null}
-
-                        {bio ? (
-                          <div className="rounded-lg bg-white/[0.03] px-3 py-2 ring-1 ring-white/10">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{c.peerProfileBio}</p>
-                            <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-slate-200">{bio}</p>
+                        {row.intent_preview.trim() ? (
+                          <div className="rounded-xl bg-sky-500/[0.075] px-3 py-2.5 ring-1 ring-sky-400/30">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-sky-400/95">{c.aiRecForIntent}</p>
+                            <p className="mt-1 text-xs leading-relaxed text-slate-100">{truncateText(row.intent_preview, 220)}</p>
                           </div>
                         ) : null}
 
-                        {(industry || superpower) ? (
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
+                        {!hasRichPreview && !row.intent_preview.trim() ? (
+                          <p className="border-l-2 border-sky-500/45 py-0.5 pl-3 text-xs leading-relaxed text-slate-500">{c.aiRecPeekHint}</p>
+                        ) : null}
+
+                        {metaBits.length > 0 ? (
+                          <p className="text-xs font-medium leading-relaxed text-slate-300">{metaBits.join(" · ")}</p>
+                        ) : null}
+
+                        {bio ? (
+                          <div className="rounded-xl bg-white/[0.045] px-3 py-2.5 ring-1 ring-white/12">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{c.peerProfileBio}</p>
+                            <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-slate-100">{bio}</p>
+                          </div>
+                        ) : null}
+
+                        {industry || superpower ? (
+                          <div className="flex flex-wrap gap-x-5 gap-y-2 text-[13px] text-slate-400">
                             {industry ? (
                               <span>
                                 <span className="font-medium text-slate-500">{c.peerProfileIndustry}: </span>
-                                {truncateText(industry, 72)}
+                                {truncateText(industry, 76)}
                               </span>
                             ) : null}
                             {superpower ? (
                               <span>
                                 <span className="font-medium text-slate-500">{c.peerProfileSuperpower}: </span>
-                                {truncateText(superpower, 72)}
+                                {truncateText(superpower, 76)}
                               </span>
                             ) : null}
                           </div>
                         ) : null}
 
-                        {(kw.length > 0 || langs.length > 0) ? (
+                        {kw.length > 0 || langs.length > 0 ? (
                           <div className="space-y-2">
                             {kw.length > 0 ? (
                               <div>
-                                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                                   {c.peerProfileSkills}
                                 </p>
-                                <div className="flex flex-wrap gap-1">
+                                <div className="flex flex-wrap gap-1.5">
                                   {kw.map((tag) => (
                                     <Badge
                                       key={`${row.id}-k-${tag}`}
                                       variant="secondary"
-                                      className="rounded-md border-white/10 bg-white/[0.06] px-2 py-0.5 text-[11px] font-normal text-slate-200 hover:bg-white/[0.06]"
+                                      className="rounded-md border-white/[0.12] bg-white/[0.08] px-2 py-0.5 text-[11px] font-normal text-slate-100 hover:bg-white/[0.08]"
                                     >
                                       {tag}
                                     </Badge>
@@ -192,19 +226,12 @@ export function AiRecommendationsConsole(props: {
                           </div>
                         ) : null}
 
-                        {variant === "requestsHub" && row.intent_preview.trim() ? (
-                          <p className="rounded-lg bg-white/[0.02] px-3 py-2 text-[11px] leading-snug text-slate-400 ring-1 ring-white/10">
-                            <span className="font-medium text-slate-500">{c.aiRecForIntent}: </span>
-                            {truncateText(row.intent_preview, 220)}
-                          </p>
-                        ) : null}
-
-                        <div className="flex flex-col gap-2 border-t border-white/5 pt-3 sm:flex-row sm:flex-wrap">
+                        <div className="grid grid-cols-1 gap-2 border-t border-white/10 pt-4 sm:grid-cols-[1fr_auto_1fr] sm:items-stretch sm:gap-3">
                           <Button
                             type="button"
                             size="sm"
                             variant="outline"
-                            className="min-h-10 w-full border-white/15 text-slate-200 sm:flex-1 sm:min-h-9"
+                            className="min-h-11 w-full border-white/[0.15] bg-white/[0.04] text-slate-50 hover:bg-white/[0.08] sm:min-h-10"
                             onClick={() => onPreview(row.candidate_profile_id)}
                           >
                             {c.aiRecPreview}
@@ -213,7 +240,7 @@ export function AiRecommendationsConsole(props: {
                             type="button"
                             size="sm"
                             variant="ghost"
-                            className="min-h-10 w-full text-slate-400 hover:bg-white/[0.06] sm:w-auto sm:min-h-9"
+                            className="min-h-11 w-full text-[13px] text-slate-500 underline-offset-[3px] hover:bg-transparent hover:text-slate-400 hover:underline sm:min-h-10"
                             disabled={dismissing === row.id}
                             onClick={() => void handleDismiss(row.id)}
                           >
@@ -222,14 +249,14 @@ export function AiRecommendationsConsole(props: {
                           <Button
                             type="button"
                             size="sm"
-                            className="min-h-10 w-full border border-emerald-400/35 bg-emerald-500/15 text-emerald-50 hover:bg-emerald-500/25 disabled:opacity-40 sm:flex-1 sm:min-h-9"
+                            className="min-h-11 w-full border border-emerald-400/42 bg-emerald-500/[0.22] font-medium text-emerald-50 shadow-sm shadow-emerald-950/25 hover:bg-emerald-500/30 disabled:opacity-40 sm:min-h-10"
                             disabled={blocked}
                             onClick={() => onInvite(row)}
                           >
                             {c.aiRecInvite}
                           </Button>
                         </div>
-                        {blocked ? <p className="text-xs text-amber-200/90">{c.aiRecBlockedPeer}</p> : null}
+                        {blocked ? <p className="text-xs leading-relaxed text-amber-200/90">{c.aiRecBlockedPeer}</p> : null}
                       </div>
                     </div>
                   </CardContent>

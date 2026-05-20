@@ -103,19 +103,61 @@ export async function listMyAiRecommendations(): Promise<
   const intentIds = [...new Set(rows.map((r) => r.intent_id))];
   const candIds = [...new Set(rows.map((r) => r.candidate_profile_id))];
 
-  const [{ data: intents }, { data: profiles }] = await Promise.all([
+  const [{ data: intents }, profilesPeers] = await Promise.all([
     intentIds.length
       ? supabase.from("intent_requests").select("id, natural_language_input").in("id", intentIds).eq("user_id", user.id)
       : Promise.resolve({ data: [] as { id: string; natural_language_input: string }[] }),
     candIds.length
-      ? supabase
-          .from("profiles")
-          .select(
-            "user_id, display_name, bio, gender, age_group, skills_tags, languages, location, industry, superpower",
-          )
-          .in("user_id", candIds)
+      ? (async () => {
+          type PeerProfile = {
+            user_id: string;
+            display_name: string | null;
+            bio: string | null;
+            gender: string | null;
+            age_group: string | null;
+            skills_tags: string[] | null;
+            languages: string[] | null;
+            location: string | null;
+            industry: string | null;
+            superpower: string | null;
+          };
+          try {
+            const svc = createServiceRoleClient();
+            const [{ data: pRows }, { data: iRows }] = await Promise.all([
+              svc
+                .from("profiles")
+                .select(
+                  "user_id, display_name, bio, gender, age_group, skills_tags, languages, location, industry, superpower",
+                )
+                .in("user_id", candIds),
+              svc
+                .from("intent_requests")
+                .select("id, user_id, updated_at")
+                .in("user_id", candIds)
+                .eq("status", "active")
+                .order("updated_at", { ascending: false }),
+            ]);
+            return { profiles: (pRows ?? []) as PeerProfile[], candIntents: iRows ?? [] };
+          } catch {
+            const [{ data: pRows }, { data: iRows }] = await Promise.all([
+              supabase
+                .from("profiles")
+                .select(
+                  "user_id, display_name, bio, gender, age_group, skills_tags, languages, location, industry, superpower",
+                )
+                .in("user_id", candIds),
+              supabase
+                .from("intent_requests")
+                .select("id, user_id, updated_at")
+                .in("user_id", candIds)
+                .eq("status", "active")
+                .order("updated_at", { ascending: false }),
+            ]);
+            return { profiles: (pRows ?? []) as PeerProfile[], candIntents: iRows ?? [] };
+          }
+        })()
       : Promise.resolve({
-          data: [] as {
+          profiles: [] as {
             user_id: string;
             display_name: string | null;
             bio: string | null;
@@ -127,25 +169,18 @@ export async function listMyAiRecommendations(): Promise<
             industry: string | null;
             superpower: string | null;
           }[],
+          candIntents: [] as { id: string; user_id: string; updated_at: string }[],
         }),
   ]);
+
+  const { profiles, candIntents } = profilesPeers;
 
   const intentMine = new Set((intents ?? []).map((i) => i.id));
   const intentText = new Map((intents ?? []).map((i) => [i.id, i.natural_language_input]));
   const profByUser = new Map((profiles ?? []).map((p) => [p.user_id, p]));
 
-  const { data: candIntents } =
-    candIds.length > 0
-      ? await supabase
-          .from("intent_requests")
-          .select("id, user_id, updated_at")
-          .in("user_id", candIds)
-          .eq("status", "active")
-          .order("updated_at", { ascending: false })
-      : { data: [] as { id: string; user_id: string; updated_at: string }[] };
-
   const linkedIntentByUser = new Map<string, string>();
-  for (const row of [...(candIntents ?? [])].sort(
+  for (const row of [...candIntents].sort(
     (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
   )) {
     if (!linkedIntentByUser.has(row.user_id)) linkedIntentByUser.set(row.user_id, row.id);

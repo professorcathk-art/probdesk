@@ -56,7 +56,8 @@ export default async function ConsolePage({
 
   return (
     <ConsoleClient
-      key={`${initialConsoleTab}-${initialConsoleCue ?? ""}`}
+      /** Stable key: do not derive from cue/tab — cue is stripped client-side while revalidation refetches `/console`; a changing key remounts the client and wipes discovery modal state. */
+      key={user.id}
       userId={user.id}
       intents={intents}
       matches={matches}
