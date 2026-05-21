@@ -80,7 +80,6 @@ export function AiRecommendationsConsole(props: {
         <ul className="flex flex-col gap-3">
           {filtered.map((row) => {
             const blocked = blockedPeerIds.has(row.candidate_profile_id);
-            const sourceLabel = row.source === "background_supply" ? c.aiRecSourceBackground : c.aiRecSourceSync;
             const gLabel = peerGenderLabelFromSlug(row.peer_gender, {
               genderWoman: c.genderWoman,
               genderMan: c.genderMan,
@@ -146,9 +145,11 @@ export function AiRecommendationsConsole(props: {
                             >
                               {c.aiRecBadge}
                             </Badge>
-                            <Badge variant="outline" className="border-white/14 text-[11px] font-normal text-slate-400">
-                              {sourceLabel}
-                            </Badge>
+                            {row.source === "background_supply" ? (
+                              <Badge variant="outline" className="border-white/14 text-[11px] font-normal text-slate-400">
+                                {c.aiRecSourceBackground}
+                              </Badge>
+                            ) : null}
                           </div>
                           <div className="rounded-xl bg-black/40 px-3 py-1.5 ring-1 ring-white/12">
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{c.matchFitScore}</p>

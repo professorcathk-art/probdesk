@@ -172,11 +172,10 @@ export const STRINGS = {
       suggestionAnonymousTitle: "Suggested member",
       previewProfileTitle: "Profile preview",
       previewProfileSubtitle:
-        "Name, photo, and album stay hidden until mutual acceptance. Everything below is discovery-safe context.",
+        "Name, photo, and album stay hidden until mutual acceptance.",
       previewProfileLoading: "Loading preview…",
       previewProfileOpen: "Preview profile",
-      previewProfileFooter:
-        "Still anonymous — send an invite only when you feel aligned. They will see your opening message on Manage → Invitations.",
+      previewProfileFooter: "",
       manageTabBadgeAria: "Needs attention",
       newIntro: "New introduction",
       contextMessage: "Context message",
@@ -284,8 +283,7 @@ export const STRINGS = {
       inviteRoleYouReachedOut: "You sent this invite",
       inviteRoleTheyReachedOut: "They reached out to you",
       senderPreviewBadge: "Safe sender preview",
-      senderPreviewHint:
-        "Shown below are fields from their profile as they saved them — not paraphrased or invented. Name, photo, album, and external links stay hidden until you both accept.",
+      senderPreviewHint: "",
       senderPreviewFactualCaption: "From their saved profile",
       senderPreviewSystemBadge: "Vennode notice",
       senderPreviewSystemDisclaimer:
@@ -706,12 +704,10 @@ export const STRINGS = {
       connectHeadlineSuggestion: "這則推薦對象",
       suggestionAnonymousTitle: "推薦對象",
       previewProfileTitle: "個人檔案預覽",
-      previewProfileSubtitle:
-        "姓名、大頭貼與相簿在雙方同意連結前會保持隱藏；以下為可供參考的公開脈絡。",
+      previewProfileSubtitle: "姓名、大頭貼與相簿在雙方同意連結前會保持隱藏。",
       previewProfileLoading: "載入預覽中…",
       previewProfileOpen: "預覽檔案",
-      previewProfileFooter:
-        "仍為匿名階段——若覺得契合再發邀請；對方會在「管理中心 → 邀請」看到你的開場訊息。",
+      previewProfileFooter: "",
       manageTabBadgeAria: "有待處理",
       newIntro: "新的介紹",
       contextMessage: "開場訊息",
@@ -815,8 +811,7 @@ export const STRINGS = {
       inviteRoleYouReachedOut: "你主動送出邀請",
       inviteRoleTheyReachedOut: "對方向你發起邀請",
       senderPreviewBadge: "安全預覽（發送者）",
-      senderPreviewHint:
-        "下列內容來自對方已儲存的檔案欄位，供你判斷契合度；我們不會另外改寫或臆測。真實姓名、大頭照、相簿與外部連結須待雙方同意後才會顯示。",
+      senderPreviewHint: "",
       senderPreviewFactualCaption: "對方檔案中儲存的內容",
       senderPreviewSystemBadge: "Vennode 說明",
       senderPreviewSystemDisclaimer:

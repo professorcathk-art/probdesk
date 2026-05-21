@@ -153,7 +153,9 @@ export function SenderPreviewBlock({ match }: { match: MatchRow }) {
   return (
     <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-400/90">{c.senderPreviewBadge}</p>
-      <p className="mt-1.5 text-xs leading-relaxed text-slate-400">{c.senderPreviewHint}</p>
+      {c.senderPreviewHint.trim() ? (
+        <p className="mt-1.5 text-xs leading-relaxed text-slate-400">{c.senderPreviewHint}</p>
+      ) : null}
       <div className="mt-4 flex gap-3">
         <div
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/12 bg-black/35 text-slate-500"

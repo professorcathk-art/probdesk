@@ -116,7 +116,9 @@ export function SuggestionProfilePreviewDialog({
                 {preview.languages.join(", ")}
               </p>
             ) : null}
-            <p className="text-xs leading-relaxed text-sky-300/85">{c.previewProfileFooter}</p>
+            {c.previewProfileFooter.trim() ? (
+              <p className="text-xs leading-relaxed text-sky-300/85">{c.previewProfileFooter}</p>
+            ) : null}
           </div>
         ) : null}
       </DialogContent>
