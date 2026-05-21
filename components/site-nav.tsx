@@ -23,15 +23,19 @@ function MessagesNavLink({
     queueMicrotask(() => setUnread(messengerUnreadInitial));
   }, [messengerUnreadInitial]);
 
+  /** Debounced: rapid route changes only fire one server round-trip → snappier nav + fewer actions. */
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      const res = await getMessengerUnreadThreadCount();
-      if (cancelled) return;
-      if (typeof res === "number") setUnread(res);
-    })();
+    const t = setTimeout(() => {
+      void (async () => {
+        const res = await getMessengerUnreadThreadCount();
+        if (cancelled) return;
+        if (typeof res === "number") setUnread(res);
+      })();
+    }, 550);
     return () => {
       cancelled = true;
+      clearTimeout(t);
     };
   }, [pathname]);
 

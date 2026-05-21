@@ -1,6 +1,11 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
-export async function getAuthContext() {
+/**
+ * Deduped per incoming request — layout + pages often call this together; avoids repeated
+ * Supabase auth + DB round-trips within the same RSC payload.
+ */
+export const getAuthContext = cache(async function getAuthContext() {
   try {
     const supabase = await createClient();
     const {
@@ -20,4 +25,4 @@ export async function getAuthContext() {
   } catch {
     return { user: null, onboardingStatus: null as string | null };
   }
-}
+});
