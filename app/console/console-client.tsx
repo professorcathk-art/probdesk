@@ -904,7 +904,9 @@ export function ConsoleClient({
               placeholder={t.locationPlaceholderEdit}
               className="border-white/10 bg-white/[0.03] text-slate-50"
             />
-            <p className="text-xs text-slate-500">{t.locationHintEdit}</p>
+            {t.locationHintEdit.trim() ? (
+              <p className="text-xs text-slate-500">{t.locationHintEdit}</p>
+            ) : null}
           </div>
           <DialogFooter className="gap-2">
             <Button type="button" variant="ghost" className="text-slate-300" onClick={() => setEditIntent(null)}>
