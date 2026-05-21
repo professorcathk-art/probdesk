@@ -123,6 +123,8 @@ export const STRINGS = {
       loadThreadError: "Could not load messages.",
       systemConnectedBroadcast:
         "You're connected on Vennode — this chat is open. Say hello when you're ready.",
+      peerProfileUnavailable: "We couldn't load this profile.",
+      peerAvatarPreviewAria: "View peer profile",
     },
     console: {
       kicker: "Manage",
@@ -442,7 +444,7 @@ export const STRINGS = {
       subtitle:
         "Tell them why you're a great match! Don't worry, your identity remains private until you both agree to connect.",
       placeholder:
-        "Hi! I think we'd be a great fit because... (A sincere intro goes a long way!)",
+        "Hi, I'm ... (a simple sincere intro resonates best!)",
       cancel: "Cancel",
       sendBusy: "Sending…",
       confirmSend: "Send invite",
@@ -655,6 +657,8 @@ export const STRINGS = {
       loadThreadError: "無法載入訊息。",
       systemConnectedBroadcast:
         "你們已在 Vennode 成功連結，對話已開啟——準備好時打聲招呼吧。",
+      peerProfileUnavailable: "無法載入對方的檔案。",
+      peerAvatarPreviewAria: "查看對方檔案",
     },
     console: {
       kicker: "管理中心",
@@ -963,7 +967,7 @@ export const STRINGS = {
       title: "寫封開場白",
       subtitle:
         "跟對方分享為什麼你們很契合吧！別擔心，在雙方點頭同意前，你的真實身分將絕對保密。",
-      placeholder: "嗨！我覺得我們很適合，因為...（簡單真誠的介紹最能打動人心喔）",
+      placeholder: "Hi, 我是......（簡單真誠的介紹最能打動人心！）",
       cancel: "取消",
       sendBusy: "傳送中…",
       confirmSend: "發送邀請",

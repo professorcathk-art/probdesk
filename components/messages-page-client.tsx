@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, UserRound } from "lucide-react";
 import type { MessengerThreadDTO } from "@/actions/messenger";
 import { markMessengerMatchesRead } from "@/actions/messenger";
-import { listMergedMatchMessages, sendMatchMessage } from "@/actions/matches";
+import { listMergedMatchMessages, sendMatchMessage, type MessageRow } from "@/actions/matches";
 import { SYSTEM_CONNECTED_MESSAGE_CONTENT } from "@/lib/system-messages";
-import type { MessageRow } from "@/actions/matches";
+import { AcceptedPeerProfileDialog } from "@/components/accepted-peer-profile-dialog";
 import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,6 +47,8 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
   }, []);
 
   const selected = threads.find((t) => t.peerId === selectedPeerId) ?? null;
+
+  const [peerProfileDialUserId, setPeerProfileDialUserId] = useState<string | null>(null);
 
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [draft, setDraft] = useState("");
@@ -179,15 +181,18 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
                 const label = t.peerDisplayName?.trim() || c.peerFallbackName;
                 return (
                   <li key={t.peerId}>
-                    <button
-                      type="button"
-                      onClick={() => openThread(t.peerId)}
+                    <div
                       className={cn(
-                        "flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.04]",
+                        "flex w-full gap-3 px-4 py-3 transition-colors hover:bg-white/[0.04]",
                         open ? "bg-white/[0.08]" : "bg-transparent",
                       )}
                     >
-                      <div className="relative shrink-0">
+                      <button
+                        type="button"
+                        aria-label={p.peerAvatarPreviewAria}
+                        className="relative shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                        onClick={() => setPeerProfileDialUserId(t.peerId)}
+                      >
                         <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/[0.04] text-slate-400">
                           {t.peerAvatarUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element -- remote avatar URL
@@ -197,17 +202,21 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
                           )}
                         </div>
                         {t.unread ? (
-                          <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.8)]" />
+                          <span className="pointer-events-none absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.8)]" />
                         ) : null}
-                      </div>
-                      <div className="min-w-0 flex-1">
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openThread(t.peerId)}
+                        className="min-w-0 flex-1 rounded-xl py-0.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f172a]"
+                      >
                         <p className="truncate font-medium text-slate-100">{label}</p>
                         <p className="truncate text-xs text-slate-500">{t.peerIndustry?.trim() || p.industryUnset}</p>
                         {t.lastMessagePreview ? (
                           <p className="mt-1 line-clamp-2 text-xs text-slate-400">{t.lastMessagePreview}</p>
                         ) : null}
-                      </div>
-                    </button>
+                      </button>
+                    </div>
                   </li>
                 );
               })}
@@ -245,14 +254,21 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
                 <span className="mt-0.5 w-10 shrink-0 md:hidden" aria-hidden />
               )}
               <div className="flex min-w-0 flex-1 gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/[0.04]">
-                  {selected.peerAvatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={selected.peerAvatarUrl} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <UserRound className="h-5 w-5 text-slate-400" strokeWidth={1.75} aria-hidden />
-                  )}
-                </div>
+                <button
+                  type="button"
+                  aria-label={p.peerAvatarPreviewAria}
+                  className="shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                  onClick={() => setPeerProfileDialUserId(selected.peerId)}
+                >
+                  <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/[0.04]">
+                    {selected.peerAvatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={selected.peerAvatarUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <UserRound className="h-5 w-5 text-slate-400" strokeWidth={1.75} aria-hidden />
+                    )}
+                  </div>
+                </button>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-white">{selected.peerDisplayName?.trim() || c.peerFallbackName}</p>
                   <p className="truncate text-xs text-slate-500">{selected.peerIndustry?.trim() || p.industryUnset}</p>
@@ -358,6 +374,14 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
           </>
         )}
       </section>
+
+      <AcceptedPeerProfileDialog
+        peerUserId={peerProfileDialUserId}
+        open={peerProfileDialUserId != null}
+        onOpenChange={(o) => {
+          if (!o) setPeerProfileDialUserId(null);
+        }}
+      />
     </div>
   );
 }

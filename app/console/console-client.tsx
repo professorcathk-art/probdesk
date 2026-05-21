@@ -417,10 +417,10 @@ export function ConsoleClient({
         ) : null}
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="gap-6">
-          <TabsList className="md:w-full md:max-w-3xl md:flex-wrap">
+          <TabsList className="grid w-full grid-cols-3 gap-1 overflow-x-visible max-md:overflow-x-visible md:flex md:w-full md:max-w-3xl md:flex-wrap [&_[data-slot=tabs-trigger]]:w-full [&_[data-slot=tabs-trigger]]:max-md:justify-center">
             <TabsTrigger
               value="intents"
-              className="gap-2"
+              className="gap-2 max-md:w-full md:max-w-none"
               aria-label={intentsTabAttention ? `${t.tabIntents} — ${t.manageTabBadgeAria}` : t.tabIntents}
             >
               <span>{t.tabIntents}</span>
@@ -433,7 +433,7 @@ export function ConsoleClient({
             </TabsTrigger>
             <TabsTrigger
               value="requests"
-              className="gap-2"
+              className="gap-2 max-md:w-full md:max-w-none"
               aria-label={requestsTabAttention ? `${t.tabRequests} — ${t.manageTabBadgeAria}` : t.tabRequests}
             >
               <span>{t.tabRequests}</span>
@@ -446,7 +446,7 @@ export function ConsoleClient({
             </TabsTrigger>
             <TabsTrigger
               value="connections"
-              className="gap-2"
+              className="gap-2 max-md:w-full md:max-w-none"
               aria-label={connectionsTabAttention ? `${t.tabConnections} — ${t.manageTabBadgeAria}` : t.tabConnections}
             >
               <span>{t.tabConnections}</span>
