@@ -50,7 +50,7 @@ export function MarketplaceFeed({
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">{strings.marketplace.kicker}</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">{strings.marketplace.title}</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">{strings.marketplace.description}</p>
-          {currentUserId ? (
+          {currentUserId && strings.marketplace.personalizationHint.trim() ? (
             <p className="mt-2 max-w-2xl text-xs leading-relaxed text-slate-500">{strings.marketplace.personalizationHint}</p>
           ) : null}
           {quotaSnapshot ? (

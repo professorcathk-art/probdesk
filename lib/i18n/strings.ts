@@ -65,8 +65,7 @@ export const STRINGS = {
         "Tell us in your own words — we turn it into a clear request and protect your privacy until there's a mutual yes.",
       intentTooShort:
         "Please enter at least 12 characters so we can understand what you're looking for.",
-      intentPlaceholder:
-        "I'm a product designer in Hong Kong looking for a technical cofounder to ship a B2B SaaS MVP.",
+      intentPlaceholder: "I'm looking for someone who.......",
       intentCta: "Start matching",
     },
     marketplace: {
@@ -74,8 +73,7 @@ export const STRINGS = {
       title: "Explore",
       description:
         "Profiles stay protected until mutual acceptance — when you send an invite, a thoughtful opening message makes a big difference.",
-      personalizationHint:
-        "Order reflects fit with your profile (“supply”) and your latest active Manage request — closer matches appear first.",
+      personalizationHint: "",
       backManage: "Back to Manage",
       loadErrorPrefix: "Could not load listings:",
       anonymous: "Anonymous user",
@@ -599,8 +597,7 @@ export const STRINGS = {
       intentHelper:
         "用「我想找……」的方式描述——我們會整理成清楚的徵求，並在彼此同意前保護你的隱私。",
       intentTooShort: "請至少輸入 12 個字，方便我們理解你在找什麼。",
-      intentPlaceholder:
-        "我是香港的產品設計師，想找一位技術共同創辦人一起做出 B2B SaaS 的 MVP。",
+      intentPlaceholder: "我想找一位.......",
       intentCta: "開始尋找",
     },
     marketplace: {
@@ -608,8 +605,7 @@ export const STRINGS = {
       title: "探索廣場",
       description:
         "雙方同意前個人檔案受到保護——發送邀請時附上一則用心的開場訊息會大大提高成功率！",
-      personalizationHint:
-        "徵求順序會參考你的個人檔案向量與目前最新使用中徵求——越契合會越靠前呈現。",
+      personalizationHint: "",
       backManage: "返回管理中心",
       loadErrorPrefix: "無法載入清單：",
       anonymous: "匿名用戶",
