@@ -275,8 +275,7 @@ export const STRINGS = {
       inviteListingLabel: "Their request listing (extra context)",
       inboundDiscoveryBadge: "Profile invitation",
       inboundDiscoveryTitle: "Invitations to your profile",
-      inboundDiscoveryDesc:
-        "Someone reached out via Smart Matchmaking or Manage (not from a quick Explore tap on your public listing). Preview their saved profile fields—no real name or photo until mutual acceptance.",
+      inboundDiscoveryDesc: "Invitations sent to you by other users.",
       suggestionBadgeIntent: "Request listing",
       suggestionBadgeProfile: "Profile suggestion",
       suggestionTheirBio: "Bio",
@@ -310,7 +309,7 @@ export const STRINGS = {
       aiRecSectionHint:
         "From your latest discovery runs or automated profile matching. Dismiss anytime or send an invite — also listed under Invitations.",
       aiRecHubTitle: "AI suggested matches",
-      aiRecHubSubtitle: "Everything queued for your requests. Open a suggestion here or from each request card.",
+      aiRecHubSubtitle: "All AI suggestion links gathered in one list.",
       aiRecEmptyForIntent: "No saved suggestions for this request yet. Tap “Find people who fit” to generate matches.",
       aiRecEmptyHub: "No AI suggestions in your queue right now.",
       aiRecDismiss: "Dismiss",
@@ -815,8 +814,7 @@ export const STRINGS = {
       inviteListingLabel: "對方發布的徵求（額外背景，非必填）",
       inboundDiscoveryBadge: "個人檔案邀請",
       inboundDiscoveryTitle: "針對你個人檔案的邀請",
-      inboundDiscoveryDesc:
-        "對方透過智慧配對或由「尋找對象」發起的邀請接觸你（非單純在探索廣場點了你的公開徵求）。可在此查看不含真名與照片的預覽，並接受或婉拒。",
+      inboundDiscoveryDesc: "其他用戶對你發送的邀請",
       suggestionBadgeIntent: "徵求列表",
       suggestionBadgeProfile: "檔案推薦",
       suggestionTheirBio: "簡介",
@@ -850,7 +848,7 @@ export const STRINGS = {
       aiRecSectionHint:
         "來自你最近一次「尋找契合對象」或系統依檔案嵌入的比對。可随时移除或發送邀請——邀請分頁亦會列出。",
       aiRecHubTitle: "AI 建議名單",
-      aiRecHubSubtitle: "彙整所有徵求的建議人選；亦可在各徵求卡片上操作。",
+      aiRecHubSubtitle: "彙整所有AI建議連結",
       aiRecEmptyForIntent: "此徵求尚無已儲存建議。請按「尋找契合對象」產生人選。",
       aiRecEmptyHub: "目前沒有任何 AI 建議在佇列中。",
       aiRecDismiss: "移除",
