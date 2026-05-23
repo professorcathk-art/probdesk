@@ -393,6 +393,33 @@ export async function setIntentStatus(
   return { ok: true as const };
 }
 
+/** Hard-delete the intent row owned by the current user (RLS-enforced). Related AI suggestion rows cascade. */
+export async function deleteMyIntent(
+  intentId: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, message: "Not authenticated" };
+
+  const { data: removed, error } = await supabase
+    .from("intent_requests")
+    .delete()
+    .eq("id", intentId)
+    .eq("user_id", user.id)
+    .select("id");
+
+  if (error) return { ok: false as const, message: error.message };
+  if (!removed?.length) return { ok: false as const, message: "Request not found." };
+
+  revalidatePath("/console");
+  revalidatePath("/marketplace");
+  revalidatePath("/square");
+  revalidatePath("/");
+  return { ok: true as const };
+}
+
 export type SuggestionCard = {
   intent_id: string | null;
   owner_user_id: string;

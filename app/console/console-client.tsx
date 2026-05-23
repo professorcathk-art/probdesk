@@ -8,6 +8,7 @@ import type { IntentRow, SuggestionCard } from "@/actions/intents";
 import {
   computeHybridSuggestions,
   createConsoleIntent,
+  deleteMyIntent,
   setIntentMarketplacePublic,
   setIntentStatus,
   updateConsoleIntent,
@@ -212,6 +213,9 @@ export function ConsoleClient({
   const [editLocation, setEditLocation] = useState("");
   const [editMustHaves, setEditMustHaves] = useState("");
   const [editBusy, setEditBusy] = useState(false);
+  const [intentDeleteTarget, setIntentDeleteTarget] = useState<IntentRow | null>(null);
+  const [deleteIntentBusy, setDeleteIntentBusy] = useState(false);
+  const [deleteIntentError, setDeleteIntentError] = useState<string | null>(null);
 
   const [postCreateDiscovering, setPostCreateDiscovering] = useState(false);
   const [freshMatchesModal, setFreshMatchesModal] = useState<SuggestionCard[] | null>(null);
@@ -411,6 +415,27 @@ export function ConsoleClient({
     await router.refresh();
   }
 
+  async function confirmDeleteIntent() {
+    if (!intentDeleteTarget) return;
+    setDeleteIntentBusy(true);
+    setDeleteIntentError(null);
+    const id = intentDeleteTarget.id;
+    const res = await deleteMyIntent(id);
+    setDeleteIntentBusy(false);
+    if (!res.ok) {
+      setDeleteIntentError(res.message);
+      return;
+    }
+    setIntentDeleteTarget(null);
+    if (editIntent?.id === id) setEditIntent(null);
+    if (busyIntent === id) setBusyIntent(null);
+    if (freshMatchesIntentId === id) {
+      setFreshMatchesModal(null);
+      setFreshMatchesIntentId(null);
+    }
+    await router.refresh();
+  }
+
   function openEdit(i: IntentRow) {
     setEditIntent(i);
     setEditDraft(i.natural_language_input);
@@ -570,7 +595,7 @@ export function ConsoleClient({
                             ) : null}
                           </div>
                         </div>
-                        <div className="flex w-full shrink-0 flex-wrap items-center gap-2 md:w-auto md:justify-end">
+                        <div className="flex w-full shrink-0 flex-wrap items-center justify-start gap-2 sm:justify-end md:w-auto md:justify-end">
                           <Badge variant="outline" className="border-white/15 text-slate-200">
                             {intent.location_filter ?? t.locationUnset}
                           </Badge>
@@ -582,10 +607,22 @@ export function ConsoleClient({
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="border-white/15 bg-transparent text-slate-200"
+                            className="min-h-11 border-white/15 bg-transparent text-slate-200 sm:min-h-9"
                             onClick={() => openEdit(intent)}
                           >
                             {t.edit}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="min-h-11 border-red-500/50 bg-red-500/12 text-red-100 hover:bg-red-500/18 hover:text-white sm:min-h-9"
+                            onClick={() => {
+                              setDeleteIntentError(null);
+                              setIntentDeleteTarget(intent);
+                            }}
+                          >
+                            {t.deleteIntent}
                           </Button>
                         </div>
                       </div>
@@ -999,6 +1036,54 @@ export function ConsoleClient({
               onClick={() => void onEditIntent()}
             >
               {editBusy ? t.saveBusy : t.saveChanges}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={intentDeleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIntentDeleteTarget(null);
+            setDeleteIntentError(null);
+          }
+        }}
+      >
+        <DialogContent className="border-white/10 bg-slate-950/95 text-slate-50 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t.deleteIntentConfirmTitle}</DialogTitle>
+            <DialogDescription className="text-slate-400">{t.deleteIntentConfirmDesc}</DialogDescription>
+          </DialogHeader>
+          {intentDeleteTarget?.natural_language_input?.trim() ? (
+            <blockquote className="rounded-lg border border-white/12 bg-black/25 px-3 py-2.5 text-xs leading-snug text-slate-300 max-sm:leading-relaxed [&]:line-clamp-4 [&]:[display:-webkit-box] [&]:[-webkit-line-clamp:4] [&]:[-webkit-box-orient:vertical] [&]:overflow-hidden">
+              {intentDeleteTarget.natural_language_input.trim()}
+            </blockquote>
+          ) : null}
+          {deleteIntentError ? (
+            <p className="text-sm leading-snug text-red-300">{deleteIntentError}</p>
+          ) : null}
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="order-3 w-full border-white/20 sm:order-1 sm:w-auto"
+              disabled={deleteIntentBusy}
+              onClick={() => {
+                setIntentDeleteTarget(null);
+                setDeleteIntentError(null);
+              }}
+            >
+              {t.cancel}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              className="order-2 w-full bg-red-600 hover:bg-red-600/90 sm:order-2 sm:ml-auto sm:w-auto"
+              disabled={deleteIntentBusy}
+              onClick={() => void confirmDeleteIntent()}
+            >
+              {deleteIntentBusy ? t.deleteIntentBusy : t.deleteIntentConfirmCta}
             </Button>
           </DialogFooter>
         </DialogContent>
