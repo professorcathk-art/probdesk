@@ -272,11 +272,6 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-white">{selected.peerDisplayName?.trim() || c.peerFallbackName}</p>
                   <p className="truncate text-xs text-slate-500">{selected.peerIndustry?.trim() || p.industryUnset}</p>
-                  {selected.matchedIntentTitle ? (
-                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-sky-200/85">
-                      <span className="font-medium text-sky-300/90">{p.matchedOn}</span> {selected.matchedIntentTitle}
-                    </p>
-                  ) : null}
                 </div>
               </div>
               <Button
