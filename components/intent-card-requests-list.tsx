@@ -42,14 +42,16 @@ export function filterMatchesForIntentCard(intentId: string, userId: string, mat
 }
 
 /**
- * Drops redundant outbound Pending rows when that peer remains in AI saved suggestions for this
- * request — the richer AI card shows invite-sent status instead (Manage merged strip).
+ * Drops redundant outbound Pending rows when **the AI suggestion strip still shows that peer**.
+ * Otherwise (e.g. after you sent an invite) the overlap filter hides the AI row — keeping the invite
+ * row is required so 「尋找對象」 does not appear empty for that pairing.
  */
 export function filterDedupOutboundOverlappingAiSaved(
   invitationRows: MatchRow[],
   intentId: string,
   userId: string,
-  aiSavedCandidatePeerIds: Set<string>,
+  /** candidate_profile_ids for AI rows that are **still rendered** beside the outbound list */
+  aiVisibleCandidatePeerIds: Set<string>,
 ): MatchRow[] {
   return invitationRows.filter((m) => {
     const outboundDupPending =
@@ -57,7 +59,7 @@ export function filterDedupOutboundOverlappingAiSaved(
       m.sender_context_intent_id === intentId &&
       !m.counterparty_intent_id &&
       m.status === "Pending" &&
-      aiSavedCandidatePeerIds.has(m.receiver_id);
+      aiVisibleCandidatePeerIds.has(m.receiver_id);
     return !outboundDupPending;
   });
 }

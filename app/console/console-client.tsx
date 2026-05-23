@@ -681,12 +681,24 @@ export function ConsoleClient({
                                 r.candidate_profile_id,
                               ),
                           ).length;
-                          const aiPeerIdsSaved = new Set(aiRowsForIntent.map((r) => r.candidate_profile_id));
+                          const aiPeerIdsWithVisibleSuggestion = new Set(
+                            aiRowsForIntent
+                              .filter(
+                                (r) =>
+                                  !aiRecommendationOutboundOverlap(
+                                    matches,
+                                    userId,
+                                    intent.id,
+                                    r.candidate_profile_id,
+                                  ),
+                              )
+                              .map((r) => r.candidate_profile_id),
+                          );
                           const invitationRows = filterDedupOutboundOverlappingAiSaved(
                             invitationRowsRaw,
                             intent.id,
                             userId,
-                            aiPeerIdsSaved,
+                            aiPeerIdsWithVisibleSuggestion,
                           );
                           const unifiedEmpty = invitationRows.length === 0 && aiVisibleForIntentCount === 0;
                           return (
