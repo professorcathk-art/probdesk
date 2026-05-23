@@ -318,6 +318,7 @@ export const STRINGS = {
       aiRecSourceSync: "Discovery run",
       aiRecSourceBackground: "Embedding match",
       aiRecBlockedPeer: "You have a pending or accepted connection with this person — invite blocked.",
+      aiRecInvitePendingReply: "Invitation sent — waiting for their reply.",
       aiRecPeekHint:
         "Structured profile preview did not load in this strip — tap Preview profile for discovery-safe bio, traits, and more.",
       aiRecIntentMergedTitle: "Saved suggestions & invitations",
@@ -845,6 +846,7 @@ export const STRINGS = {
       aiRecSourceSync: "探索跑分",
       aiRecSourceBackground: "嵌入比對",
       aiRecBlockedPeer: "與對方已有待處理或已連結紀錄，無法重複邀請。",
+      aiRecInvitePendingReply: "已發送邀請，等待對方回覆。",
       aiRecPeekHint:
         "卡片上若未顯示完整欄位，請點「預覽檔案」查看依隱私規則提供的簡介、特質與更多脈絡。",
       aiRecIntentMergedTitle: "已儲存的 AI 建議與邀請",

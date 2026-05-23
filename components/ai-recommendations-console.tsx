@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { AiRecommendationListItem } from "@/actions/ai-recommendations";
+import type { MatchRow } from "@/actions/matches";
 import { dismissAiRecommendation } from "@/actions/ai-recommendations";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,8 @@ export function AiRecommendationsConsole(props: {
   variant: "intentStrip" | "requestsHub";
   intentId?: string;
   rows: AiRecommendationListItem[];
+  matches: MatchRow[];
+  userId: string;
   blockedPeerIds: Set<string>;
   onInvite: (row: AiRecommendationListItem) => void;
   onPreview: (peerUserId: string) => void;
@@ -29,7 +32,8 @@ export function AiRecommendationsConsole(props: {
   /** When merged into the intent card header, omit duplicate section title/description. */
   hideHeader?: boolean;
 }) {
-  const { variant, intentId, rows, blockedPeerIds, onInvite, onPreview, onAfterDismiss, hideHeader } = props;
+  const { variant, intentId, rows, matches, userId, blockedPeerIds, onInvite, onPreview, onAfterDismiss, hideHeader } =
+    props;
   const { strings } = useLanguage();
   const c = strings.console;
 
@@ -79,7 +83,17 @@ export function AiRecommendationsConsole(props: {
       ) : (
         <ul className="flex flex-col gap-3">
           {filtered.map((row) => {
-            const blocked = blockedPeerIds.has(row.candidate_profile_id);
+            const pendingOutboundFromThisRequest = matches.some(
+              (m) =>
+                m.sender_id === userId &&
+                m.receiver_id === row.candidate_profile_id &&
+                m.sender_context_intent_id === row.intent_id &&
+                !m.counterparty_intent_id &&
+                m.status === "Pending",
+            );
+            const blockedByPolicy = blockedPeerIds.has(row.candidate_profile_id);
+            const duplicateInviteBlocked = blockedByPolicy && !pendingOutboundFromThisRequest;
+            const inviteDisabled = duplicateInviteBlocked || pendingOutboundFromThisRequest;
             const gLabel = peerGenderLabelFromSlug(row.peer_gender, {
               genderWoman: c.genderWoman,
               genderMan: c.genderMan,
@@ -160,14 +174,7 @@ export function AiRecommendationsConsole(props: {
                     </div>
 
                     <div className="w-full space-y-2">
-                      {row.intent_preview.trim() ? (
-                        <div className="rounded-lg bg-slate-800/50 px-2.5 py-2 ring-1 ring-white/[0.06]">
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-sky-400/90">{c.aiRecForIntent}</p>
-                          <p className="mt-1 text-xs leading-snug text-slate-200">{truncateText(row.intent_preview, 220)}</p>
-                        </div>
-                      ) : null}
-
-                      {!hasRichPreview && !row.intent_preview.trim() ? (
+                      {!hasRichPreview ? (
                         <p className="text-xs leading-snug text-slate-500">{c.aiRecPeekHint}</p>
                       ) : null}
 
@@ -232,7 +239,7 @@ export function AiRecommendationsConsole(props: {
                         <Button
                           type="button"
                           size="sm"
-                          disabled={blocked}
+                          disabled={inviteDisabled}
                           className="h-10 w-full border border-emerald-400/42 bg-emerald-500/[0.22] font-medium text-emerald-50 shadow-sm shadow-emerald-950/25 hover:bg-emerald-500/30 disabled:opacity-40"
                           onClick={() => onInvite(row)}
                         >
@@ -260,7 +267,11 @@ export function AiRecommendationsConsole(props: {
                           </Button>
                         </div>
                       </div>
-                      {blocked ? <p className="text-xs leading-snug text-amber-200/90">{c.aiRecBlockedPeer}</p> : null}
+                      {pendingOutboundFromThisRequest ? (
+                        <p className="text-xs leading-snug text-sky-200/90">{c.aiRecInvitePendingReply}</p>
+                      ) : duplicateInviteBlocked ? (
+                        <p className="text-xs leading-snug text-amber-200/90">{c.aiRecBlockedPeer}</p>
+                      ) : null}
                     </div>
                   </CardContent>
                 </Card>

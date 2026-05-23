@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useMemo } from "react";
 import type { MatchRow } from "@/actions/matches";
 import { DualIntentBlurbs } from "@/components/dual-intent-blurbs";
-import { IntentSnippet } from "@/components/intent-snippet";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
 import { SenderPreviewBlock } from "@/components/sender-preview-block";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +41,27 @@ export function filterMatchesForIntentCard(intentId: string, userId: string, mat
     });
 }
 
+/**
+ * Drops redundant outbound Pending rows when that peer remains in AI saved suggestions for this
+ * request — the richer AI card shows invite-sent status instead (Manage merged strip).
+ */
+export function filterDedupOutboundOverlappingAiSaved(
+  invitationRows: MatchRow[],
+  intentId: string,
+  userId: string,
+  aiSavedCandidatePeerIds: Set<string>,
+): MatchRow[] {
+  return invitationRows.filter((m) => {
+    const outboundDupPending =
+      m.sender_id === userId &&
+      m.sender_context_intent_id === intentId &&
+      !m.counterparty_intent_id &&
+      m.status === "Pending" &&
+      aiSavedCandidatePeerIds.has(m.receiver_id);
+    return !outboundDupPending;
+  });
+}
+
 /** True when the intent card (Manage → 徵求 / Requests tab) still needs the viewer to accept, decline, or confirm a mutual row. */
 export function intentManageTabNeedsAttention(intentId: string, userId: string, matches: MatchRow[]): boolean {
   const rows = filterMatchesForIntentCard(intentId, userId, matches);
@@ -70,17 +90,23 @@ export function IntentCardRequestsList({
   userId,
   matches,
   onRespond,
+  /** When set (e.g. Manage merged AI strip), skips internal filter — parent ran dedupe/other shaping. */
+  shapedInviteRows,
 }: {
   intentId: string;
   userId: string;
   matches: MatchRow[];
   onRespond: (matchId: string, decision: "Accepted" | "Rejected") => void;
+  shapedInviteRows?: MatchRow[];
 }) {
   const { strings } = useLanguage();
   const d = strings.console.intentDashboard;
   const c = strings.console;
 
-  const rows = useMemo(() => filterMatchesForIntentCard(intentId, userId, matches), [intentId, userId, matches]);
+  const rows = useMemo(
+    () => shapedInviteRows ?? filterMatchesForIntentCard(intentId, userId, matches),
+    [shapedInviteRows, intentId, userId, matches],
+  );
 
   if (rows.length === 0) {
     return (
@@ -199,19 +225,6 @@ export function IntentCardRequestsList({
                       </div>
                     ) : null}
                   </>
-                ) : null}
-
-                {outboundFromCard ? (
-                  <div className="pt-1">
-                    {m.intent_request_id ? (
-                      <IntentSnippet intentId={m.intent_request_id} label={d.theirListing} />
-                    ) : (
-                      <div className="rounded-xl border border-white/10 bg-black/25 p-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{d.theirListing}</p>
-                        <p className="mt-2 text-sm leading-relaxed text-slate-400">{c.outboundProfileInviteHint}</p>
-                      </div>
-                    )}
-                  </div>
                 ) : null}
 
                 {systemMatch ? (

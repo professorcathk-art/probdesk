@@ -20,7 +20,12 @@ import { ConnectModal } from "@/components/connect-modal";
 import { CreditsLimitModal } from "@/components/credits-limit-modal";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { InviteQuotaPill } from "@/components/invite-quota-pill";
-import { IntentCardRequestsList, intentManageTabNeedsAttention, filterMatchesForIntentCard } from "@/components/intent-card-requests-list";
+import {
+  IntentCardRequestsList,
+  intentManageTabNeedsAttention,
+  filterDedupOutboundOverlappingAiSaved,
+  filterMatchesForIntentCard,
+} from "@/components/intent-card-requests-list";
 import { IntentMustHavesCallout } from "@/components/intent-must-haves-callout";
 import { IntentShareButton } from "@/components/intent-share-button";
 import { IntentSnippet } from "@/components/intent-snippet";
@@ -560,8 +565,15 @@ export function ConsoleClient({
 
                       <div className="space-y-4 border-t border-white/10 pt-6">
                         {(() => {
-                          const invitationRows = filterMatchesForIntentCard(intent.id, userId, matches);
+                          const invitationRowsRaw = filterMatchesForIntentCard(intent.id, userId, matches);
                           const aiRowsForIntent = aiRecommendations.filter((r) => r.intent_id === intent.id);
+                          const aiPeerIdsSaved = new Set(aiRowsForIntent.map((r) => r.candidate_profile_id));
+                          const invitationRows = filterDedupOutboundOverlappingAiSaved(
+                            invitationRowsRaw,
+                            intent.id,
+                            userId,
+                            aiPeerIdsSaved,
+                          );
                           const unifiedEmpty = invitationRows.length === 0 && aiRowsForIntent.length === 0;
                           return (
                             <>
@@ -580,6 +592,7 @@ export function ConsoleClient({
                                       intentId={intent.id}
                                       userId={userId}
                                       matches={matches}
+                                      shapedInviteRows={invitationRows}
                                       onRespond={(id, dec) => void onRespond(id, dec)}
                                     />
                                   ) : null}
@@ -588,6 +601,8 @@ export function ConsoleClient({
                                     hideHeader
                                     intentId={intent.id}
                                     rows={aiRecommendations}
+                                    matches={matches}
+                                    userId={userId}
                                     blockedPeerIds={blockedPeers}
                                     onInvite={(row) => openInviteFromAiRecommendation(row)}
                                     onPreview={(uid) => {
@@ -613,6 +628,8 @@ export function ConsoleClient({
             <AiRecommendationsConsole
               variant="requestsHub"
               rows={aiRecommendations}
+              matches={matches}
+              userId={userId}
               blockedPeerIds={blockedPeers}
               onInvite={(row) => openInviteFromAiRecommendation(row)}
               onPreview={(uid) => {
