@@ -6,6 +6,8 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { DUPLICATE_MATCH_MESSAGE, hasBlockingMatchBetween } from "@/lib/match-blocking";
 import { logPairingScoreEvent } from "@/lib/pairing-score-log";
+import { notifyCuratedIntroductionEmailsAsync } from "@/lib/resend-connection-notifications";
+import { getSiteOrigin } from "@/lib/site-url";
 
 export type AdminUserRow = {
   id: string;
@@ -465,6 +467,8 @@ export async function adminForceSystemMatch(params: { intentAId: string; intentB
     });
 
     if (insErr) return { ok: false, message: insErr.message };
+
+    notifyCuratedIntroductionEmailsAsync(a.user_id, b.user_id, getSiteOrigin());
 
     await logPairingScoreEvent({
       source: "admin_system_match",

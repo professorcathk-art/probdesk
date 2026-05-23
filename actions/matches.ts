@@ -10,6 +10,12 @@ import { validateProfileBasicsForPublish } from "@/lib/profile-basics";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { logPairingScoreEvent } from "@/lib/pairing-score-log";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { getSiteOrigin } from "@/lib/site-url";
+import {
+  notifyNewConnectionRequestEmailAsync,
+  notifyOutboundSenderConnectionAcceptedAsync,
+  notifyParticipantsConnectionEstablishedAsync,
+} from "@/lib/resend-connection-notifications";
 
 export type MatchRow = {
   id: string;
@@ -426,6 +432,7 @@ export async function initiateConnection(params: {
     }
     return { ok: false as const, message: error.message };
   }
+  notifyNewConnectionRequestEmailAsync(receiverId, getSiteOrigin());
   revalidatePath("/console");
   revalidatePath("/marketplace");
   revalidatePath("/square");
@@ -507,6 +514,7 @@ export async function respondToMatch(matchId: string, decision: "Accepted" | "Re
       .update({ status: "Accepted", updated_at: new Date().toISOString() })
       .eq("id", matchId);
     if (error) return { ok: false as const, message: error.message };
+    notifyOutboundSenderConnectionAcceptedAsync(row.sender_id, getSiteOrigin());
     revalidatePath("/console");
     return { ok: true as const };
   }
@@ -531,6 +539,7 @@ export async function respondToMatch(matchId: string, decision: "Accepted" | "Re
         })
         .eq("id", matchId);
       if (error) return { ok: false as const, message: error.message };
+      notifyParticipantsConnectionEstablishedAsync(row.sender_id, row.receiver_id, getSiteOrigin());
     } else {
       const { error } = await supabase
         .from("matches")
