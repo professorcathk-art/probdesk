@@ -17,6 +17,7 @@ import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
 import { logPairingScoreEvent } from "@/lib/pairing-score-log";
 import { BLOCKING_MATCH_STATUSES } from "@/lib/match-blocking";
 import { vectorLiteral, embeddingVectorForRpc } from "@/lib/vector-literal";
+import { syncOnboardingCompleteFromProfile } from "@/lib/sync-onboarding-complete-from-profile";
 import { syncProfileEmbedding } from "@/lib/sync-profile-embedding";
 import { asEmbeddingContextRecord, buildDemandEmbeddingText } from "@/lib/demand-supply-embedding";
 import { recordImmediateHybridRecommendations } from "@/actions/ai-recommendations";
@@ -286,7 +287,7 @@ export async function completeOnboarding(params: {
       .eq("user_id", user.id);
   }
 
-  await supabase.from("users").update({ onboarding_status: "complete" }).eq("id", user.id);
+  await syncOnboardingCompleteFromProfile(supabase, user.id);
 
   revalidatePath("/console");
   revalidatePath("/onboarding");
@@ -933,11 +934,7 @@ export async function createConsoleIntent(
 
   if (error || !inserted) return { ok: false as const, message: error?.message ?? "Insert failed" };
 
-  await supabase
-    .from("users")
-    .update({ onboarding_status: "in_progress" })
-    .eq("id", user.id)
-    .eq("onboarding_status", "pending");
+  await syncOnboardingCompleteFromProfile(supabase, user.id);
 
   const { data: profForSupply } = await supabase
     .from("profiles")
@@ -1039,11 +1036,7 @@ export async function updateConsoleIntent(
 
   if (error) return { ok: false as const, message: error.message };
 
-  await supabase
-    .from("users")
-    .update({ onboarding_status: "in_progress" })
-    .eq("id", user.id)
-    .eq("onboarding_status", "pending");
+  await syncOnboardingCompleteFromProfile(supabase, user.id);
 
   const { data: profForSupply } = await supabase
     .from("profiles")

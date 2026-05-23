@@ -5,6 +5,7 @@ import { buildDemandEmbeddingText } from "@/lib/demand-supply-embedding";
 import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
 import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
 import { validateProfileBasicsForPublish } from "@/lib/profile-basics";
+import { syncOnboardingCompleteFromProfile } from "@/lib/sync-onboarding-complete-from-profile";
 import { syncProfileEmbedding } from "@/lib/sync-profile-embedding";
 import { vectorLiteral } from "@/lib/vector-literal";
 import { countActiveIntentsForUser } from "@/lib/mobile/count-active-intents";
@@ -114,11 +115,7 @@ export async function createConsoleIntentForMobile(
 
   if (error || !inserted) return { ok: false, message: error?.message ?? "Insert failed" };
 
-  await supabase
-    .from("users")
-    .update({ onboarding_status: "in_progress" })
-    .eq("id", user.id)
-    .eq("onboarding_status", "pending");
+  await syncOnboardingCompleteFromProfile(supabase, user.id);
 
   const { data: profForSupply } = await supabase
     .from("profiles")

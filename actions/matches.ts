@@ -130,13 +130,25 @@ export async function initiateConnection(params: {
     }
     receiverIntent = intentRow;
   } else {
-    const { data: ru } = await supabase
-      .from("users")
-      .select("id, onboarding_status")
-      .eq("id", params.receiverUserId)
+    /** Profile-discovery invite: invitee must satisfy the same mandatory profile gate as senders/listings (`validateProfileBasicsForPublish`). */
+    const { data: ru } = await supabase.from("users").select("id").eq("id", params.receiverUserId).maybeSingle();
+    if (!ru) {
+      return { ok: false as const, message: "That member could not be found." };
+    }
+
+    const { data: recvProf } = await supabase
+      .from("profiles")
+      .select("display_name, bio, location, industry, superpower, gender, skills_tags, languages")
+      .eq("user_id", params.receiverUserId)
       .maybeSingle();
-    if (!ru || ru.onboarding_status !== "complete") {
-      return { ok: false as const, message: "That member is not available for invites yet." };
+
+    const recvReady = validateProfileBasicsForPublish(recvProf ?? {});
+    if (!recvReady.ok) {
+      return {
+        ok: false as const,
+        message:
+          "That member has not finished the required profile to receive invitations yet.",
+      };
     }
   }
 

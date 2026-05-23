@@ -8,6 +8,7 @@ import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { syncProfileEmbedding } from "@/lib/sync-profile-embedding";
 import { generateBackgroundMatchesForProfileUser } from "@/actions/ai-recommendations";
+import { syncOnboardingCompleteFromProfile } from "@/lib/sync-onboarding-complete-from-profile";
 import { parseProfileAgeGroup } from "@/lib/profile-age-groups";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { withAvatarCacheBust } from "@/lib/avatar-cache-bust";
@@ -542,11 +543,7 @@ export async function updateMyProfileIdentity(fields: {
 
   if (error) return { ok: false as const, message: error.message };
 
-  await supabase
-    .from("users")
-    .update({ onboarding_status: "in_progress" })
-    .eq("id", user.id)
-    .eq("onboarding_status", "pending");
+  await syncOnboardingCompleteFromProfile(supabase, user.id);
 
   revalidatePath("/console");
   revalidatePath("/profile");
