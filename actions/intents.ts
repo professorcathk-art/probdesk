@@ -291,21 +291,12 @@ export async function completeOnboarding(params: {
   revalidatePath("/square");
   revalidatePath("/");
 
-  const { data: intentForSupply } = await supabase
-    .from("intent_requests")
-    .select("natural_language_input")
-    .eq("id", params.intentId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  /** Indexes profile for Phase 14 discovery (supply_embedding); includes listing text when available. */
   const supplyEmb = await syncProfileEmbedding(supabase, user.id, {
     bio: params.profile.bio ?? null,
     industry: params.profile.industry ?? null,
     superpower: superpowerTrim || null,
     skills_tags: skillTags,
     languages: langTags,
-    activeIntentNaturalLanguage: intentForSupply?.natural_language_input ?? null,
   });
   if (!supplyEmb.ok) {
     console.warn("[completeOnboarding] supply_embedding sync did not persist", user.id);
@@ -422,7 +413,7 @@ export type SuggestionCard = {
 };
 
 /** Bumped when hybrid discovery logging shape changes (admin pairs this with migrations). */
-const HYBRID_DISCOVERY_LOG_PIPELINE = "074-supply-embedding-only-pool";
+const HYBRID_DISCOVERY_LOG_PIPELINE = "077-phase22-supply-only-no-cross-demand";
 
 export async function computeHybridSuggestions(intentId: string): Promise<
   | { ok: true; suggestions: SuggestionCard[] }
@@ -490,9 +481,8 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   }
 
   /**
-   * Phase 14 retrieval: sender **demand_embedding** vs candidate **supply_embedding** (`match_profiles`).
-   * If that returns no rows (missing supply vectors, IVFFLAT quirks, etc.), fall back to Phase 13-style
-   * **demand vs peer intent demand** (`match_intents_cross_demand`) so discovery still works.
+   * Phase 22 retrieval: anchor **demand_embedding** vs candidate **supply_embedding** only (`match_profiles`).
+   * No demand-vs-demand fallback — avoids parallel-demand pools and wasted LLM scoring.
    */
   const MATCH_TIERS = [
     { key: "demand_supply_primary", maxDistance: 0.55, requireLocationMatch: false },
@@ -538,10 +528,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   let appliedMax = 0;
   let appliedReq = false;
   let rpcError: { message: string } | null = null;
-  let retrievalModel: "demand_vs_supply_embedding" | "demand_vs_peer_intent_demand" =
-    "demand_vs_supply_embedding";
-  let intentDemandFallbackAttempted = false;
-  let intentDemandFallbackRowCount: number | null = null;
+  const retrievalModel = "demand_vs_supply_embedding" as const;
   let supplyTierMaxRowsSeen = 0;
   let neighborSupplyRowsCount: number | null = null;
 
@@ -592,31 +579,6 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     }
   }
 
-  if (!rpcError && supplyRows.length === 0) {
-    intentDemandFallbackAttempted = true;
-    const { data: crossData, error: crossErr } = await supabase.rpc("match_intents_cross_demand", {
-      target_embedding: targetEmbeddingRpc,
-      p_location: intent.location_filter,
-      p_threshold: NEIGHBOR_FALLBACK_MAX_DISTANCE,
-      p_limit: NEIGHBOR_FALLBACK_LIMIT,
-      p_exclude_user_id: user.id,
-      p_require_location_match: false,
-    });
-    if (crossErr) {
-      rpcError = crossErr;
-    } else {
-      const next = (crossData ?? []) as SupplyRpcRow[];
-      intentDemandFallbackRowCount = next.length;
-      if (next.length > 0) {
-        supplyRows = next;
-        appliedTier = "demand_cross_intent_fallback";
-        appliedMax = NEIGHBOR_FALLBACK_MAX_DISTANCE;
-        appliedReq = false;
-        retrievalModel = "demand_vs_peer_intent_demand";
-      }
-    }
-  }
-
   if (rpcError) {
     await logPairingScoreEvent({
       source: "hybrid_suggestion",
@@ -628,8 +590,6 @@ export async function computeHybridSuggestions(intentId: string): Promise<
         supabase_message: rpcError.message,
         supply_tier_max_rows_seen: supplyTierMaxRowsSeen,
         neighbor_supply_row_count: neighborSupplyRowsCount,
-        intent_demand_fallback_attempted: intentDemandFallbackAttempted,
-        intent_demand_fallback_row_count: intentDemandFallbackRowCount,
       },
     });
     return { ok: false, message: rpcError.message };
@@ -672,8 +632,6 @@ export async function computeHybridSuggestions(intentId: string): Promise<
         applied_tier: appliedTier,
         applied_max_distance: appliedMax,
         retrieval_model: retrievalModel,
-        intent_demand_fallback_attempted: intentDemandFallbackAttempted,
-        intent_demand_fallback_row_count: intentDemandFallbackRowCount,
         eligibility,
       },
     });
@@ -777,9 +735,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
             peer_languages: row.languages,
             match_score: Math.round((row.similarity ?? 0) * 100),
             compatibility_reason:
-              retrievalModel === "demand_vs_peer_intent_demand"
-                ? "Demand↔demand retrieval — confirm fit manually while AI scoring is unavailable."
-                : "Demand↔supply retrieval — confirm fit manually while AI scoring is unavailable.",
+              "Demand↔supply retrieval — confirm fit manually while AI scoring is unavailable.",
           },
           logMeta: {
             candidate_intent_id: row.linked_intent_id,
@@ -960,7 +916,6 @@ export async function createConsoleIntent(
     superpower: profForSupply?.superpower ?? null,
     skills_tags: Array.isArray(profForSupply?.skills_tags) ? profForSupply.skills_tags : [],
     languages: Array.isArray(profForSupply?.languages) ? profForSupply.languages : [],
-    activeIntentNaturalLanguage: trimmed,
   });
   if (!supplyEmb.ok) {
     console.warn("[createConsoleIntent] supply_embedding sync did not persist", user.id);
@@ -1056,22 +1011,12 @@ export async function updateConsoleIntent(
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const { data: latestListing } = await supabase
-    .from("intent_requests")
-    .select("natural_language_input")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
   const supplyEmb = await syncProfileEmbedding(supabase, user.id, {
     bio: profForSupply?.bio ?? null,
     industry: profForSupply?.industry ?? null,
     superpower: profForSupply?.superpower ?? null,
     skills_tags: Array.isArray(profForSupply?.skills_tags) ? profForSupply.skills_tags : [],
     languages: Array.isArray(profForSupply?.languages) ? profForSupply.languages : [],
-    activeIntentNaturalLanguage: latestListing?.natural_language_input ?? null,
   });
   if (!supplyEmb.ok) {
     console.warn("[updateConsoleIntent] supply_embedding sync did not persist", user.id);

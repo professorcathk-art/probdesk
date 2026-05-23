@@ -9,11 +9,9 @@ export type ProfileSupplyEmbeddingSource = {
   superpower?: string | null;
   languages?: string[] | null;
   skills_tags?: string[] | null;
-  /** Include latest active listing text so dating / complementary intents participate in vector retrieval. */
-  activeIntentNaturalLanguage?: string | null;
 };
 
-/** Keeps `profiles.supply_embedding` (and legacy `embedding`) aligned for Phase 14 retrieval. */
+/** Keeps `profiles.supply_embedding` (and legacy `embedding`) aligned — profile fields only (Phase 22). */
 export async function syncProfileEmbedding(
   supabase: SupabaseClient,
   userId: string,
@@ -28,7 +26,6 @@ export async function syncProfileEmbedding(
       superpower: source.superpower ?? null,
       languages,
       skills_tags,
-      activeIntentNaturalLanguage: source.activeIntentNaturalLanguage ?? null,
     });
     const vec = await embedTextSmall(text);
     const lit = vectorLiteral(vec);

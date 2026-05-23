@@ -15,7 +15,7 @@ export function buildDemandEmbeddingText(
 
 /**
  * Text embedded into `profiles.supply_embedding`.
- * Note: `profiles.intent_level` was removed (migration 064); keywords/interests substitute structured cadence.
+ * Profile-centric only (Phase 22): no active intent / demand text — keeps supply distinct from intent demand vectors.
  */
 export function buildSupplyEmbeddingText(p: {
   industry: string | null;
@@ -23,8 +23,6 @@ export function buildSupplyEmbeddingText(p: {
   superpower: string | null;
   languages: string[];
   skills_tags?: string[];
-  /** Active Explore listing — pulls complementary phrases into supply space for demand↔supply retrieval. */
-  activeIntentNaturalLanguage?: string | null;
 }): string {
   const industryBio =
     [p.industry?.trim(), p.bio?.trim()].filter(Boolean).join(" / ") || "Networking member";
@@ -33,10 +31,5 @@ export function buildSupplyEmbeddingText(p: {
   const langStr = langs.length > 0 ? langs.join(", ") : "(none stated)";
   const tags = (p.skills_tags ?? []).map((s) => String(s).trim()).filter(Boolean);
   const tagStr = tags.length > 0 ? tags.join(", ") : "(none stated)";
-  const listingRaw = p.activeIntentNaturalLanguage?.trim();
-  const listing =
-    listingRaw && listingRaw.length > 0
-      ? ` Active Explore listing (what I'm seeking right now): ${listingRaw}.`
-      : "";
-  return `I am a: ${industryBio}. My superpower/offer: ${superpower}. Spoken languages: ${langStr}. Keywords/interests: ${tagStr}.${listing}`;
+  return `I am a: ${industryBio}. My superpower/offer: ${superpower}. Spoken languages: ${langStr}. Keywords/interests: ${tagStr}.`;
 }
