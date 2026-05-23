@@ -29,7 +29,6 @@ import {
 } from "@/components/intent-card-requests-list";
 import { IntentMustHavesCallout } from "@/components/intent-must-haves-callout";
 import { IntentShareButton } from "@/components/intent-share-button";
-import { IntentSnippet } from "@/components/intent-snippet";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
 import { PeerIdentityCard } from "@/components/peer-identity-card";
 import { useLanguage } from "@/components/language-provider";
@@ -663,7 +662,11 @@ export function ConsoleClient({
 
                       <div className="space-y-4 border-t border-white/10 pt-6">
                         {(() => {
-                          const invitationRowsRaw = filterMatchesForIntentCard(intent.id, userId, matches);
+                          const invitationRowsRaw = filterMatchesForIntentCard(
+                            intent.id,
+                            userId,
+                            matches,
+                          ).filter((m) => m.status !== "Rejected");
                           const aiRowsForIntent = aiRecommendations.filter((r) => r.intent_id === intent.id);
                           const aiPeerIdsSaved = new Set(aiRowsForIntent.map((r) => r.candidate_profile_id));
                           const invitationRows = filterDedupOutboundOverlappingAiSaved(
@@ -836,14 +839,6 @@ export function ConsoleClient({
                             <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.contextMessage}</p>
                             <p className="mt-2 text-sm leading-relaxed text-slate-200">{m.introductory_context}</p>
                           </div>
-                          {m.intent_request_id ? (
-                            <IntentSnippet intentId={m.intent_request_id} label={t.outboundListingLabel} />
-                          ) : (
-                            <div className="rounded-xl border border-white/10 bg-black/25 p-4">
-                              <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{t.outboundListingLabel}</p>
-                              <p className="mt-2 text-sm leading-relaxed text-slate-400">{t.outboundProfileInviteHint}</p>
-                            </div>
-                          )}
                           {typeof m.match_score === "number" ? (
                             <p className="text-xs tabular-nums text-slate-500">
                               {t.matchFitScore}: {m.match_score}

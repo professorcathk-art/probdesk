@@ -274,9 +274,6 @@ export const STRINGS = {
       sending: "Sending…",
       statusPendingBadge: "Pending",
       inviteListingLabel: "Their request listing (extra context)",
-      outboundListingLabel: "Explore listing you contacted",
-      outboundProfileInviteHint:
-        "Smart discovery from their profile — they had not posted a separate Explore listing.",
       inboundDiscoveryBadge: "Profile invitation",
       inboundDiscoveryTitle: "Invitations to your profile",
       inboundDiscoveryDesc:
@@ -361,7 +358,8 @@ export const STRINGS = {
         accept: "Accept",
         decline: "Decline",
         fitScore: "Fit",
-        peerAnonymous: "Anonymous user",
+        peerIdentityHiddenNote:
+          "Profile details stay private until you both confirm a mutual connection.",
         matchContext: "Why this fits",
         theirListing: "Their Explore request",
         yourInviteNote: "Your note",
@@ -816,8 +814,6 @@ export const STRINGS = {
       sending: "傳送中…",
       statusPendingBadge: "等待回覆",
       inviteListingLabel: "對方發布的徵求（額外背景，非必填）",
-      outboundListingLabel: "你聯繫的探索廣場徵求",
-      outboundProfileInviteHint: "智慧配對依對方個人檔案送出——對方未另外發布探索徵求。",
       inboundDiscoveryBadge: "個人檔案邀請",
       inboundDiscoveryTitle: "針對你個人檔案的邀請",
       inboundDiscoveryDesc:
@@ -902,7 +898,7 @@ export const STRINGS = {
         accept: "接受",
         decline: "婉拒",
         fitScore: "契合",
-        peerAnonymous: "匿名徵求者",
+        peerIdentityHiddenNote: "雙方確認互相同意連結後，對方檔案的細節才會進一步公開。",
         matchContext: "契合說明",
         theirListing: "對方的探索徵求",
         yourInviteNote: "你的開場訊息",

@@ -157,8 +157,7 @@ export function IntentCardRequestsList({
           statusLabel = d.tagStatusAwaitingTheirReply;
         }
 
-        const showAnonymousPreview = outboundFromCard || systemMatch;
-
+        // Outbound: no placeholder title ("匿名徵求者" mislabels the invited party). System mutual: neutral privacy line below.
         return (
           <li key={m.id} className="rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-xl md:p-5">
             <div className="flex flex-wrap items-start gap-x-2 gap-y-1.5">
@@ -183,10 +182,8 @@ export function IntentCardRequestsList({
                 </div>
               ) : null}
               <div className={cn("min-w-0 flex-1 space-y-3", inboundListing && "w-full")}>
-                {showAnonymousPreview ? (
-                  <div>
-                    <p className="text-sm font-medium text-slate-100">{d.peerAnonymous}</p>
-                  </div>
+                {systemMatch ? (
+                  <p className="text-xs leading-snug text-slate-500">{d.peerIdentityHiddenNote}</p>
                 ) : null}
 
                 {outboundFromCard && m.introductory_context?.trim() ? (
