@@ -236,7 +236,6 @@ export function ProfilePageClient({
             <p className="mt-2 text-xs leading-relaxed text-slate-500">{p.requiredStarLegend}</p>
           </CardHeader>
           <CardContent className="space-y-4">
-            {pfNote ? <p className="text-sm text-emerald-400/95">{pfNote}</p> : null}
             <form
               className="space-y-4"
               onSubmit={(e) => {
@@ -491,13 +490,20 @@ export function ProfilePageClient({
               </div>
             </div>
 
-            <Button
-              type="submit"
-              disabled={pfBusy}
-              className="galaxy-btn-glow border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
-            >
-              {pfBusy ? t.profileSaving : t.profileSave}
-            </Button>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <Button
+                type="submit"
+                disabled={pfBusy}
+                className="galaxy-btn-glow min-h-11 w-full touch-manipulation border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 sm:w-auto sm:min-h-10"
+              >
+                {pfBusy ? t.profileSaving : t.profileSave}
+              </Button>
+              {pfNote && !pfBusy ? (
+                <p className="text-sm text-emerald-400/95" role="status" aria-live="polite">
+                  {pfNote}
+                </p>
+              ) : null}
+            </div>
             </form>
 
             <div className="border-t border-white/10 pt-6">

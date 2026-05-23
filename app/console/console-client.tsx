@@ -844,17 +844,31 @@ export function ConsoleClient({
                               {t.matchFitScore}: {m.match_score}
                             </p>
                           ) : null}
-                          {m.status === "Accepted" ? (
-                            <Link
-                              href={`/messages?matchId=${encodeURIComponent(m.id)}`}
-                              className={cn(
-                                buttonVariants({ variant: "default", size: "sm" }),
-                                "galaxy-btn-glow inline-flex w-full justify-center border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 sm:w-auto",
-                              )}
+                          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="min-h-11 w-full touch-manipulation border-white/[0.15] bg-white/[0.04] text-slate-50 hover:bg-white/[0.08] sm:w-auto sm:min-h-10"
+                              onClick={() => {
+                                setPreviewPeerId(m.receiver_id);
+                                setPreviewOpen(true);
+                              }}
                             >
-                              {t.messagePeerCta}
-                            </Link>
-                          ) : null}
+                              {t.aiRecPreview}
+                            </Button>
+                            {m.status === "Accepted" ? (
+                              <Link
+                                href={`/messages?matchId=${encodeURIComponent(m.id)}`}
+                                className={cn(
+                                  buttonVariants({ variant: "default", size: "sm" }),
+                                  "galaxy-btn-glow inline-flex min-h-11 w-full justify-center border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 sm:w-auto sm:min-h-10",
+                                )}
+                              >
+                                {t.messagePeerCta}
+                              </Link>
+                            ) : null}
+                          </div>
                         </CardContent>
                       </Card>
                     </li>
