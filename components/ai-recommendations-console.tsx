@@ -27,6 +27,23 @@ function truncateText(s: string | null | undefined, max: number): string {
   return `${t.slice(0, max - 1)}…`;
 }
 
+/** Invitations hub: hide rows already covered by an outbound Pending/Accepted invite from the same request (shown under the Requests / 尋找對象 tab). */
+function outboundInviteOverlap(
+  matches: MatchRow[],
+  userId: string,
+  intentId: string,
+  candidateProfileId: string,
+): boolean {
+  return matches.some(
+    (m) =>
+      m.sender_id === userId &&
+      m.receiver_id === candidateProfileId &&
+      m.sender_context_intent_id === intentId &&
+      !m.counterparty_intent_id &&
+      (m.status === "Pending" || m.status === "Accepted"),
+  );
+}
+
 export function AiRecommendationsConsole(props: {
   variant: "intentStrip" | "requestsHub";
   intentId?: string;
@@ -45,12 +62,19 @@ export function AiRecommendationsConsole(props: {
   const { strings } = useLanguage();
   const c = strings.console;
 
-  const filtered =
-    variant === "intentStrip" && intentId
-      ? rows.filter((r) => r.intent_id === intentId)
-      : variant === "requestsHub"
-        ? rows
-        : [];
+  const filtered = React.useMemo(() => {
+    const base =
+      variant === "intentStrip" && intentId
+        ? rows.filter((r) => r.intent_id === intentId)
+        : variant === "requestsHub"
+          ? rows
+          : [];
+    if (variant !== "requestsHub") return base;
+    return base.filter(
+      (r) =>
+        !outboundInviteOverlap(matches, userId, r.intent_id, r.candidate_profile_id),
+    );
+  }, [variant, intentId, rows, matches, userId]);
 
   const [dismissing, setDismissing] = React.useState<string | null>(null);
   const [dismissConfirmRow, setDismissConfirmRow] = React.useState<AiRecommendationListItem | null>(null);

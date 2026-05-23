@@ -554,7 +554,7 @@ export const STRINGS = {
     nav: {
       explore: "探索廣場",
       messages: "訊息",
-      manage: "管理中心",
+      manage: "管理連結",
       profile: "個人檔案",
       signOut: "登出",
       accountMenu: "帳戶選單",
@@ -671,8 +671,8 @@ export const STRINGS = {
       peerAvatarPreviewAria: "查看對方檔案",
     },
     console: {
-      kicker: "管理中心",
-      title: "你的徵求與連結",
+      kicker: "管理連結",
+      title: "你的連結",
       subtitle: "管理你正在尋找的人、回覆介紹，以及與已連結的對象交流。",
       signOut: "登出",
       tabIntents: "尋找對象",
