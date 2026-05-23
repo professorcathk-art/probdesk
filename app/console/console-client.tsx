@@ -236,13 +236,16 @@ export function ConsoleClient({
 
   const inboundProfileDiscovery = useMemo(() => {
     return matches
-      .filter(
-        (m) =>
-          m.receiver_id === userId &&
-          m.status === "Pending" &&
-          !m.counterparty_intent_id &&
-          m.intent_request_id == null,
-      )
+      .filter((m) => {
+        if (m.receiver_id !== userId) return false;
+        if (m.status !== "Pending") return false;
+        if (m.counterparty_intent_id) return false;
+        /** Explore tap on your listing — keep out of hub (handled under each request card). */
+        const exploreListingInvite =
+          Boolean(m.intent_request_id) && !m.sender_context_intent_id;
+        if (exploreListingInvite) return false;
+        return true;
+      })
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [matches, userId]);
 

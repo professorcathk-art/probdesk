@@ -70,10 +70,21 @@ export function AiRecommendationsConsole(props: {
           ? rows
           : [];
     if (variant !== "requestsHub") return base;
-    return base.filter(
+    const overlapFiltered = base.filter(
       (r) =>
         !outboundInviteOverlap(matches, userId, r.intent_id, r.candidate_profile_id),
     );
+    /** Aggregate across intents — one card per suggested peer (newest recommendation wins per candidate). */
+    const seenCand = new Set<string>();
+    const deduped: AiRecommendationListItem[] = [];
+    for (const r of [...overlapFiltered].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    )) {
+      if (seenCand.has(r.candidate_profile_id)) continue;
+      seenCand.add(r.candidate_profile_id);
+      deduped.push(r);
+    }
+    return deduped;
   }, [variant, intentId, rows, matches, userId]);
 
   const [dismissing, setDismissing] = React.useState<string | null>(null);

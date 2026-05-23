@@ -277,7 +277,7 @@ export const STRINGS = {
       inboundDiscoveryBadge: "Profile invitation",
       inboundDiscoveryTitle: "Invitations to your profile",
       inboundDiscoveryDesc:
-        "Someone invited you from your profile (no Explore listing on file). Review their safe preview—without real name or photo—and accept or decline here.",
+        "Someone reached out via Smart Matchmaking or Manage (not from a quick Explore tap on your public listing). Preview their saved profile fields—no real name or photo until mutual acceptance.",
       suggestionBadgeIntent: "Request listing",
       suggestionBadgeProfile: "Profile suggestion",
       suggestionTheirBio: "Bio",
@@ -817,7 +817,7 @@ export const STRINGS = {
       inboundDiscoveryBadge: "個人檔案邀請",
       inboundDiscoveryTitle: "針對你個人檔案的邀請",
       inboundDiscoveryDesc:
-        "有人透過你的個人檔案向你發起邀請（目前沒有對應的探索廣場徵求）。你可查看不含真名與照片的預覽，並在此接受或婉拒。",
+        "對方透過智慧配對或由「尋找對象」發起的邀請接觸你（非單純在探索廣場點了你的公開徵求）。可在此查看不含真名與照片的預覽，並接受或婉拒。",
       suggestionBadgeIntent: "徵求列表",
       suggestionBadgeProfile: "檔案推薦",
       suggestionTheirBio: "簡介",
