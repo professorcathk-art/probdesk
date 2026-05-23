@@ -9,6 +9,8 @@ export type ProfileSupplyEmbeddingSource = {
   superpower?: string | null;
   languages?: string[] | null;
   skills_tags?: string[] | null;
+  /** Optional headline / role for supply vector prefix (Phase 24); no demand / intent text here */
+  role?: string | null;
 };
 
 /** Keeps `profiles.supply_embedding` (and legacy `embedding`) aligned — profile fields only (Phase 22). */
@@ -26,6 +28,7 @@ export async function syncProfileEmbedding(
       superpower: source.superpower ?? null,
       languages,
       skills_tags,
+      role: source.role ?? null,
     });
     const vec = await embedTextSmall(text);
     const lit = vectorLiteral(vec);

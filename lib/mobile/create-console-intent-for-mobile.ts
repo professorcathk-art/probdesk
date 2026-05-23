@@ -68,7 +68,11 @@ export async function createConsoleIntentForMobile(
 
   try {
     parsed = await parseIntentWithMini(trimmed);
-    embedding = await embedTextSmall(buildDemandEmbeddingText(trimmed, must_haves));
+    embedding = await embedTextSmall(
+      buildDemandEmbeddingText(trimmed, must_haves, {
+        extracted_persona: parsed.extracted_persona as Record<string, unknown>,
+      }),
+    );
   } catch (e) {
     const msg = e instanceof Error ? e.message : "AI pipeline failed";
     return { ok: false, message: msg };

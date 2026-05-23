@@ -18,7 +18,7 @@ import { logPairingScoreEvent } from "@/lib/pairing-score-log";
 import { BLOCKING_MATCH_STATUSES } from "@/lib/match-blocking";
 import { vectorLiteral, embeddingVectorForRpc } from "@/lib/vector-literal";
 import { syncProfileEmbedding } from "@/lib/sync-profile-embedding";
-import { buildDemandEmbeddingText } from "@/lib/demand-supply-embedding";
+import { asEmbeddingContextRecord, buildDemandEmbeddingText } from "@/lib/demand-supply-embedding";
 import { recordImmediateHybridRecommendations } from "@/actions/ai-recommendations";
 
 function normalizeMustHaves(raw: string | null | undefined): string | null {
@@ -111,7 +111,11 @@ export async function bootstrapIntentFromLanding(naturalLanguageInput: string) {
 
   try {
     parsed = await parseIntentWithMini(trimmed);
-    embedding = await embedTextSmall(buildDemandEmbeddingText(trimmed, null));
+    embedding = await embedTextSmall(
+      buildDemandEmbeddingText(trimmed, null, {
+        extracted_persona: parsed.extracted_persona as Record<string, unknown>,
+      }),
+    );
   } catch (e) {
     const msg = e instanceof Error ? e.message : "AI pipeline failed";
     return { ok: false as const, message: msg };
@@ -887,7 +891,11 @@ export async function createConsoleIntent(
 
   try {
     parsed = await parseIntentWithMini(trimmed);
-    embedding = await embedTextSmall(buildDemandEmbeddingText(trimmed, must_haves));
+    embedding = await embedTextSmall(
+      buildDemandEmbeddingText(trimmed, must_haves, {
+        extracted_persona: parsed.extracted_persona as Record<string, unknown>,
+      }),
+    );
   } catch (e) {
     const msg = e instanceof Error ? e.message : "AI pipeline failed";
     return { ok: false as const, message: msg };
@@ -974,7 +982,7 @@ export async function updateConsoleIntent(
 
   const { data: existing } = await supabase
     .from("intent_requests")
-    .select("location_filter")
+    .select("location_filter, enrichment")
     .eq("id", intentId)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -984,7 +992,12 @@ export async function updateConsoleIntent(
 
   try {
     parsed = await parseIntentWithMini(trimmed);
-    embedding = await embedTextSmall(buildDemandEmbeddingText(trimmed, must_haves));
+    embedding = await embedTextSmall(
+      buildDemandEmbeddingText(trimmed, must_haves, {
+        extracted_persona: parsed.extracted_persona as Record<string, unknown>,
+        enrichment: asEmbeddingContextRecord(existing?.enrichment),
+      }),
+    );
   } catch (e) {
     const msg = e instanceof Error ? e.message : "AI pipeline failed";
     return { ok: false as const, message: msg };
