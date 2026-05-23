@@ -56,6 +56,7 @@ import {
   MIN_INTENT_CHARS,
   readLandingIntentDraftBackup,
 } from "@/lib/intent-draft";
+import { aiRecommendationOutboundOverlap } from "@/lib/ai-recommendation-outbound-overlap";
 import { aiRecommendationToSuggestionCard } from "@/lib/ai-recommendation-to-suggestion-card";
 import { displayProfileAgeGroup } from "@/lib/display-age-group";
 import { peerGenderLabelFromSlug } from "@/lib/peer-profile-labels";
@@ -671,6 +672,15 @@ export function ConsoleClient({
                             matches,
                           ).filter((m) => m.status !== "Rejected");
                           const aiRowsForIntent = aiRecommendations.filter((r) => r.intent_id === intent.id);
+                          const aiVisibleForIntentCount = aiRowsForIntent.filter(
+                            (r) =>
+                              !aiRecommendationOutboundOverlap(
+                                matches,
+                                userId,
+                                intent.id,
+                                r.candidate_profile_id,
+                              ),
+                          ).length;
                           const aiPeerIdsSaved = new Set(aiRowsForIntent.map((r) => r.candidate_profile_id));
                           const invitationRows = filterDedupOutboundOverlappingAiSaved(
                             invitationRowsRaw,
@@ -678,7 +688,7 @@ export function ConsoleClient({
                             userId,
                             aiPeerIdsSaved,
                           );
-                          const unifiedEmpty = invitationRows.length === 0 && aiRowsForIntent.length === 0;
+                          const unifiedEmpty = invitationRows.length === 0 && aiVisibleForIntentCount === 0;
                           return (
                             <>
                               <div className="space-y-1">

@@ -4,6 +4,7 @@ import * as React from "react";
 import type { AiRecommendationListItem } from "@/actions/ai-recommendations";
 import type { MatchRow } from "@/actions/matches";
 import { dismissAiRecommendation } from "@/actions/ai-recommendations";
+import { aiRecommendationOutboundOverlap } from "@/lib/ai-recommendation-outbound-overlap";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,23 +28,6 @@ function truncateText(s: string | null | undefined, max: number): string {
   return `${t.slice(0, max - 1)}…`;
 }
 
-/** Invitations hub: hide rows already covered by an outbound Pending/Accepted invite from the same request (shown under the Requests / 尋找對象 tab). */
-function outboundInviteOverlap(
-  matches: MatchRow[],
-  userId: string,
-  intentId: string,
-  candidateProfileId: string,
-): boolean {
-  return matches.some(
-    (m) =>
-      m.sender_id === userId &&
-      m.receiver_id === candidateProfileId &&
-      m.sender_context_intent_id === intentId &&
-      !m.counterparty_intent_id &&
-      (m.status === "Pending" || m.status === "Accepted"),
-  );
-}
-
 export function AiRecommendationsConsole(props: {
   variant: "intentStrip" | "requestsHub";
   intentId?: string;
@@ -63,16 +47,22 @@ export function AiRecommendationsConsole(props: {
   const c = strings.console;
 
   const filtered = React.useMemo(() => {
-    const base =
+    const strip =
       variant === "intentStrip" && intentId
-        ? rows.filter((r) => r.intent_id === intentId)
-        : variant === "requestsHub"
-          ? rows
-          : [];
+        ? rows
+            .filter((r) => r.intent_id === intentId)
+            .filter(
+              (r) =>
+                !aiRecommendationOutboundOverlap(matches, userId, r.intent_id, r.candidate_profile_id),
+            )
+        : null;
+    const base =
+      strip !== null ? strip : variant === "requestsHub" ? rows : [];
+    if (variant === "intentStrip") return strip ?? [];
     if (variant !== "requestsHub") return base;
     const overlapFiltered = base.filter(
       (r) =>
-        !outboundInviteOverlap(matches, userId, r.intent_id, r.candidate_profile_id),
+        !aiRecommendationOutboundOverlap(matches, userId, r.intent_id, r.candidate_profile_id),
     );
     /** Aggregate across intents — one card per suggested peer (newest recommendation wins per candidate). */
     const seenCand = new Set<string>();

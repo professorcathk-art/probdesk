@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { initiateConnection } from "@/actions/matches";
 import { CreditsLimitModal } from "@/components/credits-limit-modal";
+import { CONNECT_INTRO_MIN_CHARS } from "@/lib/connect-intro-min";
 import { useLanguage } from "@/components/language-provider";
 
 type Props = {
@@ -50,6 +51,9 @@ export function ConnectModal({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [creditsModalOpen, setCreditsModalOpen] = useState(false);
+
+  const trimmedLen = message.trim().length;
+  const belowIntroMin = trimmedLen < CONNECT_INTRO_MIN_CHARS;
 
   useEffect(() => {
     if (!open) return;
@@ -106,6 +110,13 @@ export function ConnectModal({
             placeholder={cm.placeholder}
             className="min-h-[120px] border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500 sm:min-h-[140px]"
           />
+          {belowIntroMin ? (
+            <p className="text-xs leading-relaxed text-amber-200/90" role="status" aria-live="polite">
+              {cm.introMinCharsHint
+                .replaceAll("{current}", String(trimmedLen))
+                .replaceAll("{min}", String(CONNECT_INTRO_MIN_CHARS))}
+            </p>
+          ) : null}
           <div className="rounded-xl border border-sky-500/15 bg-sky-500/[0.06] px-4 py-3">
             <p className="text-sm font-medium text-sky-100">{cm.previewNoticeTitle}</p>
             <p className="mt-2 text-xs leading-relaxed text-slate-400">{cm.previewNoticeBody}</p>
@@ -116,7 +127,7 @@ export function ConnectModal({
               {cm.cancel}
             </Button>
             <Button
-              disabled={busy || message.trim().length < 16}
+              disabled={busy || belowIntroMin}
               className="border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
               onClick={() => void onSend()}
             >

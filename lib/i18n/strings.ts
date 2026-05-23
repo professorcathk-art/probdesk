@@ -458,6 +458,7 @@ export const STRINGS = {
       cancel: "Cancel",
       sendBusy: "Sending…",
       confirmSend: "Send invite",
+      introMinCharsHint: "{current} / {min} characters — add more to unlock Send.",
       previewNoticeTitle: "What will they see?",
       previewNoticeBody:
         "They will only see your basic summary and traits for now. Your real name, photos, and full profile will only unlock after mutual acceptance. Say hi with confidence!",
@@ -991,6 +992,7 @@ export const STRINGS = {
       cancel: "取消",
       sendBusy: "傳送中…",
       confirmSend: "發送邀請",
+      introMinCharsHint: "目前 {current} / {min} 字元；須至少 {min} 字才可按「發送邀請」。",
       previewNoticeTitle: "對方會看到什麼？",
       previewNoticeBody:
         "對方目前只會看到你的「個人摘要」與基本特質。你的真實姓名、照片與詳細資料，只有在雙方都同意後才會為彼此解鎖。放心地打聲招呼吧！",
