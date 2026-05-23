@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Users } from "lucide-react";
+import { ChevronDown, ChevronRight, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { IntentRow, SuggestionCard } from "@/actions/intents";
@@ -124,6 +124,26 @@ export function ConsoleClient({
   }
 
   const blockedPeers = useMemo(() => new Set(blockedPeerIds), [blockedPeerIds]);
+
+  const intentExpansionKey = useMemo(() => intents.map((i) => i.id).join("|"), [intents]);
+  const [intentDetailExpandedById, setIntentDetailExpandedById] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    /* Sync default fold state whenever intent IDs change — user toggles persist until an id disappears. */
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- merge refetched intents with per-id fold overrides
+    setIntentDetailExpandedById((prev) => {
+      const next = { ...prev };
+      intents.forEach((intent, idx) => {
+        if (next[intent.id] === undefined) {
+          next[intent.id] = intents.length <= 1 || idx === 0;
+        }
+      });
+      for (const k of Object.keys(next)) {
+        if (!intents.some((i) => i.id === k)) delete next[k];
+      }
+      return next;
+    });
+  }, [intentExpansionKey, intents]);
 
   const [busyIntent, setBusyIntent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -417,6 +437,12 @@ export function ConsoleClient({
           <p className="rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</p>
         ) : null}
 
+        {!quotaSnapshot.unlimitedIntents && intentAtCap ? (
+          <div className="rounded-xl border border-amber-400/35 bg-amber-500/[0.1] px-4 py-3 text-sm leading-relaxed text-amber-100 md:text-[15px]">
+            {t.intentLimitReachedBanner}
+          </div>
+        ) : null}
+
         {postCreateDiscovering ? (
           <p className="rounded-xl border border-sky-500/25 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">{t.freshMatchesSearching}</p>
         ) : null}
@@ -495,20 +521,54 @@ export function ConsoleClient({
                   </CardHeader>
                 </Card>
               ) : (
-                intents.map((intent) => (
+                intents.map((intent, intentIndex) => {
+                  const intentExpanded =
+                    intents.length <= 1 || (intentDetailExpandedById[intent.id] ?? intentIndex === 0);
+
+                  return (
                   <Card key={intent.id} className="border-white/10 bg-white/[0.035] backdrop-blur-xl">
                     <CardHeader className="gap-4 px-4 pb-2 pt-6 sm:px-6">
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4">
-                        <div className="min-w-0 w-full space-y-3 md:flex-1">
-                          <CardTitle className="text-base text-slate-100">{t.intentCardTitle}</CardTitle>
-                          <CardDescription className="w-full max-w-none whitespace-normal text-sm leading-relaxed text-slate-300">
-                            {intent.natural_language_input}
-                          </CardDescription>
-                          <IntentMustHavesCallout
-                            className="w-full max-w-none"
-                            heading={t.mustHavesCardHeading}
-                            body={intent.must_haves ?? ""}
-                          />
+                        <div className="flex min-w-0 w-full gap-3 md:flex-1">
+                          {intents.length > 1 ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setIntentDetailExpandedById((prev) => {
+                                  const expanded =
+                                    intents.length <= 1 || (prev[intent.id] ?? intentIndex === 0);
+                                  return { ...prev, [intent.id]: !expanded };
+                                })
+                              }
+                              className="mt-1 shrink-0 self-start rounded-xl p-2 text-slate-300 hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/50"
+                              aria-expanded={intentExpanded}
+                              aria-label={t.intentFoldToggleAria}
+                            >
+                              {intentExpanded ? (
+                                <ChevronDown className="h-5 w-5" aria-hidden />
+                              ) : (
+                                <ChevronRight className="h-5 w-5" aria-hidden />
+                              )}
+                            </button>
+                          ) : null}
+                          <div className="min-w-0 flex-1 space-y-3">
+                            <CardTitle className="text-base text-slate-100">{t.intentCardTitle}</CardTitle>
+                            <CardDescription
+                              className={cn(
+                                "w-full max-w-none whitespace-normal text-sm leading-relaxed text-slate-300",
+                                intents.length > 1 && !intentExpanded && "line-clamp-2 md:line-clamp-3",
+                              )}
+                            >
+                              {intent.natural_language_input}
+                            </CardDescription>
+                            {intentExpanded ? (
+                              <IntentMustHavesCallout
+                                className="w-full max-w-none"
+                                heading={t.mustHavesCardHeading}
+                                body={intent.must_haves ?? ""}
+                              />
+                            ) : null}
+                          </div>
                         </div>
                         <div className="flex w-full shrink-0 flex-wrap items-center gap-2 md:w-auto md:justify-end">
                           <Badge variant="outline" className="border-white/15 text-slate-200">
@@ -530,6 +590,7 @@ export function ConsoleClient({
                         </div>
                       </div>
                     </CardHeader>
+                    {intentExpanded ? (
                     <CardContent className="space-y-6 px-4 pb-6 sm:px-6">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-4">
@@ -618,8 +679,10 @@ export function ConsoleClient({
                         })()}
                       </div>
                     </CardContent>
+                    ) : null}
                   </Card>
-                ))
+                  );
+                })
               )}
             </div>
           </TabsContent>

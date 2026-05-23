@@ -319,6 +319,10 @@ export const STRINGS = {
       aiRecSourceBackground: "Embedding match",
       aiRecBlockedPeer: "You have a pending or accepted connection with this person — invite blocked.",
       aiRecInvitePendingReply: "Invitation sent — waiting for their reply.",
+      aiRecDismissConfirmTitle: "Remove this suggestion?",
+      aiRecDismissConfirmDesc:
+        "This will dismiss the suggestion and withdraw any Pending invite sent from Manage for this pairing (where applicable). It does not undo accepted connections.",
+      aiRecDismissConfirmCta: "Remove & withdraw",
       aiRecPeekHint:
         "Structured profile preview did not load in this strip — tap Preview profile for discovery-safe bio, traits, and more.",
       aiRecIntentMergedTitle: "Saved suggestions & invitations",
@@ -362,6 +366,9 @@ export const STRINGS = {
       quotaInvitesToday: "Invites today (UTC)",
       intentLimitMessage:
         "You can keep up to 3 active requests at a time. Pause or finish one before adding another or resuming.",
+      intentLimitReachedBanner:
+        "You've reached your limit — pause an existing request before creating a new one.",
+      intentFoldToggleAria: "Fold or expand this request section",
     },
     profilePage: {
       title: "Your profile",
@@ -847,6 +854,10 @@ export const STRINGS = {
       aiRecSourceBackground: "嵌入比對",
       aiRecBlockedPeer: "與對方已有待處理或已連結紀錄，無法重複邀請。",
       aiRecInvitePendingReply: "已發送邀請，等待對方回覆。",
+      aiRecDismissConfirmTitle: "確定移除這則 AI 建議？",
+      aiRecDismissConfirmDesc:
+        "將移除建議，並視情況撤回你從管理中心對此對象發出、尚在等待回覆中的邀請。已同意的連線不會被撤銷。",
+      aiRecDismissConfirmCta: "移除並撤回邀請",
       aiRecPeekHint:
         "卡片上若未顯示完整欄位，請點「預覽檔案」查看依隱私規則提供的簡介、特質與更多脈絡。",
       aiRecIntentMergedTitle: "已儲存的 AI 建議與邀請",
@@ -890,6 +901,8 @@ export const STRINGS = {
       quotaInvitesToday: "今日尚可發送邀請（UTC）",
       intentLimitMessage:
         "同時最多可有 3 則「進行中」徵求。請先暫停或整理現有徵求，再新增或恢復。",
+      intentLimitReachedBanner: "徵求數量已達上限——請先暫停某一則進行中的徵求，才能再新增徵求。",
+      intentFoldToggleAria: "摺疊或展開此徵求區塊",
     },
     profilePage: {
       title: "個人檔案",

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { isAdminEmail } from "@/lib/admin-emails";
+import { dismissAiRecommendationWithClient } from "@/lib/dismiss-ai-recommendation-flow";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 
@@ -227,26 +228,13 @@ export async function dismissAiRecommendation(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Not authenticated" };
 
-  const { data: rec, error: fErr } = await supabase
-    .from("ai_recommendations")
-    .select("id, intent_id")
-    .eq("id", recommendationId)
-    .maybeSingle();
-  if (fErr || !rec) return { ok: false, message: fErr?.message ?? "Not found" };
+  const res = await dismissAiRecommendationWithClient(supabase, {
+    recommendationId,
+    actorUserId: user.id,
+    refundInviteCredits: !isAdminEmail(user.email ?? undefined),
+  });
 
-  const { data: intent } = await supabase
-    .from("intent_requests")
-    .select("user_id")
-    .eq("id", rec.intent_id)
-    .maybeSingle();
-  if (!intent || intent.user_id !== user.id) return { ok: false, message: "Forbidden" };
-
-  const { error: uErr } = await supabase
-    .from("ai_recommendations")
-    .update({ dismissed_at: new Date().toISOString() })
-    .eq("id", recommendationId);
-
-  if (uErr) return { ok: false, message: uErr.message };
+  if (!res.ok) return { ok: false, message: res.message };
   revalidatePath("/console");
   return { ok: true };
 }

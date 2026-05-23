@@ -8,6 +8,14 @@ import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useLanguage } from "@/components/language-provider";
 import { displayProfileAgeGroup } from "@/lib/display-age-group";
 import { peerGenderLabelFromSlug } from "@/lib/peer-profile-labels";
@@ -45,13 +53,21 @@ export function AiRecommendationsConsole(props: {
         : [];
 
   const [dismissing, setDismissing] = React.useState<string | null>(null);
+  const [dismissConfirmRow, setDismissConfirmRow] = React.useState<AiRecommendationListItem | null>(null);
+  const [dismissError, setDismissError] = React.useState<string | null>(null);
 
   if (filtered.length === 0 && variant === "intentStrip") return null;
 
-  async function handleDismiss(id: string) {
+  async function runDismissRecommendation(id: string) {
+    setDismissError(null);
     setDismissing(id);
-    await dismissAiRecommendation(id);
+    const res = await dismissAiRecommendation(id);
     setDismissing(null);
+    if (!res.ok) {
+      setDismissError(res.message);
+      return;
+    }
+    setDismissConfirmRow(null);
     onAfterDismiss();
   }
 
@@ -258,12 +274,15 @@ export function AiRecommendationsConsole(props: {
                           <Button
                             type="button"
                             size="sm"
-                            variant="ghost"
-                            className="h-9 text-[13px] text-slate-500 hover:bg-white/[0.06] hover:text-slate-300"
+                            variant="destructive"
+                            className="h-9 border border-red-500/55 bg-red-600/85 text-[13px] text-white hover:bg-red-600 disabled:opacity-50"
                             disabled={dismissing === row.id}
-                            onClick={() => void handleDismiss(row.id)}
+                            onClick={() => {
+                              setDismissError(null);
+                              setDismissConfirmRow(row);
+                            }}
                           >
-                            {dismissing === row.id ? "…" : c.aiRecDismiss}
+                            {c.aiRecDismiss}
                           </Button>
                         </div>
                       </div>
@@ -280,6 +299,44 @@ export function AiRecommendationsConsole(props: {
           })}
         </ul>
       )}
+      <Dialog
+        open={dismissConfirmRow !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDismissConfirmRow(null);
+            setDismissError(null);
+          }
+        }}
+      >
+        <DialogContent className="border-white/15 bg-slate-950 text-slate-50 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{c.aiRecDismissConfirmTitle}</DialogTitle>
+            <DialogDescription className="text-slate-400">{c.aiRecDismissConfirmDesc}</DialogDescription>
+          </DialogHeader>
+          {dismissError ? <p className="text-sm leading-snug text-red-300">{dismissError}</p> : null}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              className="border-white/20"
+              onClick={() => {
+                setDismissConfirmRow(null);
+                setDismissError(null);
+              }}
+            >
+              {c.cancel}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={dismissConfirmRow != null && dismissing === dismissConfirmRow.id}
+              onClick={() => dismissConfirmRow && void runDismissRecommendation(dismissConfirmRow.id)}
+            >
+              {dismissConfirmRow != null && dismissing === dismissConfirmRow.id ? "…" : c.aiRecDismissConfirmCta}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
