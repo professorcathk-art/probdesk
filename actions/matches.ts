@@ -9,6 +9,7 @@ import { DUPLICATE_MATCH_MESSAGE, BLOCKING_MATCH_STATUSES, hasBlockingMatchBetwe
 import { validateProfileBasicsForPublish } from "@/lib/profile-basics";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { logPairingScoreEvent } from "@/lib/pairing-score-log";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 
 export type MatchRow = {
   id: string;
@@ -118,6 +119,19 @@ export async function initiateConnection(params: {
     location_filter: string | null;
   } | null = null;
 
+  /** Service-role peek for profile-discovery invites only (JWT cannot read peers' profiles/users under RLS). */
+  let discoverReceiverProfileFields:
+    | {
+        bio: string | null;
+        industry: string | null;
+        skills_tags: string[] | null;
+        languages: string[] | null;
+        superpower: string | null;
+        location: string | null;
+        gender: string | null;
+      }
+    | undefined;
+
   if (receiverIntentId) {
     const { data: intentRow, error: intentError } = await supabase
       .from("intent_requests")
@@ -130,13 +144,28 @@ export async function initiateConnection(params: {
     }
     receiverIntent = intentRow;
   } else {
-    /** Profile-discovery invite: invitee must satisfy the same mandatory profile gate as senders/listings (`validateProfileBasicsForPublish`). */
-    const { data: ru } = await supabase.from("users").select("id").eq("id", params.receiverUserId).maybeSingle();
+    /**
+     * Peers cannot be read with the caller's Supabase JWT: `users` and foreign `profiles` are RLS-own-row only (schema).
+     * Without service role, `.select` returns no row → falsely looked like «not found». Same pattern as
+     * {@link actions/profile#getSuggestionProfilePreview}.
+     */
+    let svc;
+    try {
+      svc = createServiceRoleClient();
+    } catch {
+      return {
+        ok: false as const,
+        message:
+          "Server configuration error.",
+      };
+    }
+
+    const { data: ru } = await svc.from("users").select("id").eq("id", params.receiverUserId).maybeSingle();
     if (!ru) {
       return { ok: false as const, message: "That member could not be found." };
     }
 
-    const { data: recvProf } = await supabase
+    const { data: recvProf } = await svc
       .from("profiles")
       .select("display_name, bio, location, industry, superpower, gender, skills_tags, languages")
       .eq("user_id", params.receiverUserId)
@@ -150,6 +179,16 @@ export async function initiateConnection(params: {
           "That member has not finished the required profile to receive invitations yet.",
       };
     }
+
+    discoverReceiverProfileFields = {
+      bio: recvProf?.bio ?? null,
+      industry: recvProf?.industry ?? null,
+      skills_tags: Array.isArray(recvProf?.skills_tags) ? (recvProf!.skills_tags as string[]) : [],
+      languages: Array.isArray(recvProf?.languages) ? (recvProf!.languages as string[]) : [],
+      superpower: recvProf?.superpower ?? null,
+      location: recvProf?.location ?? null,
+      gender: recvProf?.gender ?? null,
+    };
   }
 
   const demoInbox = process.env["MARKETPLACE_DEMO_INBOX_USER_ID"]?.trim();
@@ -233,11 +272,38 @@ export async function initiateConnection(params: {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const { data: receiverProfile } = await supabase
-    .from("profiles")
-    .select("bio, industry, skills_tags, languages, superpower, location, gender")
-    .eq("user_id", receiverId)
-    .maybeSingle();
+  type ReceiverSnippetRow = {
+    bio: string | null;
+    industry: string | null;
+    skills_tags: string[] | null;
+    languages: string[] | null;
+    superpower: string | null;
+    location: string | null;
+    gender: string | null;
+  };
+
+  let receiverProfile: ReceiverSnippetRow | null = null;
+
+  if (receiverId === params.receiverUserId && discoverReceiverProfileFields !== undefined) {
+    receiverProfile = discoverReceiverProfileFields;
+  } else {
+    try {
+      const svcPeer = createServiceRoleClient();
+      const { data: peerRow } = await svcPeer
+        .from("profiles")
+        .select("bio, industry, skills_tags, languages, superpower, location, gender")
+        .eq("user_id", receiverId)
+        .maybeSingle();
+      receiverProfile = peerRow as ReceiverSnippetRow | null;
+    } catch {
+      const { data: peerFallback } = await supabase
+        .from("profiles")
+        .select("bio, industry, skills_tags, languages, superpower, location, gender")
+        .eq("user_id", receiverId)
+        .maybeSingle();
+      receiverProfile = peerFallback as ReceiverSnippetRow | null;
+    }
+  }
 
   try {
     if (senderIntentText) {
