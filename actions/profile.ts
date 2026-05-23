@@ -216,6 +216,69 @@ export async function getMyAlbumSignedUrls(
   return { ok: true as const, items };
 }
 
+/**
+ * Signed album URLs for a connected peer — client storage policies are owner-only, so URLs are minted server-side after
+ * verifying an Accepted match between the viewer and `peerUserId`.
+ */
+export async function getPeerAlbumSignedUrlsForAcceptedConnection(
+  peerUserId: string,
+): Promise<{ ok: true; items: { path: string; url: string }[] } | { ok: false; message: string }> {
+  const peer = peerUserId.trim();
+  if (!peer) return { ok: false as const, message: "Invalid member." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, message: "Not authenticated" };
+
+  if (peer === user.id) {
+    return { ok: false as const, message: "Open Profile to edit your own album." };
+  }
+
+  const { data: accepted, error: mErr } = await supabase
+    .from("matches")
+    .select("sender_id, receiver_id")
+    .eq("status", "Accepted")
+    .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
+
+  if (mErr) return { ok: false as const, message: mErr.message };
+
+  const connected = (accepted ?? []).some(
+    (m) =>
+      (m.sender_id === user.id && m.receiver_id === peer) || (m.receiver_id === user.id && m.sender_id === peer),
+  );
+  if (!connected) return { ok: false as const, message: "No accepted connection with this member." };
+
+  let svc;
+  try {
+    svc = createServiceRoleClient();
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : "Missing service configuration.";
+    return { ok: false as const, message: detail };
+  }
+
+  const { data: prof, error: pErr } = await svc
+    .from("profiles")
+    .select("album_storage_paths")
+    .eq("user_id", peer)
+    .maybeSingle();
+
+  if (pErr || !prof) return { ok: true as const, items: [] };
+
+  const rawList = Array.isArray(prof.album_storage_paths) ? (prof.album_storage_paths as unknown[]) : [];
+  const paths = rawList.filter((x): x is string => typeof x === "string" && x.startsWith(`${peer}/`));
+  const items: { path: string; url: string }[] = [];
+
+  for (const path of paths) {
+    const { data, error } = await svc.storage.from("profile-album").createSignedUrl(path, 3600);
+    if (error || !data?.signedUrl) continue;
+    items.push({ path, url: data.signedUrl });
+  }
+
+  return { ok: true as const, items };
+}
+
 export async function uploadProfileAlbumPhoto(formData: FormData) {
   const supabase = await createClient();
   const {

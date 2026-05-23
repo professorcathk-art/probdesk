@@ -1,7 +1,9 @@
 import { Resend } from "resend";
 
-/** Resend-supplied sandbox sender — works without a verified domain (intended for testing / staging). Contact form only. */
-export const DEFAULT_CONTACT_RESEND_FROM = "onboarding@resend.dev";
+import { RESEND_SIMPLE_FROM } from "@/lib/resend-simple-from";
+
+/** @deprecated alias — prefer {@link RESEND_SIMPLE_FROM}. */
+export const DEFAULT_CONTACT_RESEND_FROM = RESEND_SIMPLE_FROM;
 
 function escapeHtml(text: string): string {
   return text
@@ -24,9 +26,8 @@ export async function sendContactSupportEmail(params: {
   name?: string;
 }): Promise<{ ok: true } | { ok: false; failure: ContactSupportSendFailure }> {
   const key = process.env["RESEND_API_KEY"]?.trim();
-  const fromConfigured = process.env["RESEND_FROM_EMAIL"]?.trim();
-  /** Use verified domain sender in production when set; otherwise Resend's default onboarding address (domain verification not required). */
-  const from = fromConfigured || DEFAULT_CONTACT_RESEND_FROM;
+  /** Simplest reliable path per Resend docs: onboarding sender + API key only. */
+  const from = RESEND_SIMPLE_FROM;
   if (!key) {
     return {
       ok: false,

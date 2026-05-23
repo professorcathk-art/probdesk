@@ -15,18 +15,19 @@ Symptoms:
 
 | Variable | Purpose |
 |----------|---------|
-| `RESEND_FROM_EMAIL` | **From** address. If unset, the contact form uses Resend's **`onboarding@resend.dev`** (no domain verification). Set to a verified sender (e.g. `Vennode <notify@yourdomain.com>`) for production branding and deliverability. |
-| `CONTACT_SUPPORT_EMAIL` | Where contact form deliveries go (defaults to `professor.cat.hk@gmail.com` in code). |
+| `RESEND_FROM_EMAIL` | Unused by current outbound mail helpers; **From** is fixed in **`lib/resend-simple-from.ts`**. |
+| `CONTACT_SUPPORT_EMAIL` | Where contact deliveries go (`professor.cat.hk@gmail.com` in code if unset). |
 
-**Note:** `onboarding@resend.dev` is intended for testing; Resend may restrict which recipient addresses receive mail. Prefer a verified domain + `RESEND_FROM_EMAIL` for production.
+**From:** `POST /api/contact` and **`GET /api/cron/daily-digest`** emails use **`onboarding@resend.dev`** plus **`RESEND_API_KEY`** (Resend onboarding sender — no verified domain).
+
+`onboarding@resend.dev` may restrict recipients on free tier; upgrade to a verified domain and switch the code’s **`RESEND_SIMPLE_FROM`** in `lib/resend-simple-from.ts` when ready.
 
 See also **`.env.example`**.
 
 ## Resend checklist
 
-1. **`RESEND_API_KEY`** alone is enough for **`POST /api/contact`** to send using **`onboarding@resend.dev`** as **From**.
-2. For production, verify your domain in [Resend](https://resend.com/) and set **`RESEND_FROM_EMAIL`** to that verified sender; unverified custom domains produce **502** from Resend.
-3. After changing env vars, **redeploy** (or trigger a new deployment) so serverless functions pick them up.
+1. **`RESEND_API_KEY`** drives both **`POST /api/contact`** and **`/api/cron/daily-digest`** with **`onboarding@resend.dev`** as **From**.
+2. After changing env vars, **redeploy** so serverless functions pick them up.
 
 ## Local verification
 
@@ -35,7 +36,7 @@ With `.env.local` populated:
 ```bash
 curl -sS -X POST http://localhost:3000/api/contact \
   -H "Content-Type: application/json" \
-  -d '{"email":"you@test.com","subject":"Test","message":"At least twenty characters here."}'
+  -d '{"email":"you@test.com","subject":"Test","message":"At least ten characters."}'
 ```
 
 Expect `{"ok":true}` and an email at `CONTACT_SUPPORT_EMAIL`.

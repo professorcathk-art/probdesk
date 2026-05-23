@@ -40,7 +40,9 @@ export function ContactPageClient() {
       });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) {
-        setStatus(res.status === 400 ? "validation" : "error");
+        /** 503 = RESEND/key missing server-side — show generic error hint for ops */
+        const isClientValidation = res.status === 400 || data.error === "validation";
+        setStatus(isClientValidation ? "validation" : "error");
         return;
       }
       setStatus("success");
@@ -143,7 +145,7 @@ export function ContactPageClient() {
               id="contact-message"
               name="message"
               required
-              minLength={20}
+              minLength={10}
               maxLength={8000}
               rows={6}
               value={message}

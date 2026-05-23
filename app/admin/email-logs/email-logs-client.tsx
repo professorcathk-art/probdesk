@@ -54,13 +54,22 @@ export default function EmailLogsClient() {
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-300/90">Admin</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">Daily digest email logs</h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-400">
-              Cron route <code className="rounded bg-black/40 px-1.5 py-0.5 text-sky-200">/api/cron/daily-digest</code> — lightweight Resend digests for queued AI recommendations.
+              Cron route <code className="rounded bg-black/40 px-1.5 py-0.5 text-sky-200">/api/cron/daily-digest</code> —
+              notifies intent owners via Resend (default <span className="text-slate-300">onboarding@resend.dev</span> +{" "}
+              <span className="text-slate-300">RESEND_API_KEY</span>) when queued{" "}
+              <span className="text-slate-300">ai_recommendations</span> emails are pending.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" className="border-white/15 text-slate-200" onClick={() => void reload()}>
               Refresh
             </Button>
+            <Link
+              href="/admin/profiles"
+              className="inline-flex h-10 items-center rounded-md border border-white/15 px-4 text-sm text-slate-200 hover:bg-white/5"
+            >
+              Profiles directory
+            </Link>
             <Link
               href="/admin"
               className="inline-flex h-10 items-center rounded-md border border-white/15 px-4 text-sm text-slate-200 hover:bg-white/5"

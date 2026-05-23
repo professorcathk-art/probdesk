@@ -116,6 +116,9 @@ export default function AdminDashboard() {
             <Link href="/admin/email-logs" className="inline-block text-sm text-amber-200/90 underline-offset-4 hover:underline">
               Daily digest email logs →
             </Link>
+            <Link href="/admin/profiles" className="inline-block text-sm text-emerald-200/90 underline-offset-4 hover:underline">
+              Profiles directory &amp; match by profile →
+            </Link>
           </div>
         </header>
 

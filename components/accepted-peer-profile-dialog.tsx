@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { getPeerAlbumSignedUrlsForAcceptedConnection } from "@/actions/profile";
 import { createClient } from "@/lib/supabase/client";
 
 type PeerRow = {
@@ -69,10 +70,11 @@ function peerGenderLabelFromConsole(
   }
 }
 
-function AcceptedPeerSections({ peer }: { peer: PeerRow }) {
+function AcceptedPeerSections({ peer, albumUrls }: { peer: PeerRow; albumUrls: string[] }) {
   const { strings } = useLanguage();
   const t = strings.console;
   const ob = strings.onboarding;
+  const lp = strings.profilePage;
   const revealSensitiveDetails = true;
   const genderLine = peerGenderLabelFromConsole(t, peer.gender);
   const tags = (peer.skills_tags ?? []).filter(Boolean);
@@ -156,6 +158,19 @@ function AcceptedPeerSections({ peer }: { peer: PeerRow }) {
           </p>
         </div>
       ) : null}
+      {albumUrls.length > 0 ? (
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{lp.albumTitle}</p>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {albumUrls.map((url, idx) => (
+              <a key={`${idx}-${url.slice(-24)}`} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-white/10 bg-black/30">
+                {/* eslint-disable-next-line @next/next/no-img-element -- ephemeral signed URLs */}
+                <img src={url} alt="" className="aspect-square h-full w-full object-cover" />
+              </a>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -173,29 +188,45 @@ export function AcceptedPeerProfileDialog({
   const { strings } = useLanguage();
   const t = strings.console;
   const [peer, setPeer] = useState<PeerRow | null>(null);
+  const [albumUrls, setAlbumUrls] = useState<string[]>([]);
   const [fetching, setFetching] = useState(false);
 
   useEffect(() => {
     if (!open || !peerUserId) {
-      setPeer(null);
+      queueMicrotask(() => {
+        setPeer(null);
+        setAlbumUrls([]);
+        setFetching(false);
+      });
       return;
     }
+
     let cancelled = false;
+    /* eslint-disable react-hooks/set-state-in-effect -- loading transition before fetching peer + albums */
     setFetching(true);
     setPeer(null);
+    setAlbumUrls([]);
+    /* eslint-enable react-hooks/set-state-in-effect */
+
     void (async () => {
       const supabase = createClient();
-      const { data } = await supabase
-        .from("profiles")
-        .select(
-          "display_name, industry, avatar_url, bio, location, gender, skills_tags, languages, superpower, social_link, preferred_contact_channel, preferred_contact_detail",
-        )
-        .eq("user_id", peerUserId)
-        .maybeSingle();
+      const [{ data }, albumOut] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select(
+            "display_name, industry, avatar_url, bio, location, gender, skills_tags, languages, superpower, social_link, preferred_contact_channel, preferred_contact_detail",
+          )
+          .eq("user_id", peerUserId)
+          .maybeSingle(),
+        getPeerAlbumSignedUrlsForAcceptedConnection(peerUserId),
+      ]);
+
       if (cancelled) return;
       setPeer(data as PeerRow | null);
+      setAlbumUrls(albumOut.ok ? albumOut.items.map((i) => i.url) : []);
       setFetching(false);
     })();
+
     return () => {
       cancelled = true;
     };
@@ -205,7 +236,7 @@ export function AcceptedPeerProfileDialog({
     fetching && !peer ? (
       <p className="text-sm text-slate-500">{strings.console.peerLoading}</p>
     ) : peer ? (
-      <AcceptedPeerSections peer={peer} />
+      <AcceptedPeerSections peer={peer} albumUrls={albumUrls} />
     ) : (
       <p className="text-sm text-slate-500">{strings.messagesPage.peerProfileUnavailable}</p>
     );

@@ -1,40 +1,43 @@
 import { Resend } from "resend";
 
+import { RESEND_SIMPLE_FROM } from "@/lib/resend-simple-from";
+
 export async function sendDailyDigestEmail(params: {
   to: string;
   count: number;
   origin: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const key = process.env.RESEND_API_KEY?.trim();
-  const from = process.env.RESEND_FROM_EMAIL?.trim();
-  if (!key || !from) {
-    return { ok: false, error: "RESEND_API_KEY or RESEND_FROM_EMAIL is not set." };
+  if (!key) {
+    return { ok: false, error: "RESEND_API_KEY is not set." };
   }
 
   const resend = new Resend(key);
   const link = `${params.origin.replace(/\/+$/, "")}/console?tab=requests`;
-  const n = params.count;
+  const queued = params.count;
 
-  const subject =
-    n === 1 ? "Vennode: 1 new AI recommendation today" : `Vennode: ${n} new AI recommendations today`;
+  const subject = "Vennode: activity in Manage";
 
   const text = [
-    `Good news! You have ${n} new AI recommendation${n === 1 ? "" : "s"} on Vennode today.`,
+    "You have new activity waiting in your Vennode Manage portal (new matches or suggestions to review).",
     "",
-    `Log in to Manage (Console) to review them:`,
+    `Queued items awaiting your review today: ${queued}.`,
+    "",
+    "Open Manage:",
     link,
     "",
-    "You can dismiss suggestions anytime from Manage.",
+    "This is an automated notice; we do not include message or match details in email.",
   ].join("\n");
 
   const html = `
-    <p>Good news! You have <strong>${n}</strong> new AI recommendation${n === 1 ? "" : "s"} on Vennode today.</p>
-    <p><a href="${link}">Open Manage</a> to review them.</p>
-    <p style="color:#64748b;font-size:13px;margin-top:24px;">You can dismiss suggestions anytime from Manage.</p>
+    <p>You have <strong>new activity</strong> waiting in Vennode <strong>Manage</strong>.</p>
+    <p style="margin:12px 0;">Queued suggestions for you today: <strong>${queued}</strong>.</p>
+    <p><a href="${link}">Open Manage</a></p>
+    <p style="color:#64748b;font-size:13px;margin-top:20px;">Automated notice — no match or message details included.</p>
   `.trim();
 
   const { error } = await resend.emails.send({
-    from,
+    from: RESEND_SIMPLE_FROM,
     to: params.to,
     subject,
     text,

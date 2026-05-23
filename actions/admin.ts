@@ -59,6 +59,30 @@ export type AdminPairingScoreRow = {
   meta: Record<string, unknown>;
 };
 
+/** Fleet directory for admin profile cards (service role reads). */
+export type AdminProfileCardRow = {
+  user_id: string;
+  email: string | null;
+  onboarding_status: string;
+  user_created_at: string;
+  display_name: string | null;
+  bio: string | null;
+  location: string | null;
+  industry: string | null;
+  superpower: string | null;
+  gender: string | null;
+  age_group: string | null;
+  preferred_contact_channel: string | null;
+  preferred_contact_detail: string | null;
+  skills_tags: string[] | null;
+  languages: string[] | null;
+  social_link: string | null;
+  avatar_url: string | null;
+  album_storage_paths: string[];
+  primary_active_intent_id: string | null;
+  primary_active_intent_text: string | null;
+};
+
 async function assertAdmin() {
   const supabase = await createClient();
   const {
@@ -126,6 +150,166 @@ export async function adminListDirectory(): Promise<
       users: (users ?? []) as AdminUserRow[],
       intents,
     };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Forbidden";
+    return { ok: false, message: msg };
+  }
+}
+
+export async function adminListProfilesDirectory(): Promise<
+  { ok: true; rows: AdminProfileCardRow[] } | { ok: false; message: string }
+> {
+  try {
+    await assertAdmin();
+    let svc;
+    try {
+      svc = createServiceRoleClient();
+    } catch {
+      return {
+        ok: false,
+        message:
+          "Missing SUPABASE_SERVICE_ROLE_KEY on the server. Add it in Vercel env (server-only, never NEXT_PUBLIC).",
+      };
+    }
+
+    const { data: usersRows, error: uErr } = await svc
+      .from("users")
+      .select("id, email, onboarding_status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(1000);
+
+    if (uErr) return { ok: false, message: uErr.message };
+
+    const userIds = [...new Set((usersRows ?? []).map((u) => u.id as string))];
+
+    const { data: profiles, error: pErr } =
+      userIds.length > 0
+        ? await svc
+            .from("profiles")
+            .select(
+              "user_id, display_name, bio, location, industry, superpower, gender, age_group, preferred_contact_channel, preferred_contact_detail, skills_tags, languages, social_link, avatar_url, album_storage_paths",
+            )
+            .in("user_id", userIds)
+        : { data: [] as Record<string, unknown>[], error: null };
+
+    if (pErr) return { ok: false, message: pErr.message };
+
+    const profByUid = new Map((profiles ?? []).map((pr) => [pr.user_id as string, pr]));
+
+    type IntentLite = {
+      user_id: string;
+      id: string;
+      natural_language_input: string;
+      updated_at: string;
+    };
+    const intentByUid = new Map<string, IntentLite>();
+
+    const { data: intentsActive, error: iErr } = await svc
+      .from("intent_requests")
+      .select("id, user_id, natural_language_input, updated_at")
+      .eq("status", "active")
+      .order("updated_at", { ascending: false });
+
+    if (iErr) return { ok: false, message: iErr.message };
+
+    for (const raw of intentsActive ?? []) {
+      const uid = raw.user_id as string;
+      if (!intentByUid.has(uid)) {
+        intentByUid.set(uid, {
+          user_id: uid,
+          id: raw.id as string,
+          natural_language_input: (raw.natural_language_input as string) ?? "",
+          updated_at: (raw.updated_at as string) ?? "",
+        });
+      }
+    }
+
+    const rows: AdminProfileCardRow[] = (usersRows ?? []).map((uRow) => {
+      const uid = uRow.id as string;
+      const pr = profByUid.get(uid);
+      const intent = intentByUid.get(uid);
+      const albumRaw = pr?.album_storage_paths;
+      const album =
+        Array.isArray(albumRaw) && albumRaw.every((x) => typeof x === "string")
+          ? (albumRaw as string[])
+          : [];
+
+      return {
+        user_id: uid,
+        email: (uRow.email as string | null) ?? null,
+        onboarding_status: (uRow.onboarding_status as string) ?? "pending",
+        user_created_at: uRow.created_at as string,
+        display_name: (pr?.display_name as string | null) ?? null,
+        bio: (pr?.bio as string | null) ?? null,
+        location: (pr?.location as string | null) ?? null,
+        industry: (pr?.industry as string | null) ?? null,
+        superpower: (pr?.superpower as string | null) ?? null,
+        gender: (pr?.gender as string | null) ?? null,
+        age_group: (pr?.age_group as string | null) ?? null,
+        preferred_contact_channel: (pr?.preferred_contact_channel as string | null) ?? null,
+        preferred_contact_detail: (pr?.preferred_contact_detail as string | null) ?? null,
+        skills_tags: Array.isArray(pr?.skills_tags) ? (pr!.skills_tags as string[]) : null,
+        languages: Array.isArray(pr?.languages) ? (pr!.languages as string[]) : null,
+        social_link: (pr?.social_link as string | null) ?? null,
+        avatar_url: (pr?.avatar_url as string | null) ?? null,
+        album_storage_paths: album,
+        primary_active_intent_id: intent?.id ?? null,
+        primary_active_intent_text: intent?.natural_language_input?.trim()
+          ? intent.natural_language_input
+          : null,
+      };
+    });
+
+    return { ok: true, rows };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Forbidden";
+    return { ok: false, message: msg };
+  }
+}
+
+/** Resolves latest active intent per user and delegates to {@link adminForceSystemMatch}. */
+export async function adminForceSystemMatchBetweenUsers(params: {
+  userAId: string;
+  userBId: string;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  try {
+    await assertAdmin();
+    const { userAId, userBId } = params;
+    if (userAId === userBId) return { ok: false, message: "Pick two different members." };
+
+    let svc;
+    try {
+      svc = createServiceRoleClient();
+    } catch {
+      return { ok: false, message: "Missing SUPABASE_SERVICE_ROLE_KEY." };
+    }
+
+    const { data: irA, error: eA } = await svc
+      .from("intent_requests")
+      .select("id")
+      .eq("user_id", userAId)
+      .eq("status", "active")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: irB, error: eB } = await svc
+      .from("intent_requests")
+      .select("id")
+      .eq("user_id", userBId)
+      .eq("status", "active")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (eA || !irA?.id) {
+      return { ok: false, message: `Member A has no active intent (${eA?.message ?? "not found"}).` };
+    }
+    if (eB || !irB?.id) {
+      return { ok: false, message: `Member B has no active intent (${eB?.message ?? "not found"}).` };
+    }
+
+    return adminForceSystemMatch({ intentAId: irA.id as string, intentBId: irB.id as string });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Forbidden";
     return { ok: false, message: msg };

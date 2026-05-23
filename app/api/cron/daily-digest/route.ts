@@ -18,9 +18,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!process.env.RESEND_API_KEY?.trim() || !process.env.RESEND_FROM_EMAIL?.trim()) {
+  if (!process.env.RESEND_API_KEY?.trim()) {
     return NextResponse.json(
-      { ok: false, error: "RESEND_API_KEY and RESEND_FROM_EMAIL must be set to send digests." },
+      { ok: false, error: "RESEND_API_KEY must be set to send digests (standard Resend onboarding sender)." },
       { status: 503 },
     );
   }

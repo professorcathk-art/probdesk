@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     const subject = typeof body.subject === "string" ? body.subject.trim().slice(0, 200) : "";
     const message = typeof body.message === "string" ? body.message.trim() : "";
 
-    if (!EMAIL_RE.test(email) || subject.length < 2 || message.length < 20 || message.length > 8000) {
+    if (!EMAIL_RE.test(email) || subject.length < 2 || message.length < 10 || message.length > 8000) {
       return NextResponse.json({ ok: false, error: "validation" }, { status: 400 });
     }
 
