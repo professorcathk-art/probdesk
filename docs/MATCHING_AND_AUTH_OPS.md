@@ -34,7 +34,7 @@ Rows are written **server-side** with the Supabase **service role** into `pairin
 Phase 15 replaces heavyweight cron-side LLM matching with a **lightweight mailman**:
 
 - **Vercel Cron** calls **`GET /api/cron/daily-digest`** once per day (see `vercel.json`; default **`0 14 * * *`** UTC).
-- Auth: **`Authorization: Bearer CRON_SECRET`** plus **`RESEND_API_KEY`** / **`RESEND_FROM_EMAIL`**.
+- Auth: **`Authorization: Bearer CRON_SECRET`** plus **`RESEND_API_KEY`**. **`From`** is **`onboarding@resend.dev`** (Resend default; no dedicated domain).
 - The job selects **`ai_recommendations`** rows where **`email_sent = false`** and **`dismissed_at` is null**, groups them by the **intent owner’s email**, sends one Resend message per member (“You have N new AI recommendations…”), then marks those rows **`email_sent = true`**.
 - **`computeHybridSuggestions`** still runs **vector retrieval + LLM vibe scoring synchronously** and returns the top 3 immediately to the UI; those rows are **also inserted** into **`ai_recommendations`** for later digest if untouched.
 - **Background embedding matches**: profile saves **`await syncProfileEmbedding`** then **`generateBackgroundMatchesForProfileUser`** (service role + **`match_active_intents_for_supply`**) inserts **`background_supply`** rows when similarity ≥ 80 — **no LLM** on that path.

@@ -2,7 +2,7 @@
 
 Symptoms:
 
-- **`502 Bad Gateway`** from `POST https://your-domain/api/contact`: the handler ran but **Resend rejected the send** or a network/SDK error occurred. Check **Vercel → Project → Logs** for `[api/contact] email send failed` with `fault: "provider"` and the `detail` message (often domain/sender verification).
+- **`502 Bad Gateway`** from `POST https://your-domain/api/contact`: the handler ran but **Resend rejected the send** or a network/SDK error occurred. Check **Vercel → Project → Logs** for `[api/contact] email send failed` with `fault: "provider"` and the `detail` message (often API limits or onboarding-sender recipient rules).
 - **`503`** with JSON `error: "misconfigured"`: **`RESEND_API_KEY`** is missing in the deployment environment.
 
 ## Required Vercel environment variables
@@ -15,12 +15,9 @@ Symptoms:
 
 | Variable | Purpose |
 |----------|---------|
-| `RESEND_FROM_EMAIL` | Unused by current outbound mail helpers; **From** is fixed in **`lib/resend-simple-from.ts`**. |
 | `CONTACT_SUPPORT_EMAIL` | Where contact deliveries go (`professor.cat.hk@gmail.com` in code if unset). |
 
-**From:** `POST /api/contact` and **`GET /api/cron/daily-digest`** emails use **`onboarding@resend.dev`** plus **`RESEND_API_KEY`** (Resend onboarding sender — no verified domain).
-
-`onboarding@resend.dev` may restrict recipients on free tier; upgrade to a verified domain and switch the code’s **`RESEND_SIMPLE_FROM`** in `lib/resend-simple-from.ts` when ready.
+**From:** All Resend sends use **`onboarding@resend.dev`** (`RESEND_SIMPLE_FROM` — Resend default; only **`RESEND_API_KEY`** needed).
 
 See also **`.env.example`**.
 
