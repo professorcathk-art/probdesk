@@ -176,44 +176,6 @@ export function LoginPageContent() {
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 backdrop-blur-xl">
-          <div className="mb-6 w-full rounded-xl border border-white/10 bg-black/25 p-4">
-            {/*
-             * Two flex children only: checkbox + column. Do not use ui/Label here —
-             * it applies flex + gap between each text node (three unreadable columns on mobile).
-             */}
-            <div className="flex w-full items-start gap-3">
-              <Checkbox
-                id="login-privacy-consent"
-                checked={privacyConsent}
-                disabled={busy}
-                onCheckedChange={(v) => {
-                  const on = Boolean(v);
-                  setPrivacyConsent(on);
-                  if (on) setError(null);
-                }}
-                className="mt-1 shrink-0"
-              />
-              <div className="min-w-0 flex-1 space-y-2">
-                <label
-                  htmlFor="login-privacy-consent"
-                  className="block cursor-pointer text-sm font-normal leading-relaxed text-slate-300"
-                >
-                  {L.privacyConsentLead}{" "}
-                  <Link
-                    href="/privacy"
-                    className="mx-1 font-medium text-sky-400 underline-offset-4 hover:underline"
-                  >
-                    {L.privacyConsentLinkLabel}
-                  </Link>
-                  {L.privacyConsentTrail}
-                </label>
-                {!privacyConsent ? (
-                  <p className="text-xs leading-relaxed text-amber-200/90">{L.privacyConsentHint}</p>
-                ) : null}
-              </div>
-            </div>
-          </div>
-
           <Button
             type="button"
             variant="outline"
@@ -316,6 +278,46 @@ export function LoginPageContent() {
             </div>
           ) : null}
           {error ? <p className="mt-4 text-sm text-red-400">{error}</p> : null}
+
+          <div className="mt-6 w-full border-t border-white/10 pt-6">
+            <div className="w-full rounded-xl border border-white/10 bg-black/25 p-4">
+              {/*
+               * Two flex children only: checkbox + column. Do not use ui/Label here —
+               * it applies flex + gap between each text node (three unreadable columns on mobile).
+               */}
+              <div className="flex w-full items-start gap-3">
+                <Checkbox
+                  id="login-privacy-consent"
+                  checked={privacyConsent}
+                  disabled={busy}
+                  onCheckedChange={(v) => {
+                    const on = Boolean(v);
+                    setPrivacyConsent(on);
+                    if (on) setError(null);
+                  }}
+                  className="mt-1 shrink-0"
+                />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <label
+                    htmlFor="login-privacy-consent"
+                    className="block cursor-pointer text-sm font-normal leading-relaxed text-slate-300"
+                  >
+                    {L.privacyConsentLead}{" "}
+                    <Link
+                      href="/privacy"
+                      className="mx-1 font-medium text-sky-400 underline-offset-4 hover:underline"
+                    >
+                      {L.privacyConsentLinkLabel}
+                    </Link>
+                    {L.privacyConsentTrail}
+                  </label>
+                  {!privacyConsent ? (
+                    <p className="text-xs leading-relaxed text-amber-200/90">{L.privacyConsentHint}</p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <p className="text-center text-sm text-slate-500">
