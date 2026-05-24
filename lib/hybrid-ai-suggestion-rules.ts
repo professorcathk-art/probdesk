@@ -22,7 +22,7 @@ const LGBT_INCLUSIVE_HINT =
   /\b(gay|lesbian|bisexual|bi[-\s]?curious|\blgbtq?\b|\bqueer\b|homosexual|same[-\s]?sex(?:\s+couple)?|\bmlm\b|\bwlw\b|pansexual|asexual|\b(?:aromantic|aro)\b|同志|同性|男男|女女|拉拉|雙性戀)/i;
 
 const LIGHT_ROMANCE_CUES =
-  /\b(?:date|dating|married|wife|gf|boyfriend|husband|\blove\b|relationship\b|spouse|對象\b|愛情|恋愛|結婚|伴侶|伴侣|男友|女友)\b/i;
+  /(?:\b(?:date|dating|married|wife|gf|boyfriend|husband|love|relationship|spouse)\b|對象|愛情|爱情|恋愛|恋爱|結婚|结婚|伴侶|伴侣|男友|女友|長期關係|长期关系|戀愛)/i;
 
 const BUSINESS_FOCUS =
   /\b(co[-\s]?founder|fundraising|cofounder|angel investor|\bcto\b|\bceo\b|\bstartup\b|\bvc\b|\bseed round|\bsaas\b|融資|創業合伙人|天使投資|技術合伙人|商業合伙人|股權合伙)\b/i;
@@ -30,6 +30,24 @@ const BUSINESS_FOCUS =
 /** Hiring / paid collaboration / gigs — skips spouse-family default unless romance cues coexist. */
 const PROFESSIONAL_MATCHING_FOCUS =
   /\b(?:hire(?:d|s|ing)?|hiring\b|recruit(?:ment|ing)?|job\s+opening|full[-\s]time\b|part[-\s]time\b|intern(?:ship)?|\bfreelancer\b|\bfreelance\b|\bconsultant\b|contractor|\bagency\b|outsourc|subcontract|payroll|\binvoice\b|retainer|ugc\s+creator|content\s+creator|influencer|brand\s+collaboration|paid\s+gig|\$\s*\d+|港币|HKD|酬勞|稿費|創作者|\b承包商\b|\b徵才\b|\b招聘\b|\b招人\b|\b請人\b|\b外包\b|\b服務商\b|\b兼職\b|\b全職\b|测评|評測|試用\b)\b/i;
+
+/** TC/SC cues that the sender names a female partner (beyond English `\b...\b`). */
+function traditionalChineseFemalePartnerNamed(blob: string): boolean {
+  return (
+    /** e.g. 想認識一位 … 女生; 徵女友 … */
+    /(?:想認識|想认识|希望認識|希望认识|想找|想找位|徵(?:個)?女友|徵友).{0,120}?女生/.test(blob) ||
+    /** e.g. 30歲以下的女生、30 歲以下的女生 */
+    /\d{1,3}\s*歲(?:以下|以上)?\s*(?:的)?女生/.test(blob)
+  );
+}
+
+/** Mirror of {@link traditionalChineseFemalePartnerNamed} when the sender names a male partner. */
+function traditionalChineseMalePartnerNamed(blob: string): boolean {
+  return (
+    /(?:想認識|想认识|希望認識|希望认识|想找|想找位|徵(?:個)?男友|徵(?:個)?男朋友).{0,120}?男生/.test(blob) ||
+    /\d{1,3}\s*歲(?:以下|以上)?\s*(?:的)?男生/.test(blob)
+  );
+}
 
 function explicitFemalePartnerSeeks(blob: string): boolean {
   if (
@@ -42,7 +60,8 @@ function explicitFemalePartnerSeeks(blob: string): boolean {
     /\bgirlfriend\b|\bfiancee\b|\b(?:biological\s+)?mother\b(?:\s+to\s+)?|\bmotherhood\b|\bwoman\s+who\b|\bwomen\b(?:\s+who)?|\blady\b|\bwife\b(?:\s+material\b)?|\bwives\b|\bwomen\b(?!\s+(?:intech|finance|engineering|\bcto\b))|异性女|異性女友|異性(?:的)?女生|想找(?:个|個)?(?:女|女生|女友|女朋友|异性女)|找女生|女性朋友(?!男性)|女伴侶|女性伴侶|女性對象|\bstraight\s+(?:woman|lady|women)\s+seek|\bstraight\s+guy\b.*(?:seek|looking.*)\b\b(?:woman|lady|wife|women)\b/i.test(
       blob,
     ) ||
-    /老婆|太太(?!.(?:過世|身故))|女友|女朋友(?!(?:的)?男生)/i.test(blob)
+    /老婆|太太(?!.(?:過世|身故))|女友|女朋友(?!(?:的)?男生)/i.test(blob) ||
+    traditionalChineseFemalePartnerNamed(blob)
   );
 }
 
@@ -50,7 +69,8 @@ function explicitMalePartnerSeeks(blob: string): boolean {
   return (
     /\bboyfriend\b|\bfiance\b(?!\bfiancee\b)|\b(?:biological\s+)?father\b|\bfatherhood\b|\b(?:man|men)\s+(?:who|seek|looking(?:\s+for)?)|\bhusbands?\b|\bgay\s+partner\b(?!\sfemale)|男(?:性)?朋友(?!.(?:已婚女性))|異性(?:的)?(?:男|男生|男友)|想找(?:个|個)?(?:男|男生|男友|男朋友)|男士伴侣|男方|男性對象|\bstraight\s+guy\b.*(?:seek|want).*\bwife\b/i.test(
       blob,
-    )
+    ) ||
+    traditionalChineseMalePartnerNamed(blob)
   );
 }
 
@@ -71,7 +91,7 @@ function neutralFamilyOrLongTermPartnershipCue(blob: string): boolean {
   if (BUSINESS_FOCUS.test(blob) && !rom) return false;
 
   return (
-    /\b(long(?:[-\s])term\s+(?:relationship|partner|commitment))\b|\bpartner\b.*(?:(?:starting|start)\s+a\s+family|\bfamily\b(?:\s+plan(?:ning)?|\s+oriented))|(?:starting|start)\s+a\s+family\b|\b(?:want|wants)\s+(?:kids?|children|bab(?:y|ies))\b|\b(?:have|having)\s+children\b|組織家庭|穩定對象|長期對象|婚姻|對象\b.*家庭|想找(?:人生)?伴侶|終(?:身|生)伴侣|適婚|想(?:要)?(?:結婚)|生(?:小)?(?:孩|寶)/i.test(
+    /\b(long(?:[-\s])term\s+(?:relationship|partner|commitment))\b|\bpartner\b.*(?:(?:starting|start)\s+a\s+family|\bfamily\b(?:\s+plan(?:ning)?|\s+oriented))|(?:starting|start)\s+a\s+family\b|\b(?:want|wants)\s+(?:kids?|children|bab(?:y|ies))\b|\b(?:have|having)\s+children\b|組織家庭|穩定對象|長期對象|長期關係|长期关系|認真發展|认真发展|認真談(?:戀愛)?|认真谈(?:恋爱)?|婚姻|對象\b.*家庭|想找(?:人生)?伴侶|終(?:身|生)伴侣|適婚|想(?:要)?(?:結婚)|生(?:小)?(?:孩|寶)/i.test(
       blob,
     )
   );
