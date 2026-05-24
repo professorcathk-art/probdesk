@@ -106,6 +106,8 @@ export async function vibeCheckWith4o(params: {
   /** Optional gender markers from profiles (helps romance-style complementary checks). */
   senderGender?: string | null;
   candidateGender?: string | null;
+  /** Optional slug from profiles.attraction_orientation — use only when intent is romantic/personal; ignore for recruiting/service workflows. */
+  senderAttractionOrientationSlug?: string | null;
 }): Promise<VibeResult> {
   const reqLine = (label: string, text: string | null | undefined) => {
     const t = text?.trim();
@@ -123,6 +125,12 @@ export async function vibeCheckWith4o(params: {
   const cg = params.candidateGender?.trim();
   if (sg) genderParts.push(`Sender profile gender field (if stated): ${sg}`);
   if (cg) genderParts.push(`Candidate profile gender field (if stated): ${cg}`);
+  const so = params.senderAttractionOrientationSlug?.trim();
+  if (so) {
+    genderParts.push(
+      `Sender optional romantic-orientation slug (members only; may be omitted): ${so} — consider only alongside dating/romance/personal-relationship intents; irrelevant for hiring, services, cofounders, or general networking unless the wording is clearly romantic.`,
+    );
+  }
 
   const model = process.env.AIML_VIBE_MODEL ?? "gpt-4o";
   const res = await fetch(`${base()}/chat/completions`, {
@@ -154,7 +162,8 @@ export async function vibeCheckWith4o(params: {
             "CRITICAL RULE: Penalize **parallel demands** only when both sides want the **same kind of outcome from the peer** without either supplying what the other needs (e.g. both only seek a technical co-founder but neither offers shipped product / equity / capital). " +
             "ROMANCE / DATING: **Seeking a boyfriend** vs **seeking a girlfriend** is often **complementary**, not parallel — e.g. sender listing seeks a boyfriend while candidate (male profile marker) seeks a girlfriend is a typical complementary pairing; do **not** call that a gender mismatch or apply the parallel-demands penalty. Reserve \"gender mismatch\" for cases where stated partner-type seeks plus profile gender markers clearly contradict (e.g. both explicitly seek the same partner gender that neither satisfies). If unsure, do not claim mismatch. " +
             "FRIENDSHIP / PLATONIC / GENERAL INTROS: If the sender intent **clearly specifies the gender of the person they want to meet** (e.g. \"friends with a girl/woman/lady\", \"找女生／女性朋友\", analogous male-seeking wording), compare to **Candidate profile gender marker** when present. If candidate gender **plainly contradicts** that stated target (e.g. seeks women; candidate marker is male), assign a **low score (cap at 25)** and briefly say why. This rule **overrides** the dating complementary logic above — do **not** mark that as complementary. If candidate gender is missing, do not infer; score on other axes but mention uncertainty about gender alignment. " +
-            "High scores require complementary posture: skills/resources vs stated needs (business/co-founders), requirements vs capabilities (hiring), stated preferences and constraints vs plausible fit (romance — use gender markers only when romance is clearly implied in the text; do not invent orientation). " +
+            "SPOUSE / FAMILY INTENT: Life-partner wording (marriage, children,組織家庭, long‑term parenting) plus **matching** profile gender markers (both man/both woman) normally signals a **hetero-shaped** mismatch vs stated opposite‑sex wording — score such pairings conservatively (**≤20**) unless the text clearly welcomes LGBTQ+ paths. Vennode also applies deterministic post‑filters downstream. " +
+            "**WORK / HIRING / SERVICES / BUSINESS:** When the sender request is mainly about recruiting, gigs, freelancers, agencies, mentorship, tutoring, internships, cofounders, investors, collaborators, introductions, hobbies, friendships **without** a stated romantic partner gender, or similar non-romantic goals, treat profile gender markers and romantic-orientation slug as **orthogonal** guidance — score fit on complementary skills, supply/demand overlap, geography, expectations, etc.; **do not** downgrade solely for gender pairing or opposite-sex default logic unless the wording is plainly romantic or partner-gender constrained. " +
             "Input data may include: Sender intent & must-haves; Candidate intent/listing (if any); Candidate superpower/bio/profile snippet; geography as a secondary constraint. " +
             "Respond strictly as JSON with integer `score` (0–100) and a single-sentence `reason` explaining complementary fit or mismatch. Be conservative.",
         },

@@ -9,6 +9,12 @@ import { formatProfileMatchingSnippet } from "@/lib/profile-matching-snippet";
 import { logPairingScoreEvent } from "@/lib/pairing-score-log";
 import { embeddingVectorForRpc } from "@/lib/vector-literal";
 import { recordSyncTop3RecommendationsWithClient } from "@/lib/mobile/record-sync-top3-recommendations";
+import {
+  AI_SUGGESTION_MIN_MATCH_SCORE,
+  applyPartnershipSemanticsScoreCap,
+  rankSupplyPoolForPartnerSemantics,
+  type MatchingSenderSnapshot,
+} from "@/lib/hybrid-ai-suggestion-rules";
 
 /** Same shape as `SuggestionCard` in actions/intents (kept local to avoid coupling to `"use server"` module). */
 export type MobileHybridSuggestionCard = {
@@ -30,7 +36,7 @@ export type MobileHybridSuggestionCard = {
   peer_languages: string[] | null;
 };
 
-const HYBRID_DISCOVERY_LOG_PIPELINE = "077-phase22-supply-only-no-cross-demand";
+const HYBRID_DISCOVERY_LOG_PIPELINE = "079-profile-attraction-orientation-explore-toggle";
 
 export async function runHybridSuggestionsForMobile(
   supabase: SupabaseClient,
@@ -203,10 +209,24 @@ export async function runHybridSuggestionsForMobile(
     return { ok: false, message: rpcError.message };
   }
 
-  const POOL_SIZE = 24;
-  const poolRows = dedupeBestProfileByUser(supplyRows)
-    .filter((r) => !blocking.has(r.user_id))
-    .slice(0, POOL_SIZE);
+  const { data: senderProf } = await supabase
+    .from("profiles")
+    .select("bio, industry, skills_tags, languages, superpower, gender, attraction_orientation")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const senderForMatching: MatchingSenderSnapshot = {
+    gender: senderProf?.gender ?? null,
+    attractionOrientation: senderProf?.attraction_orientation ?? null,
+  };
+
+  const POOL_SIZE = 34;
+  const poolRows = rankSupplyPoolForPartnerSemantics(
+    dedupeBestProfileByUser(supplyRows).filter((r) => !blocking.has(r.user_id)),
+    senderForMatching,
+    intent.natural_language_input,
+    intent.must_haves ?? null,
+  ).slice(0, POOL_SIZE);
 
   if (poolRows.length === 0) {
     let eligibility: unknown = null;
@@ -253,12 +273,6 @@ export async function runHybridSuggestionsForMobile(
       : { data: [] as { id: string; must_haves: string | null }[] };
   const mustByIntentId = new Map((poolMustRows ?? []).map((r) => [r.id as string, r.must_haves as string | null]));
 
-  const { data: senderProf } = await supabase
-    .from("profiles")
-    .select("bio, industry, skills_tags, languages, superpower, gender")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
   const PROFILE_ONLY_STUB =
     "(No posted Explore listing on file — complementary fit is from this member's saved profile / supply embedding vs your request; a listing is optional.)";
 
@@ -296,6 +310,14 @@ export async function runHybridSuggestionsForMobile(
           candidateLocation: row.location,
           senderGender: senderProf?.gender ?? null,
           candidateGender: row.gender ?? null,
+          senderAttractionOrientationSlug: senderProf?.attraction_orientation ?? null,
+        });
+        const capped = applyPartnershipSemanticsScoreCap({
+          sender: senderForMatching,
+          candidateGender: row.gender ?? null,
+          naturalLanguageIntent: intent.natural_language_input,
+          mustHaves: intent.must_haves,
+          score: vibe.match_score,
         });
         return {
           card: {
@@ -313,7 +335,7 @@ export async function runHybridSuggestionsForMobile(
             peer_age_group: row.age_group,
             peer_skills_tags: row.skills_tags,
             peer_languages: row.languages,
-            match_score: vibe.match_score,
+            match_score: capped.score,
             compatibility_reason: vibe.compatibility_reason,
           },
           logMeta: {
@@ -326,6 +348,14 @@ export async function runHybridSuggestionsForMobile(
           },
         };
       } catch {
+        const fb = Math.round((row.similarity ?? 0) * 100);
+        const capped = applyPartnershipSemanticsScoreCap({
+          sender: senderForMatching,
+          candidateGender: row.gender ?? null,
+          naturalLanguageIntent: intent.natural_language_input,
+          mustHaves: intent.must_haves,
+          score: fb,
+        });
         return {
           card: {
             intent_id: row.linked_intent_id,
@@ -342,7 +372,7 @@ export async function runHybridSuggestionsForMobile(
             peer_age_group: row.age_group,
             peer_skills_tags: row.skills_tags,
             peer_languages: row.languages,
-            match_score: Math.round((row.similarity ?? 0) * 100),
+            match_score: capped.score,
             compatibility_reason:
               "Demand↔supply retrieval — confirm fit manually while AI scoring is unavailable.",
           },
@@ -361,9 +391,15 @@ export async function runHybridSuggestionsForMobile(
 
   scored.sort((a, b) => b.card.match_score - a.card.match_score);
 
+  const qualifying = scored.filter((s) => s.card.match_score >= AI_SUGGESTION_MIN_MATCH_SCORE);
+  const suggestionEntriesForLog = qualifying.slice(0, 3);
+  const selectedOwnerIdsForLog = new Set(suggestionEntriesForLog.map((s) => s.card.owner_user_id));
+
   await Promise.all(
-    scored.map(({ card, logMeta }, index) =>
-      logPairingScoreEvent({
+    scored.map(({ card, logMeta }, index) => {
+      const belowFloor = card.match_score < AI_SUGGESTION_MIN_MATCH_SCORE;
+      const selectedTop = selectedOwnerIdsForLog.has(card.owner_user_id);
+      return logPairingScoreEvent({
         source: "hybrid_suggestion",
         actor_user_id: user.id,
         anchor_intent_id: intentId,
@@ -372,14 +408,19 @@ export async function runHybridSuggestionsForMobile(
         similarity: logMeta.similarity,
         rpc_threshold: logMeta.rpc_threshold,
         rank_after_sort: index + 1,
-        selected_top: index < 3,
+        selected_top: selectedTop,
         match_score: card.match_score,
         compatibility_reason: card.compatibility_reason,
-        excluded_reason: index >= 3 ? "not_in_top_3_after_sort" : null,
+        excluded_reason: belowFloor
+          ? `below_ai_suggestion_min_${AI_SUGGESTION_MIN_MATCH_SCORE}`
+          : selectedTop
+            ? null
+            : "not_in_top_3_above_min_floor",
         meta: {
           pipeline: HYBRID_DISCOVERY_LOG_PIPELINE,
           pool_size: poolRows.length,
           match_tier: logMeta.tier,
+          ai_suggestion_min_match_score: AI_SUGGESTION_MIN_MATCH_SCORE,
           require_location_match: logMeta.require_location_match,
           discovery_source: logMeta.discovery_source,
           retrieval_model: retrievalModel,
@@ -387,11 +428,11 @@ export async function runHybridSuggestionsForMobile(
           profile_match_tier: appliedTier,
           mobile_api: true,
         },
-      }),
-    ),
+      });
+    }),
   );
 
-  const suggestions: MobileHybridSuggestionCard[] = scored.slice(0, 3).map(({ card }) => card);
+  const suggestions: MobileHybridSuggestionCard[] = qualifying.slice(0, 3).map(({ card }) => card);
 
   try {
     await recordSyncTop3RecommendationsWithClient(

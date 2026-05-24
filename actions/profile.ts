@@ -10,6 +10,7 @@ import { syncProfileEmbedding } from "@/lib/sync-profile-embedding";
 import { generateBackgroundMatchesForProfileUser } from "@/actions/ai-recommendations";
 import { syncOnboardingCompleteFromProfile } from "@/lib/sync-onboarding-complete-from-profile";
 import { parseProfileAgeGroup } from "@/lib/profile-age-groups";
+import { parseProfileAttractionOrientation } from "@/lib/profile-attraction-orientation";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { withAvatarCacheBust } from "@/lib/avatar-cache-bust";
 
@@ -386,6 +387,8 @@ export type ProfileIdentity = {
   superpower: string | null;
   gender: string | null;
   age_group: string | null;
+  /** Romantic / attraction orientation slug from DB — optional profile field */
+  attraction_orientation: string | null;
   preferred_contact_channel: string | null;
   preferred_contact_detail: string | null;
   skills_tags: string[];
@@ -426,7 +429,7 @@ export async function getMyProfileIdentity(): Promise<ProfileIdentity | { error:
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "display_name, bio, location, industry, superpower, gender, age_group, preferred_contact_channel, preferred_contact_detail, skills_tags, languages, social_link, album_storage_paths",
+      "display_name, bio, location, industry, superpower, gender, age_group, attraction_orientation, preferred_contact_channel, preferred_contact_detail, skills_tags, languages, social_link, album_storage_paths",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -440,6 +443,7 @@ export async function getMyProfileIdentity(): Promise<ProfileIdentity | { error:
     superpower: data?.superpower ?? null,
     gender: data?.gender ?? null,
     age_group: data?.age_group ?? null,
+    attraction_orientation: (data?.attraction_orientation as string | null | undefined) ?? null,
     preferred_contact_channel: data?.preferred_contact_channel ?? null,
     preferred_contact_detail: data?.preferred_contact_detail ?? null,
     skills_tags: Array.isArray(data?.skills_tags) ? (data!.skills_tags as string[]) : [],
@@ -457,6 +461,7 @@ export async function updateMyProfileIdentity(fields: {
   superpower: string;
   gender: string;
   age_group?: string;
+  attraction_orientation?: string;
   preferred_contact_channel?: string;
   preferred_contact_detail?: string;
   skills_tags: string[];
@@ -512,6 +517,12 @@ export async function updateMyProfileIdentity(fields: {
     return { ok: false as const, message: "Invalid age group." };
   }
 
+  const aoRaw = fields.attraction_orientation?.trim() ?? "";
+  const attraction_orientation = aoRaw ? parseProfileAttractionOrientation(aoRaw) : null;
+  if (aoRaw.length > 0 && !attraction_orientation) {
+    return { ok: false as const, message: "Invalid romantic orientation selection." };
+  }
+
   const superTrim = fields.superpower?.trim() ?? "";
 
   const socialParsed = parseSocialLink(fields.social_link ?? "");
@@ -531,6 +542,7 @@ export async function updateMyProfileIdentity(fields: {
         superpower: superTrim || null,
         gender: genderResolved,
         age_group: ageResolved,
+        attraction_orientation,
         preferred_contact_channel: hasPair ? chRaw : null,
         preferred_contact_detail: hasPair ? detRaw : null,
         skills_tags,
@@ -555,6 +567,7 @@ export async function updateMyProfileIdentity(fields: {
     superpower: superTrim || null,
     skills_tags,
     languages,
+    attraction_orientation_slug: attraction_orientation,
   });
   if (!supplyEmb.ok) {
     console.warn("[updateMyProfileIdentity] supply_embedding sync did not persist", user.id);

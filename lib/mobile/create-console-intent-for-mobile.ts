@@ -10,6 +10,7 @@ import { syncProfileEmbedding } from "@/lib/sync-profile-embedding";
 import { vectorLiteral } from "@/lib/vector-literal";
 import { countActiveIntentsForUser } from "@/lib/mobile/count-active-intents";
 import { normalizeMustHaves } from "@/lib/mobile/normalize-must-haves";
+import { parseProfileAttractionOrientation } from "@/lib/profile-attraction-orientation";
 
 export type CreateConsoleIntentMobileResult =
   | { ok: true; intentId: string }
@@ -119,7 +120,7 @@ export async function createConsoleIntentForMobile(
 
   const { data: profForSupply } = await supabase
     .from("profiles")
-    .select("bio, industry, superpower, skills_tags, languages")
+    .select("bio, industry, superpower, skills_tags, languages, attraction_orientation")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -129,6 +130,7 @@ export async function createConsoleIntentForMobile(
     superpower: profForSupply?.superpower ?? null,
     skills_tags: Array.isArray(profForSupply?.skills_tags) ? profForSupply.skills_tags : [],
     languages: Array.isArray(profForSupply?.languages) ? profForSupply.languages : [],
+    attraction_orientation_slug: parseProfileAttractionOrientation(profForSupply?.attraction_orientation),
   });
   if (!supplyEmb.ok) {
     console.warn("[createConsoleIntentForMobile] supply_embedding sync did not persist", user.id);

@@ -21,6 +21,13 @@ import { syncOnboardingCompleteFromProfile } from "@/lib/sync-onboarding-complet
 import { syncProfileEmbedding } from "@/lib/sync-profile-embedding";
 import { asEmbeddingContextRecord, buildDemandEmbeddingText } from "@/lib/demand-supply-embedding";
 import { recordImmediateHybridRecommendations } from "@/actions/ai-recommendations";
+import {
+  AI_SUGGESTION_MIN_MATCH_SCORE,
+  applyPartnershipSemanticsScoreCap,
+  rankSupplyPoolForPartnerSemantics,
+  type MatchingSenderSnapshot,
+} from "@/lib/hybrid-ai-suggestion-rules";
+import { parseProfileAttractionOrientation } from "@/lib/profile-attraction-orientation";
 
 function normalizeMustHaves(raw: string | null | undefined): string | null {
   const t = raw?.trim() ?? "";
@@ -296,12 +303,19 @@ export async function completeOnboarding(params: {
   revalidatePath("/square");
   revalidatePath("/");
 
+  const { data: attractionRow } = await supabase
+    .from("profiles")
+    .select("attraction_orientation")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
   const supplyEmb = await syncProfileEmbedding(supabase, user.id, {
     bio: params.profile.bio ?? null,
     industry: params.profile.industry ?? null,
     superpower: superpowerTrim || null,
     skills_tags: skillTags,
     languages: langTags,
+    attraction_orientation_slug: parseProfileAttractionOrientation(attractionRow?.attraction_orientation),
   });
   if (!supplyEmb.ok) {
     console.warn("[completeOnboarding] supply_embedding sync did not persist", user.id);
@@ -444,8 +458,8 @@ export type SuggestionCard = {
   peer_languages: string[] | null;
 };
 
-/** Bumped when hybrid discovery logging shape changes (admin pairs this with migrations). */
-const HYBRID_DISCOVERY_LOG_PIPELINE = "077-phase22-supply-only-no-cross-demand";
+/** Bumped when hybrid discovery logging / guardrail inputs change materially. */
+const HYBRID_DISCOVERY_LOG_PIPELINE = "079-profile-attraction-orientation-explore-toggle";
 
 export async function computeHybridSuggestions(intentId: string): Promise<
   | { ok: true; suggestions: SuggestionCard[] }
@@ -627,10 +641,24 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     return { ok: false, message: rpcError.message };
   }
 
-  const POOL_SIZE = 24;
-  const poolRows = dedupeBestProfileByUser(supplyRows)
-    .filter((r) => !blocking.has(r.user_id))
-    .slice(0, POOL_SIZE);
+  const { data: senderProf } = await supabase
+    .from("profiles")
+    .select("bio, industry, skills_tags, languages, superpower, gender, attraction_orientation")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const senderForMatching: MatchingSenderSnapshot = {
+    gender: senderProf?.gender ?? null,
+    attractionOrientation: senderProf?.attraction_orientation ?? null,
+  };
+
+  const POOL_SIZE = 34;
+  const poolRows = rankSupplyPoolForPartnerSemantics(
+    dedupeBestProfileByUser(supplyRows).filter((r) => !blocking.has(r.user_id)),
+    senderForMatching,
+    intent.natural_language_input,
+    intent.must_haves ?? null,
+  ).slice(0, POOL_SIZE);
 
   if (poolRows.length === 0) {
     let eligibility: unknown = null;
@@ -676,12 +704,6 @@ export async function computeHybridSuggestions(intentId: string): Promise<
       : { data: [] as { id: string; must_haves: string | null }[] };
   const mustByIntentId = new Map((poolMustRows ?? []).map((r) => [r.id as string, r.must_haves as string | null]));
 
-  const { data: senderProf } = await supabase
-    .from("profiles")
-    .select("bio, industry, skills_tags, languages, superpower, gender")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
   const PROFILE_ONLY_STUB =
     "(No posted Explore listing on file — complementary fit is from this member's saved profile / supply embedding vs your request; a listing is optional.)";
 
@@ -719,6 +741,14 @@ export async function computeHybridSuggestions(intentId: string): Promise<
           candidateLocation: row.location,
           senderGender: senderProf?.gender ?? null,
           candidateGender: row.gender ?? null,
+          senderAttractionOrientationSlug: senderProf?.attraction_orientation ?? null,
+        });
+        const capped = applyPartnershipSemanticsScoreCap({
+          sender: senderForMatching,
+          candidateGender: row.gender ?? null,
+          naturalLanguageIntent: intent.natural_language_input,
+          mustHaves: intent.must_haves,
+          score: vibe.match_score,
         });
         return {
           card: {
@@ -736,7 +766,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
             peer_age_group: row.age_group,
             peer_skills_tags: row.skills_tags,
             peer_languages: row.languages,
-            match_score: vibe.match_score,
+            match_score: capped.score,
             compatibility_reason: vibe.compatibility_reason,
           },
           logMeta: {
@@ -749,6 +779,14 @@ export async function computeHybridSuggestions(intentId: string): Promise<
           },
         };
       } catch {
+        const fb = Math.round((row.similarity ?? 0) * 100);
+        const capped = applyPartnershipSemanticsScoreCap({
+          sender: senderForMatching,
+          candidateGender: row.gender ?? null,
+          naturalLanguageIntent: intent.natural_language_input,
+          mustHaves: intent.must_haves,
+          score: fb,
+        });
         return {
           card: {
             intent_id: row.linked_intent_id,
@@ -765,7 +803,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
             peer_age_group: row.age_group,
             peer_skills_tags: row.skills_tags,
             peer_languages: row.languages,
-            match_score: Math.round((row.similarity ?? 0) * 100),
+            match_score: capped.score,
             compatibility_reason:
               "Demand↔supply retrieval — confirm fit manually while AI scoring is unavailable.",
           },
@@ -784,9 +822,15 @@ export async function computeHybridSuggestions(intentId: string): Promise<
 
   scored.sort((a, b) => b.card.match_score - a.card.match_score);
 
+  const qualifying = scored.filter((s) => s.card.match_score >= AI_SUGGESTION_MIN_MATCH_SCORE);
+  const suggestionEntriesForLog = qualifying.slice(0, 3);
+  const selectedOwnerIdsForLog = new Set(suggestionEntriesForLog.map((s) => s.card.owner_user_id));
+
   await Promise.all(
-    scored.map(({ card, logMeta }, index) =>
-      logPairingScoreEvent({
+    scored.map(({ card, logMeta }, index) => {
+      const belowFloor = card.match_score < AI_SUGGESTION_MIN_MATCH_SCORE;
+      const selectedTop = selectedOwnerIdsForLog.has(card.owner_user_id);
+      return logPairingScoreEvent({
         source: "hybrid_suggestion",
         actor_user_id: user.id,
         anchor_intent_id: intentId,
@@ -795,25 +839,30 @@ export async function computeHybridSuggestions(intentId: string): Promise<
         similarity: logMeta.similarity,
         rpc_threshold: logMeta.rpc_threshold,
         rank_after_sort: index + 1,
-        selected_top: index < 3,
+        selected_top: selectedTop,
         match_score: card.match_score,
         compatibility_reason: card.compatibility_reason,
-        excluded_reason: index >= 3 ? "not_in_top_3_after_sort" : null,
+        excluded_reason: belowFloor
+          ? `below_ai_suggestion_min_${AI_SUGGESTION_MIN_MATCH_SCORE}`
+          : selectedTop
+            ? null
+            : "not_in_top_3_above_min_floor",
         meta: {
           pipeline: HYBRID_DISCOVERY_LOG_PIPELINE,
           pool_size: poolRows.length,
           match_tier: logMeta.tier,
+          ai_suggestion_min_match_score: AI_SUGGESTION_MIN_MATCH_SCORE,
           require_location_match: logMeta.require_location_match,
           discovery_source: logMeta.discovery_source,
           retrieval_model: retrievalModel,
           intent_match_tier: null,
           profile_match_tier: appliedTier,
         },
-      }),
-    ),
+      });
+    }),
   );
 
-  const suggestions: SuggestionCard[] = scored.slice(0, 3).map(({ card }) => card);
+  const suggestions: SuggestionCard[] = qualifying.slice(0, 3).map(({ card }) => card);
 
   try {
     await recordImmediateHybridRecommendations(
@@ -938,7 +987,7 @@ export async function createConsoleIntent(
 
   const { data: profForSupply } = await supabase
     .from("profiles")
-    .select("bio, industry, superpower, skills_tags, languages")
+    .select("bio, industry, superpower, skills_tags, languages, attraction_orientation")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -948,6 +997,7 @@ export async function createConsoleIntent(
     superpower: profForSupply?.superpower ?? null,
     skills_tags: Array.isArray(profForSupply?.skills_tags) ? profForSupply.skills_tags : [],
     languages: Array.isArray(profForSupply?.languages) ? profForSupply.languages : [],
+    attraction_orientation_slug: parseProfileAttractionOrientation(profForSupply?.attraction_orientation),
   });
   if (!supplyEmb.ok) {
     console.warn("[createConsoleIntent] supply_embedding sync did not persist", user.id);
@@ -1040,7 +1090,7 @@ export async function updateConsoleIntent(
 
   const { data: profForSupply } = await supabase
     .from("profiles")
-    .select("bio, industry, superpower, skills_tags, languages")
+    .select("bio, industry, superpower, skills_tags, languages, attraction_orientation")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -1050,6 +1100,7 @@ export async function updateConsoleIntent(
     superpower: profForSupply?.superpower ?? null,
     skills_tags: Array.isArray(profForSupply?.skills_tags) ? profForSupply.skills_tags : [],
     languages: Array.isArray(profForSupply?.languages) ? profForSupply.languages : [],
+    attraction_orientation_slug: parseProfileAttractionOrientation(profForSupply?.attraction_orientation),
   });
   if (!supplyEmb.ok) {
     console.warn("[updateConsoleIntent] supply_embedding sync did not persist", user.id);

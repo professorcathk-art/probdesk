@@ -5,6 +5,9 @@
  * Phase 24 — dynamic Goal / Profile Context prefixes (no fixed category enum).
  */
 
+import type { ProfileAttractionOrientationSlug } from "@/lib/profile-attraction-orientation";
+import { attractionOrientationEmbeddingNote } from "@/lib/profile-attraction-orientation";
+
 const MAX_GOAL_LANE_TOKENS = 32;
 const MAX_GOAL_FRAGMENT_CHARS = 96;
 const MAX_PROFILE_CONTEXT_TOKENS = 20;
@@ -191,6 +194,8 @@ export function buildSupplyEmbeddingText(p: {
   skills_tags?: string[];
   /** Optional explicit role separate from Strengths — forward-compatible when persisted */
   role?: string | null;
+  /** Parsed `profiles.attraction_orientation` slug; omitted or null skips */
+  attraction_orientation_slug?: ProfileAttractionOrientationSlug | null;
 }): string {
   const contextPrefix = buildProfileContextPrefix({
     industry: p.industry,
@@ -207,5 +212,11 @@ export function buildSupplyEmbeddingText(p: {
   const tags = (p.skills_tags ?? []).map((s) => String(s).trim()).filter(Boolean);
   const tagStr = tags.length > 0 ? tags.join(", ") : "(none stated)";
 
-  return `${contextPrefix} Bio: ${bioContent}. Strengths: ${strengthContent}. Spoken languages: ${langStr}. Keywords/interests: ${tagStr}.`;
+  let body = `${contextPrefix} Bio: ${bioContent}. Strengths: ${strengthContent}. Spoken languages: ${langStr}. Keywords/interests: ${tagStr}.`;
+  const orientNote = attractionOrientationEmbeddingNote(p.attraction_orientation_slug ?? null);
+  if (orientNote) {
+    body += ` Romantic attraction (member optional field): ${orientNote}`;
+  }
+
+  return body;
 }

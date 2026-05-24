@@ -11,6 +11,7 @@ import { isAdminEmail } from "@/lib/admin-emails";
 import { logPairingScoreEvent } from "@/lib/pairing-score-log";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { getSiteOrigin } from "@/lib/site-url";
+import { parseProfileAttractionOrientation } from "@/lib/profile-attraction-orientation";
 import {
   notifyNewConnectionRequestEmailAsync,
   notifyOutboundSenderConnectionAcceptedAsync,
@@ -273,7 +274,7 @@ export async function initiateConnection(params: {
   const { data: senderProfile } = await supabase
     .from("profiles")
     .select(
-      "display_name, industry, location, bio, superpower, skills_tags, languages, gender, age_group",
+      "display_name, industry, location, bio, superpower, skills_tags, languages, gender, age_group, attraction_orientation",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -341,6 +342,7 @@ export async function initiateConnection(params: {
         candidateLocation: receiverIntent?.location_filter ?? receiverProfile?.location ?? null,
         senderGender: senderProfile?.gender ?? null,
         candidateGender: receiverProfile?.gender ?? null,
+        senderAttractionOrientationSlug: parseProfileAttractionOrientation(senderProfile?.attraction_orientation) ?? undefined,
       });
       match_score = vibe.match_score;
       compatibility_reason = vibe.compatibility_reason;

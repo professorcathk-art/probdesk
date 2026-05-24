@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { embedTextSmall } from "@/lib/aiml";
 import { buildSupplyEmbeddingText } from "@/lib/demand-supply-embedding";
+import type { ProfileAttractionOrientationSlug } from "@/lib/profile-attraction-orientation";
 import { vectorLiteral } from "@/lib/vector-literal";
 
 export type ProfileSupplyEmbeddingSource = {
@@ -11,6 +12,8 @@ export type ProfileSupplyEmbeddingSource = {
   skills_tags?: string[] | null;
   /** Optional headline / role for supply vector prefix (Phase 24); no demand / intent text here */
   role?: string | null;
+  /** Parsed DB slug — only folded into embedding when member opted in */
+  attraction_orientation_slug?: ProfileAttractionOrientationSlug | null;
 };
 
 /** Keeps `profiles.supply_embedding` (and legacy `embedding`) aligned — profile fields only (Phase 22). */
@@ -29,6 +32,7 @@ export async function syncProfileEmbedding(
       languages,
       skills_tags,
       role: source.role ?? null,
+      attraction_orientation_slug: source.attraction_orientation_slug ?? null,
     });
     const vec = await embedTextSmall(text);
     const lit = vectorLiteral(vec);

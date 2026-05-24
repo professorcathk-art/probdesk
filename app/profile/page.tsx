@@ -40,6 +40,7 @@ export default async function ProfilePage({
           superpower: null,
           gender: null,
           age_group: null,
+          attraction_orientation: null,
           preferred_contact_channel: null,
           preferred_contact_detail: null,
           skills_tags: [],

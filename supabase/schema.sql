@@ -57,6 +57,25 @@ alter table public.profiles
 
 alter table public.profiles add column if not exists age_group text;
 
+alter table public.profiles add column if not exists attraction_orientation text;
+alter table public.profiles drop constraint if exists profiles_attraction_orientation_chk;
+alter table public.profiles
+  add constraint profiles_attraction_orientation_chk check (
+    attraction_orientation is null
+    or attraction_orientation in (
+      'heterosexual',
+      'gay_man',
+      'lesbian',
+      'bisexual',
+      'pansexual',
+      'asexual',
+      'queer',
+      'questioning',
+      'other',
+      'prefer_not_say'
+    )
+  );
+
 create table if not exists public.intent_requests (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid not null references public.users (id) on delete cascade,

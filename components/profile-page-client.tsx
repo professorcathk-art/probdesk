@@ -26,6 +26,7 @@ import {
 import { PROFILE_AGE_GROUP_VALUES } from "@/lib/profile-age-groups";
 import { displayProfileAgeGroup } from "@/lib/display-age-group";
 import { displayGenderLabel } from "@/lib/display-gender";
+import { PROFILE_ATTRACTION_ORIENTATION_SLUGS } from "@/lib/profile-attraction-orientation";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -115,6 +116,7 @@ export function ProfilePageClient({
   const [pfSuper, setPfSuper] = useState(profileIdentity.superpower ?? "");
   const [pfGender, setPfGender] = useState(profileIdentity.gender ?? "");
   const [pfAgeGroup, setPfAgeGroup] = useState(profileIdentity.age_group ?? "");
+  const [pfAttraction, setPfAttraction] = useState(profileIdentity.attraction_orientation ?? "");
   const [pfContactCh, setPfContactCh] = useState(profileIdentity.preferred_contact_channel ?? "");
   const [pfContactDet, setPfContactDet] = useState(profileIdentity.preferred_contact_detail ?? "");
   const [pfSkills, setPfSkills] = useState<string[]>(profileIdentity.skills_tags ?? []);
@@ -133,6 +135,7 @@ export function ProfilePageClient({
     setPfSuper(profileIdentity.superpower ?? "");
     setPfGender(profileIdentity.gender ?? "");
     setPfAgeGroup(profileIdentity.age_group ?? "");
+    setPfAttraction(profileIdentity.attraction_orientation ?? "");
     setPfContactCh(profileIdentity.preferred_contact_channel ?? "");
     setPfContactDet(profileIdentity.preferred_contact_detail ?? "");
     setPfSkills(profileIdentity.skills_tags ?? []);
@@ -146,6 +149,7 @@ export function ProfilePageClient({
     profileIdentity.superpower,
     profileIdentity.gender,
     profileIdentity.age_group,
+    profileIdentity.attraction_orientation,
     profileIdentity.preferred_contact_channel,
     profileIdentity.preferred_contact_detail,
     profileIdentity.skills_tags,
@@ -168,6 +172,7 @@ export function ProfilePageClient({
       superpower: pfSuper,
       gender: pfGender,
       age_group: pfAgeGroup,
+      attraction_orientation: pfAttraction,
       preferred_contact_channel: pfContactCh,
       preferred_contact_detail: pfContactDet,
       skills_tags,
@@ -419,6 +424,31 @@ export function ProfilePageClient({
                 {PROFILE_GENDER_VALUES.map((v) => (
                   <option key={v} value={v}>
                     {genderLabel(t, v)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pf-orientation" className="text-slate-300">
+                <span className="inline-flex flex-wrap items-baseline gap-x-1">
+                  <span>{p.attractionOrientationLabel}</span>
+                  <span className="font-normal text-slate-500">({p.optionalMark})</span>
+                </span>
+              </Label>
+              <p className="text-xs leading-relaxed text-slate-500">{p.attractionOrientationHelp}</p>
+              <select
+                id="pf-orientation"
+                value={pfAttraction}
+                onChange={(e) => setPfAttraction(e.target.value)}
+                className={cn(
+                  "h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-slate-50 outline-none focus-visible:border-sky-400/40 focus-visible:ring-2 focus-visible:ring-sky-500/30",
+                )}
+              >
+                <option value="">{p.attractionOrientationUnset}</option>
+                {PROFILE_ATTRACTION_ORIENTATION_SLUGS.map((slug) => (
+                  <option key={slug} value={slug}>
+                    {p.attractionOrientations[slug]}
                   </option>
                 ))}
               </select>

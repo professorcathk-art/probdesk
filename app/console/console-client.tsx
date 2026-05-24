@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Users } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { IntentRow, SuggestionCard } from "@/actions/intents";
@@ -129,6 +129,10 @@ export function ConsoleClient({
   const intentExpansionKey = useMemo(() => intents.map((i) => i.id).join("|"), [intents]);
   const [intentDetailExpandedById, setIntentDetailExpandedById] = useState<Record<string, boolean>>({});
 
+  const [squareSavingIntentId, setSquareSavingIntentId] = useState<string | null>(null);
+  /** Optimistic Explore-public flag keyed by intent id until `router.refresh` reconciles server state. */
+  const [squareExplorePublicDraft, setSquareExplorePublicDraft] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     /* Sync default fold state whenever intent IDs change — user toggles persist until an id disappears. */
     // eslint-disable-next-line react-hooks/set-state-in-effect -- merge refetched intents with per-id fold overrides
@@ -143,6 +147,24 @@ export function ConsoleClient({
         if (!intents.some((i) => i.id === k)) delete next[k];
       }
       return next;
+    });
+  }, [intentExpansionKey, intents]);
+
+  useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- reconcile optimistic Explore flag when server intents refresh */
+    setSquareExplorePublicDraft((prev) => {
+      const ids = Object.keys(prev);
+      if (!ids.length) return prev;
+      let changed = false;
+      const next = { ...prev };
+      for (const id of ids) {
+        const row = intents.find((i) => i.id === id);
+        if (row && row.is_marketplace_public === prev[id]) {
+          delete next[id];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
     });
   }, [intentExpansionKey, intents]);
 
@@ -293,12 +315,24 @@ export function ConsoleClient({
   }
 
   async function toggleMarketplace(intentId: string, next: boolean) {
-    const res = await setIntentMarketplacePublic(intentId, next);
-    if (!res.ok) {
-      setError(res.message);
-      return;
+    setSquareSavingIntentId(intentId);
+    setSquareExplorePublicDraft((draft) => ({ ...draft, [intentId]: next }));
+    setError(null);
+    try {
+      const res = await setIntentMarketplacePublic(intentId, next);
+      if (!res.ok) {
+        setSquareExplorePublicDraft((draft) => {
+          const copy = { ...draft };
+          delete copy[intentId];
+          return copy;
+        });
+        setError(res.message);
+        return;
+      }
+      await router.refresh();
+    } finally {
+      setSquareSavingIntentId(null);
     }
-    router.refresh();
   }
 
   async function togglePaused(intentId: string, status: "active" | "paused") {
@@ -634,17 +668,47 @@ export function ConsoleClient({
                     <CardContent className="space-y-6 px-4 pb-6 sm:px-6">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-4">
-                          <Checkbox
-                            id={`sq-${intent.id}`}
-                            checked={intent.is_marketplace_public}
-                            onCheckedChange={(v) => void toggleMarketplace(intent.id, Boolean(v))}
-                          />
-                          <div>
-                            <Label htmlFor={`sq-${intent.id}`} className="text-slate-100">
-                              {t.listOnSquare}
-                            </Label>
-                            <p className="mt-1 text-xs text-slate-500">{t.listOnSquareHint}</p>
-                          </div>
+                          {(() => {
+                            const exploreBusy = squareSavingIntentId === intent.id;
+                            const exploreShown =
+                              intent.id in squareExplorePublicDraft
+                                ? squareExplorePublicDraft[intent.id]
+                                : intent.is_marketplace_public;
+                            const ctlId = `sq-${intent.id}`;
+                            return (
+                              <>
+                                {exploreBusy ? (
+                                  <span
+                                    id={ctlId}
+                                    role="status"
+                                    aria-busy="true"
+                                    aria-live="polite"
+                                    className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border border-white/20 bg-black/40 pt-px"
+                                  >
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-sky-400" aria-hidden />
+                                    <span className="sr-only">{t.listOnSquareSaving}</span>
+                                  </span>
+                                ) : (
+                                  <Checkbox
+                                    id={ctlId}
+                                    checked={exploreShown}
+                                    disabled={exploreBusy}
+                                    onCheckedChange={(v) => void toggleMarketplace(intent.id, Boolean(v))}
+                                  />
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <Label htmlFor={ctlId} className="text-slate-100">
+                                    {t.listOnSquare}
+                                  </Label>
+                                  {exploreBusy ? (
+                                    <p className="mt-1 text-xs text-sky-300/90">{t.listOnSquareSaving}</p>
+                                  ) : (
+                                    <p className="mt-1 text-xs text-slate-500">{t.listOnSquareHint}</p>
+                                  )}
+                                </div>
+                              </>
+                            );
+                          })()}
                         </div>
                         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
                           <Button
