@@ -502,11 +502,11 @@ export const STRINGS = {
       otpResentInfo: "We sent another code to your inbox.",
       otpUseDifferentEmail: "Use a different email",
       otpInvalidLength: "Enter the full 8-digit code.",
-      privacyConsentLead: "I have read and agree to the",
-      privacyConsentLinkLabel: "Privacy Policy",
-      privacyConsentTrail:
-        ". This includes acknowledgment that information I voluntarily provide may be processed by automated systems—including machine-learning matching—to operate Vennode.",
-      privacyConsentHint: "Check this box to continue — acknowledging the Privacy Policy is required to sign in.",
+      implicitConsentPrefix:
+        "By continuing to sign in, you confirm you have read and agree to our ",
+      implicitConsentLinkLabel: "Privacy Policy",
+      implicitConsentSuffix:
+        ", and understand that voluntarily provided information may be used (including automated systems and machine learning) to operate the matching engine and related intelligent features.",
       backLanding: "Back to landing",
     },
     onboarding: {
@@ -1052,11 +1052,10 @@ export const STRINGS = {
       otpResentInfo: "我們已再次寄出驗證碼到你的信箱。",
       otpUseDifferentEmail: "改用其他電郵",
       otpInvalidLength: "請輸入完整的 8 位數驗證碼。",
-      privacyConsentLead: "我已閱讀並同意",
-      privacyConsentLinkLabel: "《隱私權政策》",
-      privacyConsentTrail:
-        "，並知悉我自願提供的資料可能被用於（含自動化／機器學習在內）配對引擎與相關智慧功能之運作。",
-      privacyConsentHint: "請勾選此方塊才可繼續登入 — 須確認隱私權政策。",
+      implicitConsentPrefix: "點擊繼續登入，即表示您已閱讀並同意我們的",
+      implicitConsentLinkLabel: "《隱私權政策》",
+      implicitConsentSuffix:
+        "，並知悉自願提供的資料可能被用於（含自動化 / 機器學習在內）配對引擎與相關智慧功能之運作。",
       backLanding: "返回首頁",
     },
     onboarding: {

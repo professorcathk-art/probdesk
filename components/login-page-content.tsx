@@ -8,7 +8,6 @@ import { createClient } from "@/lib/supabase/client";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { setEntryCookieClient } from "@/lib/entry-cookie";
 import { setRedirectAfterCookieClient } from "@/lib/redirect-after-login-cookie";
@@ -37,7 +36,6 @@ export function LoginPageContent() {
   const [info, setInfo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [privacyConsent, setPrivacyConsent] = useState(false);
 
   useEffect(() => {
     const flow = searchParams.get("flow");
@@ -62,10 +60,6 @@ export function LoginPageContent() {
 
   async function onSendCode(e: React.FormEvent) {
     e.preventDefault();
-    if (!privacyConsent) {
-      setError(L.privacyConsentHint);
-      return;
-    }
     setBusy(true);
     setError(null);
     setInfo(null);
@@ -94,10 +88,6 @@ export function LoginPageContent() {
 
   async function onVerifyOtp(e: React.FormEvent) {
     e.preventDefault();
-    if (!privacyConsent) {
-      setError(L.privacyConsentHint);
-      return;
-    }
     const code = digitsOnlyOtp(otp);
     if (code.length !== 8) {
       setError(L.otpInvalidLength);
@@ -125,10 +115,6 @@ export function LoginPageContent() {
   }
 
   async function onResend() {
-    if (!privacyConsent) {
-      setError(L.privacyConsentHint);
-      return;
-    }
     setBusy(true);
     setError(null);
     setInfo(null);
@@ -148,10 +134,6 @@ export function LoginPageContent() {
   }
 
   async function onGoogle() {
-    if (!privacyConsent) {
-      setError(L.privacyConsentHint);
-      return;
-    }
     setBusy(true);
     setError(null);
     const res = await signInWithGoogle();
@@ -176,12 +158,20 @@ export function LoginPageContent() {
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 backdrop-blur-xl">
+          <p className="text-xs leading-relaxed text-slate-400/80 text-center mb-4">
+            {L.implicitConsentPrefix}
+            <Link href="/privacy" className="text-primary hover:underline mx-1">
+              {L.implicitConsentLinkLabel}
+            </Link>
+            {L.implicitConsentSuffix}
+          </p>
+
           <Button
             type="button"
             variant="outline"
             className="w-full border-white/15 bg-white/[0.03] text-slate-100 hover:bg-white/[0.06]"
             onClick={() => void onGoogle()}
-            disabled={busy || !privacyConsent}
+            disabled={busy}
           >
             {L.googleCta}
           </Button>
@@ -211,7 +201,7 @@ export function LoginPageContent() {
               </div>
               <Button
                 type="submit"
-                disabled={busy || !privacyConsent}
+                disabled={busy}
                 className="w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
               >
                 {busy ? L.otpSending : L.otpSendCode}
@@ -241,7 +231,7 @@ export function LoginPageContent() {
               </div>
               <Button
                 type="submit"
-                disabled={busy || digitsOnlyOtp(otp).length !== 8 || !privacyConsent}
+                disabled={busy || digitsOnlyOtp(otp).length !== 8}
                 className="w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
               >
                 {busy ? L.otpVerifying : L.otpVerify}
@@ -250,7 +240,7 @@ export function LoginPageContent() {
                 <button
                   type="button"
                   className="text-sm text-sky-400/90 underline-offset-4 hover:underline disabled:opacity-50"
-                  disabled={busy || !privacyConsent}
+                  disabled={busy}
                   onClick={() => void onResend()}
                 >
                   {L.otpResend}
@@ -279,45 +269,6 @@ export function LoginPageContent() {
           ) : null}
           {error ? <p className="mt-4 text-sm text-red-400">{error}</p> : null}
 
-          <div className="mt-6 w-full border-t border-white/10 pt-6">
-            <div className="w-full rounded-xl border border-white/10 bg-black/25 p-4">
-              {/*
-               * Two flex children only: checkbox + column. Do not use ui/Label here —
-               * it applies flex + gap between each text node (three unreadable columns on mobile).
-               */}
-              <div className="flex w-full items-start gap-3">
-                <Checkbox
-                  id="login-privacy-consent"
-                  checked={privacyConsent}
-                  disabled={busy}
-                  onCheckedChange={(v) => {
-                    const on = Boolean(v);
-                    setPrivacyConsent(on);
-                    if (on) setError(null);
-                  }}
-                  className="mt-1 shrink-0"
-                />
-                <div className="min-w-0 flex-1 space-y-2">
-                  <label
-                    htmlFor="login-privacy-consent"
-                    className="block cursor-pointer text-sm font-normal leading-relaxed text-slate-300"
-                  >
-                    {L.privacyConsentLead}{" "}
-                    <Link
-                      href="/privacy"
-                      className="mx-1 font-medium text-sky-400 underline-offset-4 hover:underline"
-                    >
-                      {L.privacyConsentLinkLabel}
-                    </Link>
-                    {L.privacyConsentTrail}
-                  </label>
-                  {!privacyConsent ? (
-                    <p className="text-xs leading-relaxed text-amber-200/90">{L.privacyConsentHint}</p>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <p className="text-center text-sm text-slate-500">
