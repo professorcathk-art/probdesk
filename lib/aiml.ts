@@ -1,3 +1,9 @@
+import type { IntentMatchingSignals } from "@/lib/intent-matching-signals";
+import {
+  FALLBACK_MIXED_SIGNALS,
+  normalizeIntentMatchingSignals,
+} from "@/lib/intent-matching-signals";
+
 const base = () => process.env.AIML_API_BASE_URL ?? "https://api.aimlapi.com/v1";
 const key = () => process.env.AIML_API_KEY;
 
@@ -12,9 +18,42 @@ function authHeaders(): HeadersInit {
   };
 }
 
+const MATCHING_SIGNALS_SCHEMA_PROPERTIES = {
+  goal_lane: {
+    type: "string",
+    enum: [
+      "romantic_partner",
+      "friendship_platonic",
+      "professional_hire_or_service",
+      "employment_seeking",
+      "mentorship_learning",
+      "cofounder_equity",
+      "investor_fundraising",
+      "general_networking",
+      "mixed_or_unclear",
+    ],
+  },
+  binary_gender_preference: {
+    anyOf: [{ type: "null" }, { type: "string", enum: ["female", "male"] }],
+  },
+} as const;
+
+function parseIntentSignalsSystemPromptExtra(): string {
+  return (
+    "Also set matching_signals.goal_lane to the SINGLE dominant purpose (English enum): " +
+    "romantic_partner (dating / spouse / girlfriend / boyfriend wording in any language), " +
+    "friendship_platonic (non-romantic friends/community), professional_hire_or_service (agency, freelancer, buy/sell service, client/provider), " +
+    "employment_seeking (candidate wants job or employer wants hires), mentorship_learning (tutor/coach/learn from), " +
+    "cofounder_equity (startup equity partner / technical partner), investor_fundraising, general_networking (vague meet-people intent), mixed_or_unclear. " +
+    "matching_signals.binary_gender_preference MUST be female or male only when the user clearly restricts who they meet to women/girls/ladies/etc. vs men/guys/etc. across ANY script or language—else null (including LGBTQ+ ambiguous or non-binary inclusive asks). " +
+    "Professional/business intents should normally keep binary_gender_preference null unless they explicitly constrain peer gender."
+  );
+}
+
 export type ParsedIntent = {
   location_filter: string | null;
   extracted_persona: Record<string, unknown>;
+  matching_signals: Record<string, unknown>;
 };
 
 export async function parseIntentWithMini(input: string): Promise<ParsedIntent> {
@@ -35,8 +74,14 @@ export async function parseIntentWithMini(input: string): Promise<ParsedIntent> 
             properties: {
               location_filter: { type: ["string", "null"] },
               extracted_persona: { type: "object", additionalProperties: true },
+              matching_signals: {
+                type: "object",
+                additionalProperties: false,
+                properties: MATCHING_SIGNALS_SCHEMA_PROPERTIES,
+                required: ["goal_lane", "binary_gender_preference"],
+              },
             },
-            required: ["location_filter", "extracted_persona"],
+            required: ["location_filter", "extracted_persona", "matching_signals"],
           },
         },
       },
@@ -44,9 +89,10 @@ export async function parseIntentWithMini(input: string): Promise<ParsedIntent> 
         {
           role: "system",
           content:
-            "Extract structured intent from the user's natural-language networking request. " +
+            "Extract structured intent from the user's natural-language networking request (any natural language acceptable). " +
             "Return JSON only. location_filter should be a concise city/region string if mentioned, else null. " +
-            "extracted_persona should summarize who they are, who they seek, and the goal.",
+            "extracted_persona should summarize who they are, who they seek, and the goal. " +
+            parseIntentSignalsSystemPromptExtra(),
         },
         { role: "user", content: input },
       ],
@@ -64,6 +110,59 @@ export async function parseIntentWithMini(input: string): Promise<ParsedIntent> 
   const raw = data.choices?.[0]?.message?.content;
   if (!raw) throw new Error("AIML parse returned empty content");
   return JSON.parse(raw) as ParsedIntent;
+}
+
+/**
+ * Lightweight re-parse used for legacy intents created before matching_signals persisted.
+ * Same enums as parseIntentWithMini.matching_signals.
+ */
+export async function parseIntentMatchingSignalsMini(userContent: string): Promise<IntentMatchingSignals> {
+  const model = process.env.AIML_PARSE_MODEL ?? "gpt-4o-mini";
+  const res = await fetch(`${base()}/chat/completions`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({
+      model,
+      temperature: 0,
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "matching_signals_parse",
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: MATCHING_SIGNALS_SCHEMA_PROPERTIES,
+            required: ["goal_lane", "binary_gender_preference"],
+          },
+        },
+      },
+      messages: [
+        {
+          role: "system",
+          content:
+            "Classify a Vennode Explore request for hybrid matching guardrails only. Respond JSON only (any input language). " +
+            parseIntentSignalsSystemPromptExtra(),
+        },
+        { role: "user", content: userContent.slice(0, 8000) },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`AIML matching_signals parse failed: ${res.status} ${err}`);
+  }
+
+  const data = (await res.json()) as {
+    choices?: { message?: { content?: string } }[];
+  };
+  const rawContent = data.choices?.[0]?.message?.content;
+  if (!rawContent) throw new Error("AIML matching_signals parse returned empty content");
+  try {
+    return normalizeIntentMatchingSignals(JSON.parse(rawContent) as Record<string, unknown>);
+  } catch {
+    return FALLBACK_MIXED_SIGNALS;
+  }
 }
 
 export async function embedTextSmall(text: string): Promise<number[]> {

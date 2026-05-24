@@ -5,6 +5,8 @@
 
 import type { ProfileGenderValue } from "@/lib/profile-basics";
 import { attractionOrientationSuppressesHeteroDefaultInference } from "@/lib/profile-attraction-orientation";
+import type { IntentMatchingSignals } from "@/lib/intent-matching-signals";
+import { matchingLaneSuppressesOppositeSexInference } from "@/lib/intent-matching-signals";
 
 /** Suggestions below this cap are omitted from UX and not persisted as sync_top3. */
 export const AI_SUGGESTION_MIN_MATCH_SCORE = 15;
@@ -118,8 +120,20 @@ export function derivePreferredPartnerBinarySex(
   sender: MatchingSenderSnapshot,
   naturalLanguage: string,
   mustHaves?: string | null,
+  /** Optional AIML-produced signals (multi-language); when absent or unknown, heuristic regex + profile defaults apply. */
+  matchingSignals?: IntentMatchingSignals | null,
 ): ExplicitPartnerSexTarget | null {
-  return inferExplicitPartnerSexTarget(naturalLanguage, mustHaves) ?? inferredDefaultOppositeSexTarget(sender, naturalLanguage, mustHaves);
+  const fromModel = matchingSignals?.binary_gender_preference;
+  if (fromModel === "female" || fromModel === "male") return fromModel;
+
+  const fromRegex = inferExplicitPartnerSexTarget(naturalLanguage, mustHaves);
+  if (fromRegex) return fromRegex;
+
+  if (matchingSignals && matchingLaneSuppressesOppositeSexInference(matchingSignals.goal_lane)) {
+    return null;
+  }
+
+  return inferredDefaultOppositeSexTarget(sender, naturalLanguage, mustHaves);
 }
 
 function normalizeBinaryGender(g: ProfileGenderValue | string | null | undefined): ProfileGenderValue | null {
@@ -134,10 +148,14 @@ export function rankSupplyPoolForPartnerSemantics<T extends { gender: string | n
   sender: MatchingSenderSnapshot,
   naturalLanguage: string,
   mustHaves: string | null | undefined,
+  matchingSignals?: IntentMatchingSignals | null,
 ): T[] {
-  const explicit = inferExplicitPartnerSexTarget(naturalLanguage, mustHaves);
-  const defaults = inferredDefaultOppositeSexTarget(sender, naturalLanguage, mustHaves);
-  const target: GenderFilterForMatching = explicit ?? defaults;
+  const target: GenderFilterForMatching = derivePreferredPartnerBinarySex(
+    sender,
+    naturalLanguage,
+    mustHaves,
+    matchingSignals ?? null,
+  );
   if (!target) return rows;
 
   const prefers = target;
@@ -162,6 +180,7 @@ export function applyPartnershipSemanticsScoreCap(params: {
   candidateGender: string | null | undefined;
   naturalLanguageIntent: string;
   mustHaves?: string | null;
+  matchingSignals?: IntentMatchingSignals | null;
   score: number;
 }): { score: number; capped_note?: string } {
   const blob = `${params.naturalLanguageIntent}\n${params.mustHaves ?? ""}`;
@@ -170,7 +189,12 @@ export function applyPartnershipSemanticsScoreCap(params: {
 
   if (LGBT_INCLUSIVE_HINT.test(blob)) return { score };
 
-  const pref = derivePreferredPartnerBinarySex(params.sender, params.naturalLanguageIntent, params.mustHaves);
+  const pref = derivePreferredPartnerBinarySex(
+    params.sender,
+    params.naturalLanguageIntent,
+    params.mustHaves,
+    params.matchingSignals ?? null,
+  );
   if (!pref) return { score };
 
   const candBin = normalizeBinaryGender(params.candidateGender);

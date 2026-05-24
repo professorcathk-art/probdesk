@@ -9,6 +9,7 @@ import { formatProfileMatchingSnippet } from "@/lib/profile-matching-snippet";
 import { logPairingScoreEvent } from "@/lib/pairing-score-log";
 import { embeddingVectorForRpc } from "@/lib/vector-literal";
 import { recordSyncTop3RecommendationsWithClient } from "@/lib/mobile/record-sync-top3-recommendations";
+import { hydrateIntentMatchingSignals } from "@/lib/intent-hydrate-matching-signals";
 import {
   AI_SUGGESTION_MIN_MATCH_SCORE,
   applyPartnershipSemanticsScoreCap,
@@ -36,7 +37,7 @@ export type MobileHybridSuggestionCard = {
   peer_languages: string[] | null;
 };
 
-const HYBRID_DISCOVERY_LOG_PIPELINE = "081-zh-explicit-partner-gender-cues";
+const HYBRID_DISCOVERY_LOG_PIPELINE = "082-ai-matching-signals-column";
 
 export async function runHybridSuggestionsForMobile(
   supabase: SupabaseClient,
@@ -45,7 +46,9 @@ export async function runHybridSuggestionsForMobile(
 ): Promise<{ ok: true; suggestions: MobileHybridSuggestionCard[] } | { ok: false; message: string }> {
   const { data: intentRow, error } = await supabase
     .from("intent_requests")
-    .select("id, natural_language_input, location_filter, demand_embedding, embedding, must_haves")
+    .select(
+      "id, natural_language_input, location_filter, demand_embedding, embedding, must_haves, matching_signals",
+    )
     .eq("id", intentId)
     .eq("user_id", user.id)
     .single();
@@ -68,6 +71,15 @@ export async function runHybridSuggestionsForMobile(
   }
 
   const intent = { ...intentRow, location_filter: locationForRpc };
+
+  const matchingSignalsForHybrid = await hydrateIntentMatchingSignals({
+    supabase,
+    intentId,
+    ownerUserId: user.id,
+    natural_language_input: intent.natural_language_input,
+    must_haves: intent.must_haves ?? null,
+    stored_signals: intentRow.matching_signals,
+  });
 
   const demandVec = intentRow.demand_embedding ?? intentRow.embedding;
   if (!demandVec) {
@@ -226,6 +238,7 @@ export async function runHybridSuggestionsForMobile(
     senderForMatching,
     intent.natural_language_input,
     intent.must_haves ?? null,
+    matchingSignalsForHybrid,
   ).slice(0, POOL_SIZE);
 
   if (poolRows.length === 0) {
@@ -317,6 +330,7 @@ export async function runHybridSuggestionsForMobile(
           candidateGender: row.gender ?? null,
           naturalLanguageIntent: intent.natural_language_input,
           mustHaves: intent.must_haves,
+          matchingSignals: matchingSignalsForHybrid,
           score: vibe.match_score,
         });
         return {
@@ -354,6 +368,7 @@ export async function runHybridSuggestionsForMobile(
           candidateGender: row.gender ?? null,
           naturalLanguageIntent: intent.natural_language_input,
           mustHaves: intent.must_haves,
+          matchingSignals: matchingSignalsForHybrid,
           score: fb,
         });
         return {
@@ -420,6 +435,7 @@ export async function runHybridSuggestionsForMobile(
           pipeline: HYBRID_DISCOVERY_LOG_PIPELINE,
           pool_size: poolRows.length,
           match_tier: logMeta.tier,
+          anchor_goal_lane: matchingSignalsForHybrid.goal_lane,
           ai_suggestion_min_match_score: AI_SUGGESTION_MIN_MATCH_SCORE,
           require_location_match: logMeta.require_location_match,
           discovery_source: logMeta.discovery_source,

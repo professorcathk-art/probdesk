@@ -118,6 +118,8 @@ export type DemandEmbeddingContext = {
   extracted_persona?: Record<string, unknown> | null | undefined;
   /** onboarding Q&A blob — folded in when present */
   enrichment?: Record<string, unknown> | null | undefined;
+  /** AIML-produced lane / gender hints (English tokens) fused into retrieval text — optional */
+  semantic_match_hints?: string | null | undefined;
 };
 
 /** Text embedded into `intent_requests.demand_embedding`. */
@@ -134,8 +136,11 @@ export function buildDemandEmbeddingText(
 
   const d = intentDescription.trim();
   const m = mustHaves?.trim();
+  const hint = context?.semantic_match_hints?.trim();
+  const hintsBlock =
+    hint && hint.length > 0 ? `\nStructural match hints for retrieval (auto; any language distilled): ${hint}` : "";
 
-  return `${goal} Looking for: ${d}. Must-haves constraints: ${m && m.length > 0 ? m : "(none stated)"}.`;
+  return `${goal} Looking for: ${d}. Must-haves constraints: ${m && m.length > 0 ? m : "(none stated)"}.${hintsBlock}`;
 }
 
 /** JSON-safe profile record slice for `[Profile Context: …]` */

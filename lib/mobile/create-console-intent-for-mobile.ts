@@ -1,6 +1,7 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { embedTextSmall, parseIntentWithMini } from "@/lib/aiml";
 import { isAdminEmail } from "@/lib/admin-emails";
+import { embeddingNoteForMatchingSignals, normalizeIntentMatchingSignals } from "@/lib/intent-matching-signals";
 import { buildDemandEmbeddingText } from "@/lib/demand-supply-embedding";
 import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
 import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
@@ -73,6 +74,8 @@ export async function createConsoleIntentForMobile(
     embedding = await embedTextSmall(
       buildDemandEmbeddingText(trimmed, must_haves, {
         extracted_persona: parsed.extracted_persona as Record<string, unknown>,
+        semantic_match_hints:
+          embeddingNoteForMatchingSignals(normalizeIntentMatchingSignals(parsed.matching_signals)) || undefined,
       }),
     );
   } catch (e) {
@@ -104,6 +107,7 @@ export async function createConsoleIntentForMobile(
       user_id: user.id,
       natural_language_input: trimmed,
       extracted_persona: parsed.extracted_persona,
+      matching_signals: normalizeIntentMatchingSignals(parsed.matching_signals),
       location_filter,
       embedding: vectorLiteral(embedding),
       demand_embedding: vectorLiteral(embedding),

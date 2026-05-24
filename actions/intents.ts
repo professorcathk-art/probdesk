@@ -28,6 +28,8 @@ import {
   type MatchingSenderSnapshot,
 } from "@/lib/hybrid-ai-suggestion-rules";
 import { parseProfileAttractionOrientation } from "@/lib/profile-attraction-orientation";
+import { hydrateIntentMatchingSignals } from "@/lib/intent-hydrate-matching-signals";
+import { embeddingNoteForMatchingSignals, normalizeIntentMatchingSignals } from "@/lib/intent-matching-signals";
 
 function normalizeMustHaves(raw: string | null | undefined): string | null {
   const t = raw?.trim() ?? "";
@@ -122,6 +124,9 @@ export async function bootstrapIntentFromLanding(naturalLanguageInput: string) {
     embedding = await embedTextSmall(
       buildDemandEmbeddingText(trimmed, null, {
         extracted_persona: parsed.extracted_persona as Record<string, unknown>,
+        semantic_match_hints: embeddingNoteForMatchingSignals(
+          normalizeIntentMatchingSignals(parsed.matching_signals),
+        ) || undefined,
       }),
     );
   } catch (e) {
@@ -134,12 +139,15 @@ export async function bootstrapIntentFromLanding(naturalLanguageInput: string) {
     parsed.location_filter?.trim() ||
     (typeof persona.location === "string" ? persona.location.trim() : null);
 
+  const matching_signals = normalizeIntentMatchingSignals(parsed.matching_signals);
+
   const { data: inserted, error } = await supabase
     .from("intent_requests")
     .insert({
       user_id: user.id,
       natural_language_input: trimmed,
       extracted_persona: parsed.extracted_persona,
+      matching_signals,
       location_filter,
       embedding: vectorLiteral(embedding),
       demand_embedding: vectorLiteral(embedding),
@@ -459,7 +467,7 @@ export type SuggestionCard = {
 };
 
 /** Bumped when hybrid discovery logging / guardrail inputs change materially. */
-const HYBRID_DISCOVERY_LOG_PIPELINE = "081-zh-explicit-partner-gender-cues";
+const HYBRID_DISCOVERY_LOG_PIPELINE = "082-ai-matching-signals-column";
 
 export async function computeHybridSuggestions(intentId: string): Promise<
   | { ok: true; suggestions: SuggestionCard[] }
@@ -473,7 +481,9 @@ export async function computeHybridSuggestions(intentId: string): Promise<
 
   const { data: intentRow, error } = await supabase
     .from("intent_requests")
-    .select("id, natural_language_input, location_filter, demand_embedding, embedding, must_haves")
+    .select(
+      "id, natural_language_input, location_filter, demand_embedding, embedding, must_haves, matching_signals",
+    )
     .eq("id", intentId)
     .eq("user_id", user.id)
     .single();
@@ -496,6 +506,15 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   }
 
   const intent = { ...intentRow, location_filter: locationForRpc };
+
+  const matchingSignalsForHybrid = await hydrateIntentMatchingSignals({
+    supabase,
+    intentId,
+    ownerUserId: user.id,
+    natural_language_input: intent.natural_language_input,
+    must_haves: intent.must_haves ?? null,
+    stored_signals: intentRow.matching_signals,
+  });
 
   const demandVec = intentRow.demand_embedding ?? intentRow.embedding;
   if (!demandVec) {
@@ -658,6 +677,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     senderForMatching,
     intent.natural_language_input,
     intent.must_haves ?? null,
+    matchingSignalsForHybrid,
   ).slice(0, POOL_SIZE);
 
   if (poolRows.length === 0) {
@@ -748,6 +768,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
           candidateGender: row.gender ?? null,
           naturalLanguageIntent: intent.natural_language_input,
           mustHaves: intent.must_haves,
+          matchingSignals: matchingSignalsForHybrid,
           score: vibe.match_score,
         });
         return {
@@ -785,6 +806,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
           candidateGender: row.gender ?? null,
           naturalLanguageIntent: intent.natural_language_input,
           mustHaves: intent.must_haves,
+          matchingSignals: matchingSignalsForHybrid,
           score: fb,
         });
         return {
@@ -851,6 +873,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
           pipeline: HYBRID_DISCOVERY_LOG_PIPELINE,
           pool_size: poolRows.length,
           match_tier: logMeta.tier,
+          anchor_goal_lane: matchingSignalsForHybrid.goal_lane,
           ai_suggestion_min_match_score: AI_SUGGESTION_MIN_MATCH_SCORE,
           require_location_match: logMeta.require_location_match,
           discovery_source: logMeta.discovery_source,
@@ -944,6 +967,9 @@ export async function createConsoleIntent(
     embedding = await embedTextSmall(
       buildDemandEmbeddingText(trimmed, must_haves, {
         extracted_persona: parsed.extracted_persona as Record<string, unknown>,
+        semantic_match_hints: embeddingNoteForMatchingSignals(
+          normalizeIntentMatchingSignals(parsed.matching_signals),
+        ) || undefined,
       }),
     );
   } catch (e) {
@@ -973,6 +999,7 @@ export async function createConsoleIntent(
     user_id: user.id,
     natural_language_input: trimmed,
     extracted_persona: parsed.extracted_persona,
+    matching_signals: normalizeIntentMatchingSignals(parsed.matching_signals),
     location_filter,
     embedding: vectorLiteral(embedding),
     demand_embedding: vectorLiteral(embedding),
@@ -1043,6 +1070,8 @@ export async function updateConsoleIntent(
       buildDemandEmbeddingText(trimmed, must_haves, {
         extracted_persona: parsed.extracted_persona as Record<string, unknown>,
         enrichment: asEmbeddingContextRecord(existing?.enrichment),
+        semantic_match_hints:
+          embeddingNoteForMatchingSignals(normalizeIntentMatchingSignals(parsed.matching_signals)) || undefined,
       }),
     );
   } catch (e) {
@@ -1070,11 +1099,14 @@ export async function updateConsoleIntent(
     location_filter = profile?.location?.trim() ?? null;
   }
 
+  const matching_signals_update = normalizeIntentMatchingSignals(parsed.matching_signals);
+
   const { error } = await supabase
     .from("intent_requests")
     .update({
       natural_language_input: trimmed,
       extracted_persona: parsed.extracted_persona,
+      matching_signals: matching_signals_update,
       location_filter,
       embedding: vectorLiteral(embedding),
       demand_embedding: vectorLiteral(embedding),

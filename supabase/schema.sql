@@ -83,6 +83,8 @@ create table if not exists public.intent_requests (
   must_haves text
 );
 
+alter table public.intent_requests add column if not exists matching_signals jsonb;
+
 create index if not exists intent_requests_user_id_idx on public.intent_requests (user_id);
 create index if not exists intent_requests_status_marketplace_idx
   on public.intent_requests (status, is_marketplace_public)
