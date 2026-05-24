@@ -19,7 +19,7 @@ export type MatchingSenderSnapshot = {
 };
 
 const LGBT_INCLUSIVE_HINT =
-  /\b(gay|lesbian|bisexual|bi[-\s]?curious|\blgbtq?\b|\bqueer\b|homosexual|same[-\s]?sex(?:\s+couple)?|\bmlm\b|\bwlw\b|pansexual|asexual|aro(mantic)?|同志|同性|男男|女女|拉拉|雙性戀)/i;
+  /\b(gay|lesbian|bisexual|bi[-\s]?curious|\blgbtq?\b|\bqueer\b|homosexual|same[-\s]?sex(?:\s+couple)?|\bmlm\b|\bwlw\b|pansexual|asexual|\b(?:aromantic|aro)\b|同志|同性|男男|女女|拉拉|雙性戀)/i;
 
 const LIGHT_ROMANCE_CUES =
   /\b(?:date|dating|married|wife|gf|boyfriend|husband|\blove\b|relationship\b|spouse|對象\b|愛情|恋愛|結婚|伴侶|伴侣|男友|女友)\b/i;

@@ -459,7 +459,7 @@ export type SuggestionCard = {
 };
 
 /** Bumped when hybrid discovery logging / guardrail inputs change materially. */
-const HYBRID_DISCOVERY_LOG_PIPELINE = "079-profile-attraction-orientation-explore-toggle";
+const HYBRID_DISCOVERY_LOG_PIPELINE = "080-lgbt-hint-aro-word-boundary";
 
 export async function computeHybridSuggestions(intentId: string): Promise<
   | { ok: true; suggestions: SuggestionCard[] }

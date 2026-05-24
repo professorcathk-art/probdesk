@@ -36,7 +36,7 @@ export type MobileHybridSuggestionCard = {
   peer_languages: string[] | null;
 };
 
-const HYBRID_DISCOVERY_LOG_PIPELINE = "079-profile-attraction-orientation-explore-toggle";
+const HYBRID_DISCOVERY_LOG_PIPELINE = "080-lgbt-hint-aro-word-boundary";
 
 export async function runHybridSuggestionsForMobile(
   supabase: SupabaseClient,
