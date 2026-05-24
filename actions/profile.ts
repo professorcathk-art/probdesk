@@ -520,7 +520,7 @@ export async function updateMyProfileIdentity(fields: {
   const aoRaw = fields.attraction_orientation?.trim() ?? "";
   const attraction_orientation = aoRaw ? parseProfileAttractionOrientation(aoRaw) : null;
   if (aoRaw.length > 0 && !attraction_orientation) {
-    return { ok: false as const, message: "Invalid romantic orientation selection." };
+    return { ok: false as const, message: "Invalid orientation selection." };
   }
 
   const superTrim = fields.superpower?.trim() ?? "";

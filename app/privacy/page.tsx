@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalDocument title="Privacy Policy" updated="May 16, 2026">
+    <LegalDocument title="Privacy Policy" updated="May 19, 2026">
       <p>
         Vennode (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) operates the service available at{" "}
         <Link href="https://vennode.com">vennode.com</Link>. This Privacy Policy explains how we handle information when
@@ -24,7 +24,8 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>Profile &amp; intent content:</strong> text you provide when describing yourself and what you are
-          looking for, optional profile fields, and location hints you choose to share for matching.
+          looking for, optional profile fields (such as demographics or orientation if you voluntarily choose them),
+          and location hints you choose to share for matching.
         </li>
         <li>
           <strong>Usage &amp; technical data:</strong> basic diagnostics such as device/browser type, timestamps, and logs
@@ -44,6 +45,24 @@ export default function PrivacyPage() {
         <li>Deliver transactional emails (for example sign-in and important account notices);</li>
         <li>Detect abuse, enforce our terms, and comply with law.</li>
       </ul>
+
+      <h3>AI-assisted matching engine</h3>
+      <p>
+        Information you voluntarily provide—such as your profile text, descriptions of what you are looking for,
+        optional demographic or preference fields, and similar content you enter in the product—may be analyzed,
+        summarized, embedded, scored, filtered, or otherwise processed using automated systems operated by Vennode or
+        our subcontractors (including machine-learning and similarity models).
+      </p>
+      <p>
+        <strong>This processing is inherent to Vennode:</strong> it powers ranking, discovery, compatibility cues,
+        and internal guardrails. It does <strong>not</strong> constitute professional advice, background screening, or a
+        guarantee of suitability. Model outputs may be probabilistic or incomplete.
+      </p>
+      <p>
+        Disclosure of identifiable details (such as legal name, photos, albums, contacts, social links, and similar
+        fields) follows the product&apos;s phased privacy UX and mutual-connection rules—they are separate from the
+        fact that descriptive text used for introductions may inform AI-assisted matching internally.
+      </p>
 
       <h2>3. Sharing</h2>
       <p>

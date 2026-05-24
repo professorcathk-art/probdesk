@@ -8,7 +8,9 @@ import { createClient } from "@/lib/supabase/client";
 import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { setEntryCookieClient } from "@/lib/entry-cookie";
 import { setRedirectAfterCookieClient } from "@/lib/redirect-after-login-cookie";
 
@@ -36,6 +38,7 @@ export function LoginPageContent() {
   const [info, setInfo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
 
   useEffect(() => {
     const flow = searchParams.get("flow");
@@ -60,6 +63,10 @@ export function LoginPageContent() {
 
   async function onSendCode(e: React.FormEvent) {
     e.preventDefault();
+    if (!privacyConsent) {
+      setError(L.privacyConsentHint);
+      return;
+    }
     setBusy(true);
     setError(null);
     setInfo(null);
@@ -88,6 +95,10 @@ export function LoginPageContent() {
 
   async function onVerifyOtp(e: React.FormEvent) {
     e.preventDefault();
+    if (!privacyConsent) {
+      setError(L.privacyConsentHint);
+      return;
+    }
     const code = digitsOnlyOtp(otp);
     if (code.length !== 8) {
       setError(L.otpInvalidLength);
@@ -115,6 +126,10 @@ export function LoginPageContent() {
   }
 
   async function onResend() {
+    if (!privacyConsent) {
+      setError(L.privacyConsentHint);
+      return;
+    }
     setBusy(true);
     setError(null);
     setInfo(null);
@@ -134,6 +149,10 @@ export function LoginPageContent() {
   }
 
   async function onGoogle() {
+    if (!privacyConsent) {
+      setError(L.privacyConsentHint);
+      return;
+    }
     setBusy(true);
     setError(null);
     const res = await signInWithGoogle();
@@ -158,12 +177,43 @@ export function LoginPageContent() {
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 backdrop-blur-xl">
+          <div className="mb-6 space-y-3 rounded-xl border border-white/10 bg-black/25 p-4">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="login-privacy-consent"
+                checked={privacyConsent}
+                disabled={busy}
+                onCheckedChange={(v) => {
+                  const on = Boolean(v);
+                  setPrivacyConsent(on);
+                  if (on) setError(null);
+                }}
+                className="mt-0.5"
+              />
+              <div className="min-w-0 flex-1 space-y-2">
+                <Label
+                  htmlFor="login-privacy-consent"
+                  className="cursor-pointer text-sm font-normal leading-relaxed text-slate-200"
+                >
+                  <span>{L.privacyConsentLead}</span>{" "}
+                  <Link href="/privacy" className="font-medium text-sky-400 underline-offset-4 hover:underline">
+                    {L.privacyConsentLinkLabel}
+                  </Link>
+                  <span>{L.privacyConsentTrail}</span>
+                </Label>
+                {!privacyConsent ? (
+                  <p className="text-xs leading-relaxed text-amber-200/90">{L.privacyConsentHint}</p>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
           <Button
             type="button"
             variant="outline"
             className="w-full border-white/15 bg-white/[0.03] text-slate-100 hover:bg-white/[0.06]"
             onClick={() => void onGoogle()}
-            disabled={busy}
+            disabled={busy || !privacyConsent}
           >
             {L.googleCta}
           </Button>
@@ -193,7 +243,7 @@ export function LoginPageContent() {
               </div>
               <Button
                 type="submit"
-                disabled={busy}
+                disabled={busy || !privacyConsent}
                 className="w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
               >
                 {busy ? L.otpSending : L.otpSendCode}
@@ -223,7 +273,7 @@ export function LoginPageContent() {
               </div>
               <Button
                 type="submit"
-                disabled={busy || digitsOnlyOtp(otp).length !== 8}
+                disabled={busy || digitsOnlyOtp(otp).length !== 8 || !privacyConsent}
                 className="w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
               >
                 {busy ? L.otpVerifying : L.otpVerify}
@@ -232,7 +282,7 @@ export function LoginPageContent() {
                 <button
                   type="button"
                   className="text-sm text-sky-400/90 underline-offset-4 hover:underline disabled:opacity-50"
-                  disabled={busy}
+                  disabled={busy || !privacyConsent}
                   onClick={() => void onResend()}
                 >
                   {L.otpResend}
