@@ -54,18 +54,18 @@
   --card-foreground: #222222;
   --popover: #ffffff;
   --popover-foreground: #222222;
-  --primary: #ff5b1f;
+  --primary: #ff5a5f;
   --primary-foreground: #ffffff;
-  --secondary: #fff1ea;
+  --secondary: #fff1f2;
   --secondary-foreground: #222222;
-  --muted: #f4f4f4;
-  --muted-foreground: #757575;
-  --accent: #fff1ea;
-  --accent-foreground: #c2410c;
+  --muted: #f4f4f5;
+  --muted-foreground: #64748b;
+  --accent: #fff1f2;
+  --accent-foreground: #be123c;
   --destructive: oklch(0.55 0.2 25);
   --border: #e8e8e8;
   --input: #e8e8e8;
-  --ring: #ff5b1f;
+  --ring: #ff5a5f;
   --chart-1: oklch(0.72 0.14 230);
   --chart-2: oklch(0.62 0.12 264);
   --chart-3: oklch(0.55 0.1 264);
@@ -121,7 +121,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-[#f6f6f6] text-[#222];
+    @apply bg-[#f8fafc] text-[#222];
     background-image: none;
   }
   html {

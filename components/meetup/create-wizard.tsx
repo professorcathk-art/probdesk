@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Users, UserRound } from "lucide-react";
 import { createConsoleIntent, setIntentMarketplacePublic, updateConsoleIntent, type IntentRow } from "@/actions/intents";
 import { useLanguage } from "@/components/language-provider";
 import { draftMeetupCopy, meetupKindFrom, stampMustHaves, whoFromMustHaves, type MeetupKind } from "@/lib/meetup";
@@ -100,7 +101,7 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
         {progress.map((label, index) => (
           <li
             key={label}
-            className={`min-h-11 flex-1 rounded-full px-3 py-2 text-center text-xs font-medium ${index === step ? "bg-[#ff5b1f] text-white" : "bg-white text-slate-500"}`}
+            className={`min-h-11 flex-1 rounded-full px-3 py-2 text-center text-xs font-medium ${index === step ? "bg-[#ff5a5f] text-white" : "bg-white text-slate-500"}`}
           >
             {index + 1}. {label}
           </li>
@@ -109,15 +110,17 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
 
       {step === 0 ? (
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <button type="button" onClick={() => setKind("one_to_one")} className={`rounded-2xl border p-5 shadow-sm text-left ${kind === "one_to_one" ? "border-[#ff5b1f] bg-[#fff1ea]" : "border-[#eee] bg-white"}`}>
+          <button type="button" onClick={() => setKind("one_to_one")} className={`rounded-2xl border p-5 text-left shadow-sm ${kind === "one_to_one" ? "border-[#ff5a5f] bg-rose-50" : "border-slate-200 bg-white"}`}>
+            <UserRound className="mb-3 h-5 w-5 text-[#ff5a5f]" aria-hidden />
             <p className="font-semibold text-slate-900">{t.oneToOne}</p>
             <p className="mt-1 text-sm text-slate-500">{t.oneToOneHint}</p>
           </button>
-          <button type="button" onClick={() => setKind("group")} className={`rounded-2xl border p-5 shadow-sm text-left ${kind === "group" ? "border-[#ff5b1f] bg-[#fff1ea]" : "border-[#eee] bg-white"}`}>
+          <button type="button" onClick={() => setKind("group")} className={`rounded-2xl border p-5 text-left shadow-sm ${kind === "group" ? "border-[#ff5a5f] bg-rose-50" : "border-slate-200 bg-white"}`}>
+            <Users className="mb-3 h-5 w-5 text-[#ff5a5f]" aria-hidden />
             <p className="font-semibold text-slate-900">{t.groups}</p>
             <p className="mt-1 text-sm text-slate-500">{t.groupsHint}</p>
           </button>
-          <button type="button" onClick={goDetails} className="min-h-11 rounded-lg bg-[#ff5b1f] hover:bg-[#e84e12] px-4 text-sm font-medium text-white sm:col-span-2">
+          <button type="button" onClick={goDetails} className="min-h-11 rounded-lg bg-[#ff5a5f] hover:bg-[#e0484d] px-4 text-sm font-medium text-white sm:col-span-2">
             {t.next}
           </button>
         </div>
@@ -127,7 +130,7 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
         <div className="mt-6 space-y-4 rounded-2xl shadow-sm border border-[#eee] bg-white p-5">
           <label className="block text-sm font-medium text-slate-800">
             {t.title}
-            <input value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1 h-11 w-full rounded-2xl border border-[#e6e6e6] px-3 text-base" />
+            <input value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-base outline-none focus:ring-2 focus:ring-[#ff5a5f]/25" />
           </label>
           <label className="block text-sm font-medium text-slate-800">
             {t.place}
@@ -147,7 +150,7 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
             <button type="button" onClick={() => setStep(0)} className="min-h-11 rounded-full px-4 text-sm text-slate-600">
               {t.back}
             </button>
-            <button type="button" onClick={goPreview} className="min-h-11 rounded-lg bg-[#ff5b1f] hover:bg-[#e84e12] px-4 text-sm font-medium text-white">
+            <button type="button" onClick={goPreview} className="min-h-11 rounded-lg bg-[#ff5a5f] hover:bg-[#e0484d] px-4 text-sm font-medium text-white">
               {t.next}
             </button>
           </div>
@@ -170,7 +173,7 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
             <button type="button" onClick={() => setStep(1)} className="min-h-11 rounded-full px-4 text-sm text-slate-600">
               {t.back}
             </button>
-            <button type="button" disabled={busy} onClick={() => void publish()} className="min-h-11 rounded-lg bg-[#ff5b1f] hover:bg-[#e84e12] px-4 text-sm font-medium text-white disabled:opacity-60">
+            <button type="button" disabled={busy} onClick={() => void publish()} className="min-h-11 rounded-lg bg-[#ff5a5f] hover:bg-[#e0484d] px-4 text-sm font-medium text-white disabled:opacity-60">
               {busy ? t.saving : t.publishNow}
             </button>
           </div>

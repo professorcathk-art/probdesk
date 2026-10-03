@@ -150,32 +150,32 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
   const showChat = isMd || mobileChatFocus;
 
   return (
-    <div className="flex min-h-[calc(100dvh-6.5rem)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-950/40 shadow-[0_0_48px_rgba(56,189,248,0.06)] backdrop-blur-xl md:flex-row md:rounded-3xl">
+    <div className="flex min-h-[calc(100dvh-6.5rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:flex-row">
       <aside
         className={cn(
-          "flex min-h-0 w-full flex-col border-white/10 md:w-[min(360px,38%)] md:max-w-md md:shrink-0 md:border-r",
+          "flex min-h-0 w-full flex-col border-slate-200 md:w-[min(360px,38%)] md:max-w-md md:shrink-0 md:border-r",
           !showList && "hidden md:flex",
         )}
       >
-        <div className="border-b border-white/10 px-4 py-4">
-          <h1 className="font-[family-name:var(--font-heading)] text-lg font-semibold tracking-tight text-white">{p.title}</h1>
+        <div className="border-b border-slate-200 px-4 py-4">
+          <h1 className="font-[family-name:var(--font-heading)] text-lg font-semibold tracking-tight text-slate-900">{p.title}</h1>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {threads.length === 0 ? (
             <div className="flex flex-col gap-2 px-4 py-10 text-center">
-              <p className="text-sm font-medium text-slate-200">{p.emptyTitle}</p>
+              <p className="text-sm font-medium text-slate-800">{p.emptyTitle}</p>
               <p className="text-sm leading-relaxed text-slate-500">{p.emptyBody}</p>
               <Link
                 href="/square"
                 className={cn(
-                  "galaxy-btn-glow mx-auto mt-2 inline-flex h-10 items-center justify-center rounded-md border border-sky-400/35 bg-sky-500/15 px-4 text-sm font-medium text-sky-50 hover:bg-sky-500/25",
+                  "mx-auto mt-2 inline-flex h-10 items-center justify-center rounded-lg bg-[#ff5a5f] px-4 text-sm font-medium text-white hover:bg-[#e0484d]",
                 )}
               >
                 {c.browseExplore}
               </Link>
             </div>
           ) : (
-            <ul className="divide-y divide-white/[0.06]">
+            <ul className="divide-y divide-slate-100">
               {threads.map((t) => {
                 const open = t.peerId === selectedPeerId;
                 const label = t.peerDisplayName?.trim() || c.peerFallbackName;
@@ -183,17 +183,17 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
                   <li key={t.peerId}>
                     <div
                       className={cn(
-                        "flex w-full gap-3 px-4 py-3 transition-colors hover:bg-white/[0.04]",
-                        open ? "bg-white/[0.08]" : "bg-transparent",
+                        "flex w-full gap-3 px-4 py-3 transition-colors hover:bg-slate-50",
+                        open ? "bg-rose-50" : "bg-transparent",
                       )}
                     >
                       <button
                         type="button"
                         aria-label={p.peerAvatarPreviewAria}
-                        className="relative shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                        className="relative shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#ff5a5f] focus-visible:ring-offset-2"
                         onClick={() => setPeerProfileDialUserId(t.peerId)}
                       >
-                        <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/[0.04] text-slate-400">
+                        <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 text-slate-500">
                           {t.peerAvatarUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element -- remote avatar URL
                             <img src={t.peerAvatarUrl} alt="" className="h-full w-full object-cover" />
@@ -202,15 +202,15 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
                           )}
                         </div>
                         {t.unread ? (
-                          <span className="pointer-events-none absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.8)]" />
+                          <span className="pointer-events-none absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-[#ff5a5f]" />
                         ) : null}
                       </button>
                       <button
                         type="button"
                         onClick={() => openThread(t.peerId)}
-                        className="min-w-0 flex-1 rounded-xl py-0.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f172a]"
+                        className="min-w-0 flex-1 rounded-xl py-0.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#ff5a5f]"
                       >
-                        <p className="truncate font-medium text-slate-100">{label}</p>
+                        <p className="truncate font-medium text-slate-900">{label}</p>
                         <p className="truncate text-xs text-slate-500">{t.peerIndustry?.trim() || p.industryUnset}</p>
                         {t.lastMessagePreview ? (
                           <p className="mt-1 line-clamp-2 text-xs text-slate-400">{t.lastMessagePreview}</p>
@@ -227,24 +227,24 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
 
       <section
         className={cn(
-          "flex min-h-0 min-w-0 flex-1 flex-col bg-black/20",
+          "flex min-h-0 min-w-0 flex-1 flex-col bg-slate-50",
           !showChat && "hidden md:flex",
         )}
       >
         {!selected ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-            <UserRound className="h-14 w-14 text-slate-700" strokeWidth={1.15} aria-hidden />
+            <UserRound className="h-14 w-14 text-slate-300" strokeWidth={1.15} aria-hidden />
             <p className="max-w-xs text-sm text-slate-500">{p.pickThread}</p>
           </div>
         ) : (
           <>
-            <header className="sticky top-0 z-10 flex shrink-0 items-start gap-3 border-b border-white/10 bg-slate-950/80 px-4 py-3 backdrop-blur-xl md:px-5 md:py-4">
+            <header className="sticky top-0 z-10 flex shrink-0 items-start gap-3 border-b border-slate-200 bg-white px-4 py-3 md:px-5 md:py-4">
               {!isMd && mobileChatFocus ? (
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="mt-0.5 shrink-0 text-slate-300 hover:bg-white/10 hover:text-white"
+                  className="mt-0.5 shrink-0 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                   onClick={() => setMobileChatFocus(false)}
                   aria-label={p.back}
                 >
@@ -257,10 +257,10 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
                 <button
                   type="button"
                   aria-label={p.peerAvatarPreviewAria}
-                  className="shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                  className="shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#ff5a5f] focus-visible:ring-offset-2"
                   onClick={() => setPeerProfileDialUserId(selected.peerId)}
                 >
-                  <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/[0.04]">
+                  <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100">
                     {selected.peerAvatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={selected.peerAvatarUrl} alt="" className="h-full w-full object-cover" />
@@ -270,7 +270,7 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
                   </div>
                 </button>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-white">{selected.peerDisplayName?.trim() || c.peerFallbackName}</p>
+                  <p className="truncate font-medium text-slate-900">{selected.peerDisplayName?.trim() || c.peerFallbackName}</p>
                   <p className="truncate text-xs text-slate-500">{selected.peerIndustry?.trim() || p.industryUnset}</p>
                 </div>
               </div>
@@ -278,7 +278,7 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
                 type="button"
                 variant="outline"
                 size="sm"
-                className="hidden border-white/15 text-slate-200 hover:bg-white/[0.06] sm:inline-flex"
+                className="hidden border-slate-200 text-slate-700 hover:bg-slate-50 sm:inline-flex"
                 onClick={() => void loadMessages()}
               >
                 {p.refresh}
@@ -286,7 +286,7 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
             </header>
 
             {matchParamInvalid ? (
-              <p className="border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-center text-xs text-amber-100/95 md:px-5">
+              <p className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs text-amber-900 md:px-5">
                 {p.invalidMatchHint}
               </p>
             ) : null}
@@ -303,7 +303,7 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
                     if (isConnBroadcast) {
                       return (
                         <div key={msg.id} className="flex w-full justify-center py-0.5">
-                          <div className="max-w-[min(92%,420px)] rounded-xl border border-emerald-500/30 bg-emerald-500/[0.14] px-4 py-2.5 text-center text-xs leading-relaxed text-emerald-50/95 shadow-[0_0_20px_rgba(16,185,129,0.12)]">
+                          <div className="max-w-[min(92%,420px)] rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-center text-xs leading-relaxed text-emerald-800">
                             {p.systemConnectedBroadcast}
                           </div>
                         </div>
@@ -319,12 +319,12 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
                           className={cn(
                             "max-w-[min(92%,420px)] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm",
                             mine
-                              ? "border border-sky-400/30 bg-sky-600/25 text-sky-50"
-                              : "border border-white/10 bg-white/[0.06] text-slate-200",
+                              ? "bg-[#ff5a5f] text-white"
+                              : "border border-slate-200 bg-white text-slate-800",
                           )}
                         >
                           <p>{msg.content}</p>
-                          <p className={cn("mt-1 text-[10px] tabular-nums opacity-70", mine ? "text-sky-100/80" : "text-slate-500")}>
+                          <p className={cn("mt-1 text-[10px] tabular-nums", mine ? "text-white/80" : "text-slate-400")}>
                             {new Date(msg.created_at).toLocaleString(undefined, {
                               month: "short",
                               day: "numeric",
@@ -341,14 +341,14 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
               )}
             </div>
 
-            <footer className="sticky bottom-0 z-10 border-t border-white/10 bg-slate-950/85 p-4 backdrop-blur-xl md:px-5">
+            <footer className="sticky bottom-0 z-10 border-t border-slate-200 bg-white p-4 md:px-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <Textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   placeholder={p.sendPlaceholder}
                   rows={3}
-                  className="min-h-[88px] flex-1 resize-none border-white/10 bg-white/[0.04] text-slate-50 placeholder:text-slate-600"
+                  className="min-h-[88px] flex-1 resize-none rounded-xl border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#ff5a5f]/25"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
@@ -359,7 +359,7 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
                 <Button
                   type="button"
                   disabled={busy || draft.trim().length < 1}
-                  className="galaxy-btn-glow shrink-0 border border-sky-400/35 bg-sky-500/15 px-6 text-sky-50 hover:bg-sky-500/25 sm:mb-0.5"
+                  className="h-11 shrink-0 rounded-lg bg-[#ff5a5f] px-5 text-white hover:bg-[#e0484d] sm:mb-0.5"
                   onClick={() => void onSend()}
                 >
                   {busy ? p.sending : p.send}

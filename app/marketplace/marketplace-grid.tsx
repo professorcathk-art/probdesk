@@ -109,7 +109,7 @@ export function MarketplaceGrid({
               <Card
                 className={cn(
                   "border-[#eee] bg-white shadow-sm transition-shadow",
-                  isHi && "ring-2 ring-[#ff5b1f]/40",
+                  isHi && "ring-2 ring-[#ff5a5f]/40",
                 )}
               >
               <CardHeader className="gap-3">
@@ -146,7 +146,7 @@ export function MarketplaceGrid({
                 <MarketplaceListingIdentity listing={item} />
                 <Button
                   className={cn(
-                    "h-11 w-full rounded-lg bg-[#ff5b1f] text-white hover:bg-[#e84e12] disabled:opacity-60",
+                    "h-11 w-full rounded-lg bg-[#ff5a5f] text-white hover:bg-[#e0484d] disabled:opacity-60",
                     currentUserId &&
                       currentUserId !== item.user_id &&
                       !pending.has(item.id) &&

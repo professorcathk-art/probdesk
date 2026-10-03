@@ -150,7 +150,7 @@ export function LoginPageContent() {
     <div className="min-h-screen">
       <main className="mx-auto flex max-w-md flex-col gap-6 px-4 py-10 sm:py-16">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5b1f]">{L.kicker}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5a5f]">{L.kicker}</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#222]">{L.title}</h1>
           <p className="mt-2 text-sm leading-relaxed text-[#757575]">{L.sub}</p>
         </div>
@@ -200,7 +200,7 @@ export function LoginPageContent() {
               <Button
                 type="submit"
                 disabled={busy}
-                className="h-11 w-full rounded-lg bg-[#ff5b1f] text-white hover:bg-[#e84e12]"
+                className="h-11 w-full rounded-lg bg-[#ff5a5f] text-white hover:bg-[#e0484d]"
               >
                 {busy ? L.otpSending : L.otpSendCode}
               </Button>
@@ -230,14 +230,14 @@ export function LoginPageContent() {
               <Button
                 type="submit"
                 disabled={busy || digitsOnlyOtp(otp).length !== 8}
-                className="h-11 w-full rounded-lg bg-[#ff5b1f] text-white hover:bg-[#e84e12]"
+                className="h-11 w-full rounded-lg bg-[#ff5a5f] text-white hover:bg-[#e0484d]"
               >
                 {busy ? L.otpVerifying : L.otpVerify}
               </Button>
               <div className="flex flex-col gap-2 border-t border-[#eee] pt-4 sm:flex-row sm:items-center sm:justify-between">
                 <button
                   type="button"
-                  className="text-sm font-medium text-[#ff5b1f] underline-offset-4 hover:underline disabled:opacity-50"
+                  className="text-sm font-medium text-[#ff5a5f] underline-offset-4 hover:underline disabled:opacity-50"
                   disabled={busy}
                   onClick={() => void onResend()}
                 >

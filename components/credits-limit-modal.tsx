@@ -23,15 +23,15 @@ export function CreditsLimitModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-white/10 bg-slate-950/95 text-slate-50 shadow-[0_0_60px_rgba(56,189,248,0.08)] backdrop-blur-xl sm:max-w-md">
+      <DialogContent className="border-slate-200 bg-white text-slate-900 shadow-xl sm:max-w-md">
         <DialogHeader className="space-y-3">
-          <DialogTitle className="text-xl font-semibold tracking-tight text-white">{c.qualityTitle}</DialogTitle>
-          <DialogDescription className="text-base leading-relaxed text-slate-400">{c.qualityBody}</DialogDescription>
+          <DialogTitle className="text-xl font-semibold tracking-tight text-slate-900">{c.qualityTitle}</DialogTitle>
+          <DialogDescription className="text-base leading-relaxed text-slate-500">{c.qualityBody}</DialogDescription>
         </DialogHeader>
         <DialogFooter className="sm:justify-stretch">
           <Button
             type="button"
-            className="w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
+            className="h-11 w-full rounded-lg bg-[#ff5a5f] text-white hover:bg-[#e0484d]"
             onClick={() => onOpenChange(false)}
           >
             {c.gotIt}

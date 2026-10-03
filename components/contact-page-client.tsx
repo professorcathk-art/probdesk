@@ -58,7 +58,7 @@ export function ContactPageClient() {
   return (
     <main className="mx-auto min-h-screen w-full max-w-xl px-4 py-10 sm:px-6 sm:py-14 md:py-16">
       <div className="mb-8 space-y-3 sm:mb-10">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5b1f]">Vennode</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5a5f]">Vennode</p>
         <h1 className="font-[family-name:var(--font-heading)] text-2xl font-semibold tracking-tight text-[#222] sm:text-3xl">
           {C.title}
         </h1>
@@ -166,7 +166,7 @@ export function ContactPageClient() {
             disabled={status === "sending"}
             size="lg"
             className={cn(
-              "h-11 w-full rounded-lg bg-[#ff5b1f] text-white hover:bg-[#e84e12] sm:w-auto",
+              "h-11 w-full rounded-lg bg-[#ff5a5f] text-white hover:bg-[#e0484d] sm:w-auto",
             )}
           >
             {status === "sending" ? C.sending : C.submit}

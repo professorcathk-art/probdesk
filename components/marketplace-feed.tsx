@@ -47,7 +47,7 @@ export function MarketplaceFeed({
     <>
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5b1f]">{strings.marketplace.kicker}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5a5f]">{strings.marketplace.kicker}</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#222]">{strings.marketplace.title}</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#757575]">{strings.marketplace.description}</p>
           {currentUserId && strings.marketplace.personalizationHint.trim() ? (
@@ -63,7 +63,7 @@ export function MarketplaceFeed({
           <Link
             href="/console"
             prefetch={false}
-            className={cn(buttonVariants({ variant: "ghost" }), "text-[#ff5b1f] underline-offset-4 hover:underline")}
+            className={cn(buttonVariants({ variant: "ghost" }), "text-[#ff5a5f] underline-offset-4 hover:underline")}
           >
             {strings.marketplace.backManage}
           </Link>
@@ -81,7 +81,7 @@ export function MarketplaceFeed({
             prefetch={false}
             className={cn(
               buttonVariants({ variant: "default", size: "lg" }),
-              "mt-5 inline-flex h-11 rounded-lg bg-[#ff5b1f] text-white hover:bg-[#e84e12]",
+              "mt-5 inline-flex h-11 rounded-lg bg-[#ff5a5f] text-white hover:bg-[#e0484d]",
             )}
           >
             {strings.marketplace.guestPreviewCta}

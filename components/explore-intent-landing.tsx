@@ -1,15 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { CalendarClock, MapPin, ShieldCheck } from "lucide-react";
 import type { MarketplaceListing } from "@/actions/marketplace";
 import { IntentMustHavesCallout } from "@/components/intent-must-haves-callout";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
 import { MarketplaceListingIdentity } from "@/components/marketplace-listing-identity";
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/components/language-provider";
-import { cn } from "@/lib/utils";
+import { listingTitle, meetupKindFrom } from "@/lib/meetup";
+import { meetupCopy } from "@/lib/meetup-copy";
 
 type Props = {
   listing: MarketplaceListing;
@@ -17,77 +16,85 @@ type Props = {
 };
 
 export function ExploreIntentLanding({ listing, viewerUserId }: Props) {
-  const { strings } = useLanguage();
+  const { lang, strings } = useLanguage();
   const mp = strings.marketplace;
   const x = strings.exploreIntent;
-
+  const t = meetupCopy(lang);
+  const kind = meetupKindFrom(listing.natural_language_input, listing.must_haves);
+  const title = listingTitle(listing.natural_language_input);
   const isOwner = viewerUserId !== null && listing.user_id === viewerUserId;
-
   const primaryHref = !viewerUserId
     ? `/login?flow=pending_connect&connectIntent=${encodeURIComponent(listing.id)}`
     : isOwner
       ? "/console"
       : `/square?connectTo=${encodeURIComponent(listing.id)}`;
-
   const primaryLabel = isOwner ? x.ownerCta : x.sendInvite;
 
   return (
-    <div className="min-h-screen">
-      <main className="mx-auto flex w-full max-w-lg flex-col px-4 py-8 md:max-w-xl md:py-12">
-        <div className="mb-6 space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5b1f]">{x.kicker}</p>
-          <h1 className="text-balance text-2xl font-semibold tracking-tight text-[#222] md:text-3xl">{x.headline}</h1>
-          <p className="text-pretty text-sm leading-relaxed text-[#757575]">{x.subhead}</p>
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#ff5a5f]">{kind === "group" ? t.groups : t.oneToOne}</p>
+      <h1 className="mt-2 max-w-3xl text-[28px] font-bold leading-tight tracking-tight text-slate-900 sm:text-4xl">{title}</h1>
+      <div className="mt-4 flex items-center gap-3">
+        <LockedAvatarPreview />
+        <div>
+          <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+            {mp.anonymous}
+            <ShieldCheck className="h-4 w-4 text-[#ff5a5f]" aria-hidden />
+          </p>
+          <p className="text-xs text-slate-500">{mp.anonymousHint}</p>
         </div>
+      </div>
 
-        <Card className="w-full border-[#eee] bg-white shadow-sm">
-          <CardHeader className="gap-3 space-y-0">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <LockedAvatarPreview />
-                <div>
-                  <CardTitle className="text-lg text-[#222]">{mp.anonymous}</CardTitle>
-                  <CardDescription className="text-[#757575]">{mp.anonymousHint}</CardDescription>
-                </div>
-              </div>
-              <Badge variant="outline" className="shrink-0 border-[#eee] bg-[#fff1ea] text-xs text-[#c2410c]">
-                {listing.location_filter ?? mp.locationUnknown}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-5 pt-0">
-            <p className="text-base leading-relaxed text-[#222]">{listing.natural_language_input}</p>
+      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="space-y-4">
+          <div
+            className="relative h-52 overflow-hidden rounded-2xl sm:h-64"
+            style={{ background: kind === "group" ? "linear-gradient(135deg,#fb7185,#e11d48)" : "linear-gradient(135deg,#fda4af,#fb7185)" }}
+          >
+            <svg className="absolute inset-0 h-full w-full opacity-30" viewBox="0 0 400 220" aria-hidden>
+              <circle cx="70" cy="50" r="70" fill="white" />
+              <circle cx="320" cy="170" r="90" fill="white" />
+            </svg>
+          </div>
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-900">{lang === "zh" ? "這次想做的事" : "What this is about"}</h2>
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700 sm:text-base">{listing.natural_language_input}</p>
             {listing.must_haves?.trim() ? (
-              <IntentMustHavesCallout compact heading={x.expectationsHeading} body={listing.must_haves} />
+              <div className="mt-4">
+                <IntentMustHavesCallout heading={x.expectationsHeading} body={listing.must_haves} />
+              </div>
             ) : null}
-            <MarketplaceListingIdentity listing={listing} />
-          </CardContent>
-        </Card>
-
-        <div className="mt-10 flex w-full flex-col items-stretch gap-4 md:mt-12">
-          {!viewerUserId ? (
-            <p className="text-center text-xs leading-relaxed text-slate-500">{x.signingInNote}</p>
-          ) : null}
-          <Link
-            href={primaryHref}
-            className={cn(
-              buttonVariants({ size: "lg" }),
-              "inline-flex h-12 w-full items-center justify-center rounded-lg bg-[#ff5b1f] px-6 text-base font-semibold text-white hover:bg-[#e84e12]",
-            )}
-          >
-            {primaryLabel}
-          </Link>
-          <Link
-            href="/square"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "mx-auto text-sm text-[#757575] hover:bg-[#f4f4f4] hover:text-[#222]",
-            )}
-          >
-            {x.browseSquare}
-          </Link>
+            <div className="mt-4">
+              <MarketplaceListingIdentity listing={listing} />
+            </div>
+          </section>
         </div>
-      </main>
-    </div>
+
+        <aside className="lg:sticky lg:top-24">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <ul className="space-y-3 text-sm text-slate-700">
+              <li className="flex items-start gap-2">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#ff5a5f]" aria-hidden />
+                <span>{listing.location_filter ?? mp.locationUnknown}</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-[#ff5a5f]" aria-hidden />
+                <span>{kind === "group" ? t.groupsHint : t.oneToOneHint}</span>
+              </li>
+            </ul>
+            {!viewerUserId ? <p className="mt-4 text-xs leading-relaxed text-slate-500">{x.signingInNote}</p> : null}
+            <Link
+              href={primaryHref}
+              className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-lg bg-[#ff5a5f] text-base font-semibold text-white hover:bg-[#e0484d]"
+            >
+              {primaryLabel}
+            </Link>
+            <Link href="/square" className="mt-3 inline-flex h-10 w-full items-center justify-center text-sm font-medium text-slate-500 hover:text-slate-800">
+              {x.browseSquare}
+            </Link>
+          </div>
+        </aside>
+      </div>
+    </main>
   );
 }

@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { listMessengerThreads, resolveMessengerPeerFromMatch } from "@/actions/messenger";
-import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { MessagesPageClient } from "@/components/messages-page-client";
 import { getAuthContext } from "@/lib/auth-context";
 
@@ -33,9 +32,8 @@ export default async function MessagesPage({
   }
 
   return (
-    <div className="relative min-h-screen bg-[#070b16] text-slate-50">
-      <GalaxyBackdrop />
-      <main className="relative mx-auto flex max-w-6xl flex-col px-4 py-8 sm:px-6 md:py-10">
+    <div className="min-h-screen">
+      <main className="mx-auto flex max-w-6xl flex-col px-4 py-6 sm:px-6 md:py-8">
         <MessagesPageClient
           key={`${matchIdRaw}:${initialPeerId ?? ""}:${matchParamInvalid}`}
           userId={user.id}

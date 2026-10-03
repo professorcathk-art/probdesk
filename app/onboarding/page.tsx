@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { bootstrapIntentFromLanding, completeOnboarding } from "@/actions/intents";
 import { createClient } from "@/lib/supabase/client";
-import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -174,33 +173,31 @@ export default function OnboardingPage() {
 
   if (checkingAuth) {
     return (
-      <div className="relative min-h-screen bg-[#070b16] text-slate-50">
-        <GalaxyBackdrop />
-        <main className="mx-auto max-w-3xl px-6 py-24 text-slate-400">{ob.authChecking}</main>
+      <div className="min-h-screen text-slate-900">
+        <main className="mx-auto max-w-3xl px-6 py-24 text-slate-500">{ob.authChecking}</main>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen bg-[#070b16] text-slate-50">
-      <GalaxyBackdrop />
+    <div className="min-h-screen text-slate-900">
       <main className="mx-auto flex max-w-3xl flex-col gap-10 px-6 py-16 md:py-24">
         <header className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">{ob.kicker}</p>
-          <h1 className="text-3xl font-semibold tracking-tight text-white">{ob.title}</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#ff5a5f]">{ob.kicker}</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{ob.title}</h1>
           <p className="text-sm leading-relaxed text-slate-400">{ob.sub}</p>
         </header>
 
         {!intentId ? (
-          <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 backdrop-blur-xl">
-            <Label htmlFor="draft" className="text-slate-200">
+          <section className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 backdrop-blur-xl">
+            <Label htmlFor="draft" className="text-slate-700">
               {ob.intentSectionTitle}
             </Label>
             <Textarea
               id="draft"
               value={resolvedDraft}
               onChange={(e) => setDraftIntent(e.target.value)}
-              className="mt-3 min-h-[140px] border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500"
+              className="mt-3 min-h-[140px] border-slate-200 bg-white text-slate-900 placeholder:text-slate-500"
               placeholder={ob.intentPlaceholder}
             />
             <div className="mt-4 flex flex-wrap gap-3">
@@ -208,30 +205,30 @@ export default function OnboardingPage() {
                 type="button"
                 disabled={!canBootstrap || busy}
                 onClick={runBootstrap}
-                className="border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
+                className="bg-[#ff5a5f] text-white hover:bg-[#e0484d]"
               >
                 {busy ? ob.processing : ob.parseEmbedCta}
               </Button>
               <Link
                 href="/"
-                className={cn(buttonVariants({ variant: "ghost" }), "text-slate-300 hover:bg-white/5")}
+                className={cn(buttonVariants({ variant: "ghost" }), "text-slate-600 hover:bg-slate-100")}
               >
                 {ob.editLandingLink}
               </Link>
             </div>
           </section>
         ) : (
-          <section className="space-y-8 rounded-2xl border border-white/10 bg-white/[0.035] p-6 backdrop-blur-xl">
+          <section className="space-y-8 rounded-2xl border border-slate-200 bg-white shadow-sm p-6 backdrop-blur-xl">
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-white">{ob.enrichmentTitle}</h2>
+              <h2 className="text-lg font-semibold text-slate-900">{ob.enrichmentTitle}</h2>
               <div className="space-y-5">
                 {questions.map((q, idx) => (
                   <div key={`${idx}-${q.slice(0, 24)}`} className="space-y-2">
-                    <Label className="text-slate-200">{q}</Label>
+                    <Label className="text-slate-700">{q}</Label>
                     <Input
                       value={answers[idx] ?? ""}
                       onChange={(e) => setAnswers((prev) => ({ ...prev, [idx]: e.target.value }))}
-                      className="border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500"
+                      className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-500"
                     />
                   </div>
                 ))}
@@ -239,41 +236,41 @@ export default function OnboardingPage() {
             </div>
 
             <div className="space-y-3">
-              <h2 className="text-lg font-semibold text-white">{ob.profileGridTitle}</h2>
+              <h2 className="text-lg font-semibold text-slate-900">{ob.profileGridTitle}</h2>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-slate-200">{cx.profileDisplayName}</Label>
+                  <Label className="text-slate-700">{cx.profileDisplayName}</Label>
                   <Input
                     value={profile.display_name}
                     onChange={(e) => setProfile({ ...profile, display_name: e.target.value })}
-                    className="border-white/10 bg-white/[0.03] text-slate-50"
+                    className="border-slate-200 bg-white text-slate-900"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-slate-200">{cx.profileLocation}</Label>
+                  <Label className="text-slate-700">{cx.profileLocation}</Label>
                   <Input
                     value={profile.location}
                     onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                    className="border-white/10 bg-white/[0.03] text-slate-50"
+                    className="border-slate-200 bg-white text-slate-900"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-slate-200">{cx.profileIndustry}</Label>
+                  <Label className="text-slate-700">{cx.profileIndustry}</Label>
                   <Input
                     value={profile.industry}
                     onChange={(e) => setProfile({ ...profile, industry: e.target.value })}
-                    className="border-white/10 bg-white/[0.03] text-slate-50"
+                    className="border-slate-200 bg-white text-slate-900"
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label className="text-slate-200">{pr.superpowerLabel}</Label>
+                  <Label className="text-slate-700">{pr.superpowerLabel}</Label>
                   <p className="text-xs leading-relaxed text-slate-500">{pr.superpowerDesc}</p>
                   <Textarea
                     value={profile.superpower}
                     maxLength={PROFILE_SUPERPOWER_MAX}
                     onChange={(e) => setProfile({ ...profile, superpower: e.target.value })}
                     placeholder={pr.superpowerPlaceholder}
-                    className="min-h-[88px] border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500"
+                    className="min-h-[88px] border-slate-200 bg-white text-slate-900 placeholder:text-slate-500"
                   />
                   <p className="text-xs text-slate-500">
                     {profile.superpower.trim().length}/{PROFILE_SUPERPOWER_MAX}
@@ -284,12 +281,12 @@ export default function OnboardingPage() {
                   </p>
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label className="text-slate-200">{ob.genderLabel}</Label>
+                  <Label className="text-slate-700">{ob.genderLabel}</Label>
                   <select
                     value={profile.gender}
                     onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
                     className={cn(
-                      "h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-slate-50 outline-none focus-visible:border-sky-400/40 focus-visible:ring-2 focus-visible:ring-sky-500/30",
+                      "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-[#ff5a5f]/30",
                     )}
                   >
                     <option value="">{cx.genderUnset}</option>
@@ -301,18 +298,18 @@ export default function OnboardingPage() {
                   </select>
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label className="text-slate-200">{cx.profileBio}</Label>
+                  <Label className="text-slate-700">{cx.profileBio}</Label>
                   <Textarea
                     value={profile.bio}
                     onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                    className="border-white/10 bg-white/[0.03] text-slate-50"
+                    className="border-slate-200 bg-white text-slate-900"
                   />
                   <p className="text-xs text-slate-500">
                     {ob.bioMinHint.replace(/\{min\}/g, String(PROFILE_CORE_MIN_BIO_LENGTH))}
                   </p>
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label className="text-slate-200">{pr.skillsTraitsLabel}</Label>
+                  <Label className="text-slate-700">{pr.skillsTraitsLabel}</Label>
                   <p className="text-xs leading-relaxed text-slate-500">{pr.skillsTraitsDesc}</p>
                   <TagInputField
                     ref={skillsRef}
@@ -323,7 +320,7 @@ export default function OnboardingPage() {
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label className="text-slate-200">{pr.languagesLabel}</Label>
+                  <Label className="text-slate-700">{pr.languagesLabel}</Label>
                   <p className="text-xs leading-relaxed text-slate-500">{pr.languagesDesc}</p>
                   <TagInputField
                     ref={langsRef}
@@ -336,12 +333,12 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            <div className="space-y-3 rounded-xl border border-white/10 bg-black/25 p-4">
-              <p className="text-sm font-medium text-white">{ob.contactSectionTitle}</p>
+            <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm font-medium text-slate-900">{ob.contactSectionTitle}</p>
               <p className="text-xs leading-relaxed text-slate-500">{ob.contactPrivacyNote}</p>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-slate-200">{ob.contactChannelLabel}</Label>
+                  <Label className="text-slate-700">{ob.contactChannelLabel}</Label>
                   <select
                     value={profile.preferred_contact_channel}
                     onChange={(e) =>
@@ -351,7 +348,7 @@ export default function OnboardingPage() {
                       }))
                     }
                     className={cn(
-                      "h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-slate-50 outline-none focus-visible:border-sky-400/40 focus-visible:ring-2 focus-visible:ring-sky-500/30",
+                      "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-[#ff5a5f]/30",
                     )}
                   >
                     <option value="">{ob.contactChannelUnset}</option>
@@ -361,12 +358,12 @@ export default function OnboardingPage() {
                   </select>
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label className="text-slate-200">{ob.contactDetailLabel}</Label>
+                  <Label className="text-slate-700">{ob.contactDetailLabel}</Label>
                   <Input
                     value={profile.preferred_contact_detail}
                     onChange={(e) => setProfile((p) => ({ ...p, preferred_contact_detail: e.target.value }))}
                     placeholder={ob.contactDetailPlaceholder}
-                    className="border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500"
+                    className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-500"
                     autoComplete="off"
                   />
                 </div>
@@ -377,7 +374,7 @@ export default function OnboardingPage() {
               type="button"
               disabled={busy}
               onClick={onFinish}
-              className="border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
+              className="bg-[#ff5a5f] text-white hover:bg-[#e0484d]"
             >
               {busy ? ob.saving : ob.activateCta}
             </Button>

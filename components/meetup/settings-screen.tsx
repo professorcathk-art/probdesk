@@ -127,7 +127,7 @@ export function SettingsScreen({ identity }: { identity: ProfileIdentity }) {
                 key={tag}
                 type="button"
                 onClick={() => toggle(tag)}
-                className={`min-h-11 rounded-full px-3 text-sm ${tags.includes(tag) ? "bg-[#ff5b1f] text-white" : "bg-[#fff1ea] text-[#c2410c]"}`}
+                className={`min-h-11 rounded-full px-3 text-sm ${tags.includes(tag) ? "bg-[#ff5a5f] text-white" : "bg-[#fff1ea] text-[#c2410c]"}`}
               >
                 {tag}
               </button>
@@ -161,7 +161,7 @@ export function SettingsScreen({ identity }: { identity: ProfileIdentity }) {
           {t.superpower}
           <textarea value={superpower} onChange={(event) => setSuperpower(event.target.value)} className="mt-1 min-h-20 w-full rounded-2xl border border-[#e6e6e6] px-3 py-2 text-base" />
         </label>
-        <button type="submit" disabled={busy} className="min-h-11 rounded-full bg-[#ff5b1f] px-4 text-sm font-medium text-white disabled:opacity-60">
+        <button type="submit" disabled={busy} className="min-h-11 rounded-full bg-[#ff5a5f] px-4 text-sm font-medium text-white disabled:opacity-60">
           {busy ? t.saving : t.save}
         </button>
         {saved ? <p className="text-sm text-emerald-700">{t.saved}</p> : null}

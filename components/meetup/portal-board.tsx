@@ -76,15 +76,15 @@ export function PortalBoard({
     <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{kind === "group" ? t.groups : t.oneToOne}</h1>
-        <Link href="/create" className="inline-flex min-h-11 items-center rounded-full bg-[#ff5b1f] hover:bg-[#e84e12] px-4 text-sm font-medium text-white">
+        <Link href="/create" className="inline-flex min-h-11 items-center rounded-full bg-[#ff5a5f] hover:bg-[#e0484d] px-4 text-sm font-medium text-white">
           {t.publish}
         </Link>
       </div>
       <div className="mt-4 flex gap-2 text-sm">
-        <Link href="/portal/one-to-one" className={`inline-flex min-h-11 items-center rounded-full px-3 ${kind === "one_to_one" ? "bg-[#ff5b1f] hover:bg-[#e84e12] text-white" : "bg-white text-slate-600"}`}>
+        <Link href="/portal/one-to-one" className={`inline-flex min-h-11 items-center rounded-full px-3 ${kind === "one_to_one" ? "bg-[#ff5a5f] hover:bg-[#e0484d] text-white" : "bg-white text-slate-600"}`}>
           {t.oneToOne}
         </Link>
-        <Link href="/portal/groups" className={`inline-flex min-h-11 items-center rounded-full px-3 ${kind === "group" ? "bg-[#ff5b1f] hover:bg-[#e84e12] text-white" : "bg-white text-slate-600"}`}>
+        <Link href="/portal/groups" className={`inline-flex min-h-11 items-center rounded-full px-3 ${kind === "group" ? "bg-[#ff5a5f] hover:bg-[#e0484d] text-white" : "bg-white text-slate-600"}`}>
           {t.groups}
         </Link>
         <Link href="/portal/settings" className="inline-flex min-h-11 items-center rounded-full bg-white px-3 text-slate-600">
@@ -120,22 +120,22 @@ export function PortalBoard({
           {incoming.map((match) => (
             <li key={match.id} className="rounded-2xl border border-[#eee] bg-white p-4">
               <p className="text-sm leading-6 text-slate-700">{match.introductory_context || statusLabel(match.status, t)}</p>
-              <p className="mt-2 text-xs font-medium text-[#ff5b1f]">{statusLabel(match.status, t)}</p>
+              <p className="mt-2 text-xs font-medium text-[#ff5a5f]">{statusLabel(match.status, t)}</p>
               {match.status === "Accepted" ? (
-                <Link href="/messages" className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[#ff5b1f]">
+                <Link href="/messages" className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[#ff5a5f]">
                   {t.openChat}
                 </Link>
               ) : (
                 <p className="mt-2 text-xs text-slate-500">{t.locked}</p>
               )}
               {match.status === "Pending_System" ? (
-                <Link href="/console?tab=requests" className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[#ff5b1f]">
+                <Link href="/console?tab=requests" className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[#ff5a5f]">
                   {t.advanced}
                 </Link>
               ) : null}
               {match.status === "Pending" ? (
                 <div className="mt-3 flex gap-2">
-                  <button type="button" disabled={busyId === match.id} onClick={() => void onDecision(match.id, "Accepted")} className="min-h-11 rounded-full bg-[#ff5b1f] hover:bg-[#e84e12] px-4 text-sm text-white">
+                  <button type="button" disabled={busyId === match.id} onClick={() => void onDecision(match.id, "Accepted")} className="min-h-11 rounded-full bg-[#ff5a5f] hover:bg-[#e0484d] px-4 text-sm text-white">
                     {t.approve}
                   </button>
                   <button type="button" disabled={busyId === match.id} onClick={() => void onDecision(match.id, "Rejected")} className="min-h-11 rounded-full border border-[#e6e6e6] px-4 text-sm text-slate-700">
@@ -155,9 +155,9 @@ export function PortalBoard({
           {outgoing.map((match) => (
             <li key={match.id} className="rounded-2xl border border-[#eee] bg-white p-4">
               <p className="text-sm leading-6 text-slate-700">{match.introductory_context || statusLabel(match.status, t)}</p>
-              <p className="mt-2 text-xs font-medium text-[#ff5b1f]">{statusLabel(match.status, t)}</p>
+              <p className="mt-2 text-xs font-medium text-[#ff5a5f]">{statusLabel(match.status, t)}</p>
               {match.status === "Accepted" ? (
-                <Link href="/messages" className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[#ff5b1f]">
+                <Link href="/messages" className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[#ff5a5f]">
                   {t.openChat}
                 </Link>
               ) : (

@@ -36,7 +36,7 @@ export function DropdownMenuContent({
       >
         <Menu.Popup
           className={cn(
-            "z-[500] min-w-[11rem] overflow-hidden rounded-xl border border-white/15 bg-slate-950 py-1 text-slate-200 shadow-2xl outline-none",
+            "z-[500] min-w-[11rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-slate-800 shadow-xl outline-none",
           )}
         >
           {children}
@@ -53,7 +53,7 @@ export function DropdownMenuItem({
   return (
     <Menu.Item
       className={cn(
-        "flex cursor-pointer select-none px-3 py-2 text-sm text-slate-200 outline-none data-highlighted:bg-white/[0.08]",
+        "flex cursor-pointer select-none px-3 py-2 text-sm text-slate-800 outline-none data-highlighted:bg-slate-100",
         className,
       )}
       {...props}
@@ -62,7 +62,7 @@ export function DropdownMenuItem({
 }
 
 export function DropdownMenuSeparator() {
-  return <Menu.Separator className="my-1 h-px bg-white/10" />;
+  return <Menu.Separator className="my-1 h-px bg-slate-200" />;
 }
 
 export function DropdownMenuLinkItem({
@@ -74,7 +74,7 @@ export function DropdownMenuLinkItem({
     <Menu.LinkItem
       closeOnClick={closeOnClick}
       className={cn(
-        "flex cursor-pointer select-none px-3 py-2 text-sm text-slate-200 no-underline outline-none data-highlighted:bg-white/[0.08]",
+        "flex cursor-pointer select-none px-3 py-2 text-sm text-slate-800 no-underline outline-none data-highlighted:bg-slate-100",
         className,
       )}
       {...props}
