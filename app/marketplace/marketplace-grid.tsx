@@ -126,7 +126,7 @@ export function MarketplaceGrid({
                       {item.recommended ? (
                         <Badge
                           variant="outline"
-                          className="border-[#ffd7c4] bg-[#fff1ea] text-[10px] font-medium tracking-tight text-[#c2410c]"
+                          className="border-rose-100 bg-rose-50 text-[10px] font-medium tracking-tight text-[#e0484d]"
                           title={mp.recommendedBadge}
                         >
                           {mp.recommendedBadge}

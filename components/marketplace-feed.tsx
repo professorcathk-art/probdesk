@@ -73,7 +73,7 @@ export function MarketplaceFeed({
       </header>
 
       {guestListingsCapped && !currentUserId ? (
-        <div className="rounded-2xl border border-[#ffd7c4] bg-[#fff1ea] px-5 py-6">
+        <div className="rounded-2xl border border-rose-100 bg-rose-50 px-5 py-6">
           <h2 className="text-lg font-semibold text-[#222]">{strings.marketplace.guestPreviewTitle}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#555]">{strings.marketplace.guestPreviewBody}</p>
           <Link

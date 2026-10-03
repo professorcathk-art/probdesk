@@ -142,17 +142,17 @@ export function SiteNav({
             <button type="button" onClick={() => setLang(lang === "zh" ? "en" : "zh")} className="mt-4 min-h-11 text-left text-sm font-medium text-slate-700">
               {lang === "zh" ? "English" : "繁體中文"}
             </button>
-            <Link href="/?type=one_to_one" className="min-h-11 py-2 text-sm font-medium text-slate-900" onClick={() => setOpen(false)}>
-              {t.oneToOne}
-            </Link>
-            <Link href="/?type=group" className="min-h-11 py-2 text-sm font-medium text-slate-900" onClick={() => setOpen(false)}>
-              {t.groups}
-            </Link>
-            <Link href="/square" className="min-h-11 py-2 text-sm font-medium text-slate-900" onClick={() => setOpen(false)}>
-              {t.explore}
-            </Link>
             {!isAuthenticated ? (
               <>
+                <Link href="/?type=one_to_one" className="min-h-11 py-2 text-sm font-medium text-slate-900" onClick={() => setOpen(false)}>
+                  {t.oneToOne}
+                </Link>
+                <Link href="/?type=group" className="min-h-11 py-2 text-sm font-medium text-slate-900" onClick={() => setOpen(false)}>
+                  {t.groups}
+                </Link>
+                <Link href="/square" className="min-h-11 py-2 text-sm font-medium text-slate-900" onClick={() => setOpen(false)}>
+                  {t.explore}
+                </Link>
                 <Link href="/login?after=%2F" className="min-h-11 py-2 text-sm font-medium text-slate-900" onClick={() => setOpen(false)}>
                   {t.login}
                 </Link>

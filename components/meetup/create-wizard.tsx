@@ -40,7 +40,7 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
       setError(t.needPlace);
       return;
     }
-    if (kind === "group" && !when.trim()) {
+    if (kind === "group" && !when.trim() && !editing) {
       setError(t.needWhen);
       return;
     }
@@ -63,7 +63,7 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
   async function publish() {
     const text = body.trim();
     if (text.length < 12) {
-      setError(t.needWho);
+      setError(t.needBody);
       return;
     }
     setBusy(true);
@@ -161,10 +161,10 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
         <div className="mt-6 space-y-4 rounded-2xl shadow-sm border border-[#eee] bg-white p-5">
           <p className="text-sm text-slate-500">{t.aiNote}</p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => writeWithHelper(false)} className="min-h-11 rounded-full border border-[#ffd7c4] px-4 text-sm font-medium text-[#c2410c]">
+            <button type="button" onClick={() => writeWithHelper(false)} className="min-h-11 rounded-full border border-rose-200 px-4 text-sm font-medium text-[#e0484d]">
               {t.aiDraft}
             </button>
-            <button type="button" onClick={() => writeWithHelper(true)} className="min-h-11 rounded-full border border-[#ffd7c4] px-4 text-sm font-medium text-[#c2410c]">
+            <button type="button" onClick={() => writeWithHelper(true)} className="min-h-11 rounded-full border border-rose-200 px-4 text-sm font-medium text-[#e0484d]">
               {t.aiPolish}
             </button>
           </div>

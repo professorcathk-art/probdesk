@@ -1,7 +1,7 @@
 export type MeetupKind = "one_to_one" | "group";
 
 const GROUP_HINT =
-  /群組|活動|聚會|工作坊|一起|group|meetup|event|workshop|hike|hiking|散步|讀書會/i;
+  /群組|聚會|工作坊|讀書會|group\s+event|group\s+meetup|workshop/i;
 
 export function meetupKindFrom(text: string, mustHaves?: string | null): MeetupKind {
   const must = mustHaves ?? "";

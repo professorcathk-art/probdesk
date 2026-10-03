@@ -35,29 +35,27 @@ export function MarketplaceListingIdentity({ listing, density = "default", class
     return <p className={cn("mt-2 line-clamp-2 text-[11px] leading-snug text-slate-500", className)}>{parts.join(" · ")}</p>;
   }
 
+  if (!genderLine && kw.length === 0) return null;
+
   return (
     <div className={cn("space-y-2", className)}>
       {genderLine ? (
-        <p className="text-xs text-slate-400">
-          <span className="font-medium text-slate-500">{mp.publicGenderLabel}</span> {genderLine}
+        <p className="text-xs text-slate-600">
+          <span className="font-medium text-slate-800">{mp.publicGenderLabel}</span> {genderLine}
         </p>
-      ) : (
-        <p className="text-xs italic text-slate-600">{mp.publicGenderUnset}</p>
-      )}
-      <div>
-        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500">{mp.publicInterestsLabel}</p>
-        {kw.length > 0 ? (
+      ) : null}
+      {kw.length > 0 ? (
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500">{mp.publicInterestsLabel}</p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {kw.map((tag) => (
-              <Badge key={tag} variant="outline" className="border-white/12 bg-black/20 text-[11px] font-normal text-slate-300">
+              <Badge key={tag} variant="outline" className="border-rose-100 bg-rose-50 text-[11px] font-normal text-slate-700">
                 {tag}
               </Badge>
             ))}
           </div>
-        ) : (
-          <p className="mt-1 text-xs text-slate-600">{mp.noInterestTags}</p>
-        )}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }

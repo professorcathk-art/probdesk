@@ -7,6 +7,7 @@ import { IntentMustHavesCallout } from "@/components/intent-must-haves-callout";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
 import { MarketplaceListingIdentity } from "@/components/marketplace-listing-identity";
 import { useLanguage } from "@/components/language-provider";
+import { meetupCoverSrc } from "@/lib/meetup-cover";
 import { listingTitle, meetupKindFrom } from "@/lib/meetup";
 import { meetupCopy } from "@/lib/meetup-copy";
 
@@ -47,14 +48,13 @@ export function ExploreIntentLanding({ listing, viewerUserId }: Props) {
 
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-4">
-          <div
-            className="relative h-52 overflow-hidden rounded-2xl sm:h-64"
-            style={{ background: kind === "group" ? "linear-gradient(135deg,#fb7185,#e11d48)" : "linear-gradient(135deg,#fda4af,#fb7185)" }}
-          >
-            <svg className="absolute inset-0 h-full w-full opacity-30" viewBox="0 0 400 220" aria-hidden>
-              <circle cx="70" cy="50" r="70" fill="white" />
-              <circle cx="320" cy="170" r="90" fill="white" />
-            </svg>
+          <div className="relative h-52 overflow-hidden rounded-2xl bg-slate-100 sm:h-64">
+            {/* eslint-disable-next-line @next/next/no-img-element -- local cover photo */}
+            <img
+              src={meetupCoverSrc(`${listing.natural_language_input}\n${listing.must_haves ?? ""}`, listing.id)}
+              alt=""
+              className="h-full w-full object-cover"
+            />
           </div>
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900">{lang === "zh" ? "這次想做的事" : "What this is about"}</h2>

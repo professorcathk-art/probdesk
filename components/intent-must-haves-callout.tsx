@@ -21,13 +21,13 @@ export function IntentMustHavesCallout({
   return (
     <div
       className={cn(
-        "flex gap-2 rounded-lg border border-emerald-400/15 bg-emerald-500/[0.06]",
+        "flex gap-2 rounded-lg border border-emerald-100 bg-emerald-50",
         compact ? "px-2 py-1.5" : "px-3 py-2.5",
         className,
       )}
     >
       <CheckCircle2
-        className={cn("mt-0.5 shrink-0 text-emerald-400/75", compact ? "h-3.5 w-3.5" : "h-4 w-4")}
+        className={cn("mt-0.5 shrink-0 text-emerald-600", compact ? "h-3.5 w-3.5" : "h-4 w-4")}
         aria-hidden
       />
       <div className="min-w-0">
@@ -36,7 +36,7 @@ export function IntentMustHavesCallout({
         </p>
         <p
           className={cn(
-            "leading-relaxed text-slate-400",
+            "leading-relaxed text-slate-700",
             compact ? "mt-0.5 text-xs line-clamp-2" : "mt-1 text-sm",
           )}
         >

@@ -101,7 +101,7 @@ export function PortalBoard({
               <p className="font-medium text-slate-900">{listingTitle(intent.natural_language_input)}</p>
               {intent.location_filter ? <p className="mt-1 text-sm text-slate-500">{intent.location_filter}</p> : null}
               <div className="mt-3 flex flex-wrap gap-2">
-                <Link href={`/create?edit=${intent.id}`} className="inline-flex min-h-11 items-center rounded-full border border-[#e6e6e6] px-3 text-sm text-[#c2410c]">
+                <Link href={`/create?edit=${intent.id}`} className="inline-flex min-h-11 items-center rounded-full border border-rose-200 px-3 text-sm text-[#e0484d]">
                   {t.editTitle}
                 </Link>
                 <button type="button" disabled={busyId === intent.id} onClick={() => void toggle(intent)} className="min-h-11 rounded-full px-3 text-sm text-slate-600">
