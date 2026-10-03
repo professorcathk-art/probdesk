@@ -108,8 +108,8 @@ export function MarketplaceGrid({
             >
               <Card
                 className={cn(
-                  "border-white/10 bg-white/[0.035] backdrop-blur-xl transition-shadow",
-                  isHi && "ring-2 ring-sky-400/45 shadow-[0_0_28px_rgba(56,189,248,0.18)]",
+                  "border-[#eee] bg-white shadow-sm transition-shadow",
+                  isHi && "ring-2 ring-[#ff5b1f]/40",
                 )}
               >
               <CardHeader className="gap-3">
@@ -117,7 +117,7 @@ export function MarketplaceGrid({
                   <div className="flex items-center gap-3">
                     <LockedAvatarPreview />
                     <div>
-                      <CardTitle className="text-base text-slate-200">{mp.anonymous}</CardTitle>
+                      <CardTitle className="text-base text-[#222]">{mp.anonymous}</CardTitle>
                       <CardDescription className="text-slate-500">{mp.anonymousHint}</CardDescription>
                     </div>
                   </div>
@@ -126,13 +126,13 @@ export function MarketplaceGrid({
                       {item.recommended ? (
                         <Badge
                           variant="outline"
-                          className="border-amber-400/25 text-[10px] font-medium tracking-tight text-amber-100/85"
+                          className="border-[#ffd7c4] bg-[#fff1ea] text-[10px] font-medium tracking-tight text-[#c2410c]"
                           title={mp.recommendedBadge}
                         >
                           {mp.recommendedBadge}
                         </Badge>
                       ) : null}
-                      <Badge variant="outline" className="border-white/15 text-slate-200">
+                      <Badge variant="outline" className="border-[#eee] text-[#555]">
                         {item.location_filter ?? mp.locationUnknown}
                       </Badge>
                     </div>
@@ -141,12 +141,12 @@ export function MarketplaceGrid({
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-sm leading-relaxed text-slate-200">{item.natural_language_input}</p>
+                <p className="text-sm leading-relaxed text-[#333]">{item.natural_language_input}</p>
                 <IntentMustHavesCallout heading={mp.mustHavesHeading} body={item.must_haves ?? ""} />
                 <MarketplaceListingIdentity listing={item} />
                 <Button
                   className={cn(
-                    "w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 disabled:opacity-60",
+                    "h-11 w-full rounded-lg bg-[#ff5b1f] text-white hover:bg-[#e84e12] disabled:opacity-60",
                     currentUserId &&
                       currentUserId !== item.user_id &&
                       !pending.has(item.id) &&

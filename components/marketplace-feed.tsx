@@ -47,9 +47,9 @@ export function MarketplaceFeed({
     <>
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">{strings.marketplace.kicker}</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">{strings.marketplace.title}</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">{strings.marketplace.description}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5b1f]">{strings.marketplace.kicker}</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#222]">{strings.marketplace.title}</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#757575]">{strings.marketplace.description}</p>
           {currentUserId && strings.marketplace.personalizationHint.trim() ? (
             <p className="mt-2 max-w-2xl text-xs leading-relaxed text-slate-500">{strings.marketplace.personalizationHint}</p>
           ) : null}
@@ -63,7 +63,7 @@ export function MarketplaceFeed({
           <Link
             href="/console"
             prefetch={false}
-            className={cn(buttonVariants({ variant: "ghost" }), "text-sky-300/90 underline-offset-4 hover:underline")}
+            className={cn(buttonVariants({ variant: "ghost" }), "text-[#ff5b1f] underline-offset-4 hover:underline")}
           >
             {strings.marketplace.backManage}
           </Link>
@@ -73,15 +73,15 @@ export function MarketplaceFeed({
       </header>
 
       {guestListingsCapped && !currentUserId ? (
-        <div className="rounded-2xl border border-sky-400/30 bg-gradient-to-br from-sky-500/15 to-transparent px-5 py-6 shadow-[0_0_40px_rgba(56,189,248,0.08)]">
-          <h2 className="text-lg font-semibold text-white">{strings.marketplace.guestPreviewTitle}</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">{strings.marketplace.guestPreviewBody}</p>
+        <div className="rounded-2xl border border-[#ffd7c4] bg-[#fff1ea] px-5 py-6">
+          <h2 className="text-lg font-semibold text-[#222]">{strings.marketplace.guestPreviewTitle}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#555]">{strings.marketplace.guestPreviewBody}</p>
           <Link
             href={`/login?after=${encodeURIComponent(exploreBasePath)}`}
             prefetch={false}
             className={cn(
               buttonVariants({ variant: "default", size: "lg" }),
-              "galaxy-btn-glow mt-5 inline-flex border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25",
+              "mt-5 inline-flex h-11 rounded-lg bg-[#ff5b1f] text-white hover:bg-[#e84e12]",
             )}
           >
             {strings.marketplace.guestPreviewCta}
@@ -91,7 +91,7 @@ export function MarketplaceFeed({
       ) : null}
 
       {loadError ? (
-        <p className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           {strings.marketplace.loadErrorPrefix} {loadError}
         </p>
       ) : null}

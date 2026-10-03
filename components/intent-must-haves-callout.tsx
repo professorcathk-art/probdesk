@@ -12,7 +12,11 @@ export function IntentMustHavesCallout({
   compact?: boolean;
   className?: string;
 }) {
-  const trimmedBody = body.trim();
+  const trimmedBody = body
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("post_type:"))
+    .join("\n")
+    .trim();
   if (!trimmedBody) return null;
   return (
     <div

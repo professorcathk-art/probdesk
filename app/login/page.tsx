@@ -3,7 +3,7 @@ import { LoginPageContent } from "@/components/login-page-content";
 
 function LoginFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
+    <div className="flex min-h-screen items-center justify-center text-[#757575]">
       <p className="text-sm">Loading…</p>
     </div>
   );

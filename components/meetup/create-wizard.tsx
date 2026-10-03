@@ -100,7 +100,7 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
         {progress.map((label, index) => (
           <li
             key={label}
-            className={`min-h-11 flex-1 rounded-full px-3 py-2 text-center text-xs font-medium ${index === step ? "bg-violet-600 text-white" : "bg-white text-slate-500"}`}
+            className={`min-h-11 flex-1 rounded-full px-3 py-2 text-center text-xs font-medium ${index === step ? "bg-[#ff5b1f] text-white" : "bg-white text-slate-500"}`}
           >
             {index + 1}. {label}
           </li>
@@ -109,45 +109,45 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
 
       {step === 0 ? (
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <button type="button" onClick={() => setKind("one_to_one")} className={`rounded-3xl border p-5 text-left ${kind === "one_to_one" ? "border-violet-500 bg-violet-50" : "border-violet-100 bg-white"}`}>
+          <button type="button" onClick={() => setKind("one_to_one")} className={`rounded-2xl border p-5 shadow-sm text-left ${kind === "one_to_one" ? "border-[#ff5b1f] bg-[#fff1ea]" : "border-[#eee] bg-white"}`}>
             <p className="font-semibold text-slate-900">{t.oneToOne}</p>
             <p className="mt-1 text-sm text-slate-500">{t.oneToOneHint}</p>
           </button>
-          <button type="button" onClick={() => setKind("group")} className={`rounded-3xl border p-5 text-left ${kind === "group" ? "border-violet-500 bg-violet-50" : "border-violet-100 bg-white"}`}>
+          <button type="button" onClick={() => setKind("group")} className={`rounded-2xl border p-5 shadow-sm text-left ${kind === "group" ? "border-[#ff5b1f] bg-[#fff1ea]" : "border-[#eee] bg-white"}`}>
             <p className="font-semibold text-slate-900">{t.groups}</p>
             <p className="mt-1 text-sm text-slate-500">{t.groupsHint}</p>
           </button>
-          <button type="button" onClick={goDetails} className="min-h-11 rounded-full bg-violet-600 px-4 text-sm font-medium text-white sm:col-span-2">
+          <button type="button" onClick={goDetails} className="min-h-11 rounded-lg bg-[#ff5b1f] hover:bg-[#e84e12] px-4 text-sm font-medium text-white sm:col-span-2">
             {t.next}
           </button>
         </div>
       ) : null}
 
       {step === 1 ? (
-        <div className="mt-6 space-y-4 rounded-3xl border border-violet-100 bg-white p-5">
+        <div className="mt-6 space-y-4 rounded-2xl shadow-sm border border-[#eee] bg-white p-5">
           <label className="block text-sm font-medium text-slate-800">
             {t.title}
-            <input value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1 h-11 w-full rounded-2xl border border-violet-100 px-3 text-base" />
+            <input value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1 h-11 w-full rounded-2xl border border-[#e6e6e6] px-3 text-base" />
           </label>
           <label className="block text-sm font-medium text-slate-800">
             {t.place}
-            <input value={place} onChange={(event) => setPlace(event.target.value)} placeholder={t.online} className="mt-1 h-11 w-full rounded-2xl border border-violet-100 px-3 text-base" />
+            <input value={place} onChange={(event) => setPlace(event.target.value)} placeholder={t.online} className="mt-1 h-11 w-full rounded-2xl border border-[#e6e6e6] px-3 text-base" />
           </label>
           {kind === "group" ? (
             <label className="block text-sm font-medium text-slate-800">
               {t.when}
-              <input value={when} onChange={(event) => setWhen(event.target.value)} className="mt-1 h-11 w-full rounded-2xl border border-violet-100 px-3 text-base" />
+              <input value={when} onChange={(event) => setWhen(event.target.value)} className="mt-1 h-11 w-full rounded-2xl border border-[#e6e6e6] px-3 text-base" />
             </label>
           ) : null}
           <label className="block text-sm font-medium text-slate-800">
             {t.who}
-            <textarea value={who} onChange={(event) => setWho(event.target.value)} className="mt-1 min-h-28 w-full rounded-2xl border border-violet-100 px-3 py-2 text-base" />
+            <textarea value={who} onChange={(event) => setWho(event.target.value)} className="mt-1 min-h-28 w-full rounded-2xl border border-[#e6e6e6] px-3 py-2 text-base" />
           </label>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setStep(0)} className="min-h-11 rounded-full px-4 text-sm text-slate-600">
               {t.back}
             </button>
-            <button type="button" onClick={goPreview} className="min-h-11 rounded-full bg-violet-600 px-4 text-sm font-medium text-white">
+            <button type="button" onClick={goPreview} className="min-h-11 rounded-lg bg-[#ff5b1f] hover:bg-[#e84e12] px-4 text-sm font-medium text-white">
               {t.next}
             </button>
           </div>
@@ -155,22 +155,22 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
       ) : null}
 
       {step === 2 ? (
-        <div className="mt-6 space-y-4 rounded-3xl border border-violet-100 bg-white p-5">
+        <div className="mt-6 space-y-4 rounded-2xl shadow-sm border border-[#eee] bg-white p-5">
           <p className="text-sm text-slate-500">{t.aiNote}</p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => writeWithHelper(false)} className="min-h-11 rounded-full border border-violet-200 px-4 text-sm text-violet-800">
+            <button type="button" onClick={() => writeWithHelper(false)} className="min-h-11 rounded-full border border-[#ffd7c4] px-4 text-sm font-medium text-[#c2410c]">
               {t.aiDraft}
             </button>
-            <button type="button" onClick={() => writeWithHelper(true)} className="min-h-11 rounded-full border border-violet-200 px-4 text-sm text-violet-800">
+            <button type="button" onClick={() => writeWithHelper(true)} className="min-h-11 rounded-full border border-[#ffd7c4] px-4 text-sm font-medium text-[#c2410c]">
               {t.aiPolish}
             </button>
           </div>
-          <textarea value={body} onChange={(event) => setBody(event.target.value)} className="min-h-48 w-full rounded-2xl border border-violet-100 px-3 py-2 text-base" />
+          <textarea value={body} onChange={(event) => setBody(event.target.value)} className="min-h-48 w-full rounded-2xl border border-[#e6e6e6] px-3 py-2 text-base" />
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setStep(1)} className="min-h-11 rounded-full px-4 text-sm text-slate-600">
               {t.back}
             </button>
-            <button type="button" disabled={busy} onClick={() => void publish()} className="min-h-11 rounded-full bg-violet-600 px-4 text-sm font-medium text-white disabled:opacity-60">
+            <button type="button" disabled={busy} onClick={() => void publish()} className="min-h-11 rounded-lg bg-[#ff5b1f] hover:bg-[#e84e12] px-4 text-sm font-medium text-white disabled:opacity-60">
               {busy ? t.saving : t.publishNow}
             </button>
           </div>

@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { signInWithGoogle } from "@/actions/auth";
 import { createClient } from "@/lib/supabase/client";
-import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -148,17 +147,16 @@ export function LoginPageContent() {
   const maskedEmail = maskEmailForDisplay(email);
 
   return (
-    <div className="relative min-h-screen bg-[#070b16] text-slate-50">
-      <GalaxyBackdrop />
-      <main className="mx-auto flex max-w-lg flex-col gap-8 px-6 py-16 md:py-24">
+    <div className="min-h-screen">
+      <main className="mx-auto flex max-w-md flex-col gap-6 px-4 py-10 sm:py-16">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/90">{L.kicker}</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">{L.title}</h1>
-          <p className="mt-3 text-sm leading-relaxed text-slate-400">{L.sub}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5b1f]">{L.kicker}</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#222]">{L.title}</h1>
+          <p className="mt-2 text-sm leading-relaxed text-[#757575]">{L.sub}</p>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 backdrop-blur-xl">
-          <p className="text-xs leading-relaxed text-slate-400/80 text-center mb-4">
+        <div className="rounded-2xl border border-[#eee] bg-white p-5 shadow-sm sm:p-6">
+          <p className="mb-4 text-center text-xs leading-relaxed text-[#757575]">
             {L.implicitConsentPrefix}
             <Link href="/privacy" className="text-primary hover:underline mx-1">
               {L.implicitConsentLinkLabel}
@@ -169,7 +167,7 @@ export function LoginPageContent() {
           <Button
             type="button"
             variant="outline"
-            className="w-full border-white/15 bg-white/[0.03] text-slate-100 hover:bg-white/[0.06]"
+            className="h-11 w-full rounded-lg border-[#e6e6e6] bg-white text-[#222] hover:bg-[#fafafa]"
             onClick={() => void onGoogle()}
             disabled={busy}
           >
@@ -177,15 +175,15 @@ export function LoginPageContent() {
           </Button>
 
           <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-[0.22em] text-slate-500">
-            <div className="h-px flex-1 bg-white/10" />
+            <div className="h-px flex-1 bg-[#eee]" />
             {L.divider}
-            <div className="h-px flex-1 bg-white/10" />
+            <div className="h-px flex-1 bg-[#eee]" />
           </div>
 
           {step === "email" ? (
             <form className="space-y-4" onSubmit={(e) => void onSendCode(e)}>
               <div className="space-y-2">
-                <label htmlFor="login-email" className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                <label htmlFor="login-email" className="text-xs font-medium text-[#555]">
                   {L.emailLabel}
                 </label>
                 <Input
@@ -196,25 +194,25 @@ export function LoginPageContent() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={L.emailPlaceholder}
-                  className="border-white/10 bg-white/[0.03] text-slate-50 placeholder:text-slate-500"
+                  className="h-11 rounded-lg border-[#e6e6e6] bg-white text-[#222] placeholder:text-[#aaa]"
                 />
               </div>
               <Button
                 type="submit"
                 disabled={busy}
-                className="w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
+                className="h-11 w-full rounded-lg bg-[#ff5b1f] text-white hover:bg-[#e84e12]"
               >
                 {busy ? L.otpSending : L.otpSendCode}
               </Button>
             </form>
           ) : (
             <form className="space-y-5" onSubmit={(e) => void onVerifyOtp(e)}>
-              <div className="rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-slate-300">
+              <div className="rounded-xl bg-[#fff1ea] px-4 py-3 text-sm text-[#9a3412]">
                 <p>{L.otpSentTo}</p>
-                <p className="mt-1 font-medium text-white">{maskedEmail}</p>
+                <p className="mt-1 font-medium text-[#222]">{maskedEmail}</p>
               </div>
               <div className="space-y-2">
-                <label htmlFor="login-otp" className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                <label htmlFor="login-otp" className="text-xs font-medium text-[#555]">
                   {L.otpLabel}
                 </label>
                 <Input
@@ -225,21 +223,21 @@ export function LoginPageContent() {
                   value={otp}
                   onChange={(e) => setOtp(digitsOnlyOtp(e.target.value))}
                   placeholder={L.otpPlaceholder}
-                  className="border-white/10 bg-white/[0.03] text-center font-mono text-xl tracking-[0.2em] text-slate-50 placeholder:text-slate-600 placeholder:tracking-normal sm:text-2xl sm:tracking-[0.26em] md:text-3xl md:tracking-[0.3em]"
+                  className="h-12 rounded-lg border-[#e6e6e6] bg-white text-center font-mono text-xl tracking-[0.2em] text-[#222]"
                 />
                 <p className="text-xs leading-relaxed text-slate-500">{L.otpHint}</p>
               </div>
               <Button
                 type="submit"
                 disabled={busy || digitsOnlyOtp(otp).length !== 8}
-                className="w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25"
+                className="h-11 w-full rounded-lg bg-[#ff5b1f] text-white hover:bg-[#e84e12]"
               >
                 {busy ? L.otpVerifying : L.otpVerify}
               </Button>
-              <div className="flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2 border-t border-[#eee] pt-4 sm:flex-row sm:items-center sm:justify-between">
                 <button
                   type="button"
-                  className="text-sm text-sky-400/90 underline-offset-4 hover:underline disabled:opacity-50"
+                  className="text-sm font-medium text-[#ff5b1f] underline-offset-4 hover:underline disabled:opacity-50"
                   disabled={busy}
                   onClick={() => void onResend()}
                 >
@@ -247,7 +245,7 @@ export function LoginPageContent() {
                 </button>
                 <button
                   type="button"
-                  className="text-sm text-slate-500 underline-offset-4 hover:text-slate-300 hover:underline"
+                  className="text-sm text-[#757575] underline-offset-4 hover:text-[#222] hover:underline"
                   disabled={busy}
                   onClick={() => {
                     setStep("email");
@@ -264,15 +262,15 @@ export function LoginPageContent() {
 
           {info ? (
             <div className="mt-4 space-y-2 text-sm">
-              <p className="text-sky-300/90">{info}</p>
+              <p className="text-[#c2410c]">{info}</p>
             </div>
           ) : null}
           {error ? <p className="mt-4 text-sm text-red-400">{error}</p> : null}
 
         </div>
 
-        <p className="text-center text-sm text-slate-500">
-          <Link href="/" className="text-slate-300 underline-offset-4 hover:underline">
+        <p className="text-center text-sm text-[#757575]">
+          <Link href="/" className="font-medium text-[#222] underline-offset-4 hover:underline">
             {L.backLanding}
           </Link>
         </p>

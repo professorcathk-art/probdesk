@@ -1,57 +1,75 @@
 "use client";
 
 import Link from "next/link";
+import { MapPin } from "lucide-react";
 import type { MarketplaceListing } from "@/actions/marketplace";
 import { useLanguage } from "@/components/language-provider";
 import { listingTitle, meetupKindFrom, type MeetupKind } from "@/lib/meetup";
 import { meetupCopy } from "@/lib/meetup-copy";
 
+function excerpt(text: string) {
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length < 2) return "";
+  return lines.slice(1).join(" ");
+}
+
 function Card({
   listing,
   viewerId,
-  applyLabel,
   yoursLabel,
   oneLabel,
   groupLabel,
 }: {
   listing: MarketplaceListing;
   viewerId: string | null;
-  applyLabel: string;
   yoursLabel: string;
   oneLabel: string;
   groupLabel: string;
 }) {
   const mine = viewerId != null && listing.user_id === viewerId;
   const kind = meetupKindFrom(listing.natural_language_input, listing.must_haves);
-  const href = mine
-    ? kind === "group"
-      ? "/portal/groups"
-      : "/portal/one-to-one"
-    : `/explore/${listing.id}`;
+  const title = listingTitle(listing.natural_language_input);
+  const blurb = excerpt(listing.natural_language_input);
+  const href = mine ? (kind === "group" ? "/portal/groups" : "/portal/one-to-one") : `/explore/${listing.id}`;
+  const group = kind === "group";
+  const label = group ? groupLabel : oneLabel;
+
   return (
-    <article className="flex h-full flex-col rounded-3xl border border-violet-100 bg-white p-5 shadow-sm">
-      <p className="text-xs font-medium text-violet-700">{kind === "group" ? groupLabel : oneLabel}</p>
-      <h2 className="mt-2 text-lg font-semibold tracking-tight text-slate-900">
-        {listingTitle(listing.natural_language_input)}
-      </h2>
-      {listing.location_filter ? <p className="mt-2 text-sm text-slate-500">{listing.location_filter}</p> : null}
-      <p className="mt-3 line-clamp-3 flex-1 text-sm leading-6 text-slate-600">{listing.natural_language_input}</p>
-      {listing.interest_keywords.length > 0 ? (
-        <ul className="mt-4 flex flex-wrap gap-2">
-          {listing.interest_keywords.slice(0, 4).map((tag) => (
-            <li key={tag} className="rounded-full bg-violet-50 px-2.5 py-1 text-xs text-violet-800">
-              {tag}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      <Link
-        href={href}
-        className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-violet-600 px-4 text-sm font-medium text-white hover:bg-violet-700"
+    <Link
+      href={href}
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#ececec] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(0,0,0,0.08)]"
+    >
+      <div
+        className={`relative flex h-28 items-end p-4 ${group ? "bg-[linear-gradient(145deg,#ff8a4c,#ff5b1f)] text-white" : "bg-[#fff1ea] text-[#9a3412]"}`}
       >
-        {mine ? yoursLabel : applyLabel}
-      </Link>
-    </article>
+        <span className={`rounded-md px-2 py-1 text-[11px] font-semibold ${group ? "bg-white/20" : "bg-white text-[#ff5b1f]"}`}>
+          {label}
+        </span>
+        {listing.location_filter ? (
+          <span className={`absolute bottom-4 right-4 inline-flex max-w-[55%] items-center gap-1 truncate text-xs font-medium ${group ? "text-white" : "text-[#9a3412]"}`}>
+            <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {listing.location_filter}
+          </span>
+        ) : null}
+      </div>
+      <div className="flex flex-1 flex-col p-4">
+        <h2 className="line-clamp-2 text-[16px] font-semibold leading-6 text-[#222] group-hover:text-[#ff5b1f]">{title}</h2>
+        {blurb ? <p className="mt-2 line-clamp-2 text-sm leading-5 text-[#757575]">{blurb}</p> : null}
+        {mine ? <p className="mt-3 text-xs font-semibold text-[#ff5b1f]">{yoursLabel}</p> : null}
+        {listing.interest_keywords.length > 0 ? (
+          <ul className="mt-auto flex flex-wrap gap-1.5 pt-4">
+            {listing.interest_keywords.slice(0, 3).map((tag) => (
+              <li key={tag} className="rounded-md bg-[#f4f4f4] px-2 py-1 text-[11px] text-[#555]">
+                {tag}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    </Link>
   );
 }
 
@@ -78,36 +96,37 @@ export function MeetupHome({
     const hay = `${listing.natural_language_input} ${listing.location_filter ?? ""} ${listing.interest_keywords.join(" ")}`.toLowerCase();
     return hay.includes(needle);
   });
+  const filters: { id: "all" | MeetupKind; label: string }[] = [
+    { id: "all", label: lang === "zh" ? "全部" : "All" },
+    { id: "one_to_one", label: t.oneToOne },
+    { id: "group", label: t.groups },
+  ];
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-      <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{t.slogan}</h1>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <Link
-          href="/?type=one_to_one"
-          className={`rounded-3xl border p-5 shadow-sm ${type === "one_to_one" ? "border-violet-400 bg-violet-50" : "border-violet-100 bg-white"}`}
-        >
-          <p className="text-lg font-semibold text-slate-900">{t.oneToOne}</p>
-          <p className="mt-1 text-sm text-slate-500">{t.oneToOneHint}</p>
-        </Link>
-        <Link
-          href="/?type=group"
-          className={`rounded-3xl border p-5 shadow-sm ${type === "group" ? "border-violet-400 bg-violet-50" : "border-violet-100 bg-white"}`}
-        >
-          <p className="text-lg font-semibold text-slate-900">{t.groups}</p>
-          <p className="mt-1 text-sm text-slate-500">{t.groupsHint}</p>
-        </Link>
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+      <h1 className="max-w-2xl text-[28px] font-semibold leading-tight tracking-tight text-[#222] sm:text-[34px]">{t.slogan}</h1>
+      <p className="mt-2 max-w-xl text-sm text-[#757575]">{t.lead}</p>
+      <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
+        {filters.map((filter) => {
+          const active = type === filter.id;
+          const href =
+            filter.id === "all" ? (query ? `/?q=${encodeURIComponent(query)}` : "/") : `/?type=${filter.id}${query ? `&q=${encodeURIComponent(query)}` : ""}`;
+          return (
+            <Link
+              key={filter.id}
+              href={href}
+              className={`inline-flex h-10 shrink-0 items-center rounded-full px-4 text-sm font-medium ${active ? "bg-[#ff5b1f] text-white" : "border border-[#e6e6e6] bg-white text-[#222]"}`}
+            >
+              {filter.label}
+            </Link>
+          );
+        })}
       </div>
-      <div className="mt-10 flex items-end justify-between gap-3">
-        <h2 className="text-base font-semibold text-slate-900">{t.latest}</h2>
-        {type !== "all" ? (
-          <Link href={query ? `/?q=${encodeURIComponent(query)}` : "/"} className="text-sm text-violet-700">
-            {lang === "zh" ? "全部" : "All"}
-          </Link>
-        ) : null}
+      <div className="mt-8 flex items-baseline justify-between">
+        <h2 className="text-lg font-semibold text-[#222]">{t.latest}</h2>
       </div>
       {visible.length === 0 ? (
-        <p className="mt-4 rounded-3xl border border-dashed border-violet-200 bg-white px-5 py-10 text-sm text-slate-500">
+        <p className="mt-4 rounded-2xl border border-dashed border-[#e6e6e6] bg-white px-5 py-12 text-center text-sm text-[#757575]">
           {needle || type !== "all" ? t.emptyFiltered : t.empty}
         </p>
       ) : (
@@ -117,7 +136,6 @@ export function MeetupHome({
               key={listing.id}
               listing={listing}
               viewerId={viewerId}
-              applyLabel={t.apply}
               yoursLabel={t.yours}
               oneLabel={t.oneToOne}
               groupLabel={t.groups}
@@ -126,8 +144,8 @@ export function MeetupHome({
         </div>
       )}
       {moreAvailable ? (
-        <p className="mt-6 text-sm text-slate-500">
-          <Link href="/login?after=%2F" className="font-medium text-violet-700">
+        <p className="mt-6 text-sm text-[#757575]">
+          <Link href="/login?after=%2F" className="font-semibold text-[#ff5b1f]">
             {t.guestMore}
           </Link>
         </p>

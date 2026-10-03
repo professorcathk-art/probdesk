@@ -4,6 +4,7 @@ export function meetupCopy(lang: Lang) {
   const zh = lang === "zh";
   return {
     slogan: zh ? "尋找對的人，不論是 1 對 1 還是群組活動" : "Find the right people, one to one or in a group",
+    lead: zh ? "看看最新的人和活動，覺得合適再自己申請。" : "See the latest people and activities, then apply if it feels right.",
     oneToOne: zh ? "1 對 1" : "1 to 1",
     groups: zh ? "群組活動" : "Group activities",
     oneToOneHint: zh ? "認識一個人，由你決定要不要繼續" : "Meet one person. You decide whether to continue.",

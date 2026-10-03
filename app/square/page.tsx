@@ -1,7 +1,6 @@
 import { getConsoleQuotaSnapshot } from "@/actions/intents";
 import { getSquarePendingIntentIdsForCurrentUser } from "@/actions/matches";
 import { listMarketplaceListings } from "@/actions/marketplace";
-import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 import { MarketplaceFeed } from "@/components/marketplace-feed";
 import { getProfileBasicsGateForInvites } from "@/actions/profile";
 import { getAuthContext } from "@/lib/auth-context";
@@ -44,9 +43,8 @@ export default async function SquarePage({
   const inviteGate = userExtras?.[1] ?? { ok: true as const };
 
   return (
-    <div className="relative min-h-screen bg-[#070b16] text-slate-50">
-      <GalaxyBackdrop />
-      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-16 md:py-20">
+    <div className="min-h-screen">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6">
         <MarketplaceFeed
           listings={listings}
           currentUserId={user?.id ?? null}

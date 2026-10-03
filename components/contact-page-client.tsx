@@ -56,20 +56,20 @@ export function ContactPageClient() {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-xl bg-[#070b16] px-4 py-10 text-slate-100 sm:px-6 sm:py-14 md:py-16">
+    <main className="mx-auto min-h-screen w-full max-w-xl px-4 py-10 sm:px-6 sm:py-14 md:py-16">
       <div className="mb-8 space-y-3 sm:mb-10">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-sky-400/90">Vennode</p>
-        <h1 className="font-[family-name:var(--font-heading)] text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff5b1f]">Vennode</p>
+        <h1 className="font-[family-name:var(--font-heading)] text-2xl font-semibold tracking-tight text-[#222] sm:text-3xl">
           {C.title}
         </h1>
-        <p className="text-sm leading-relaxed text-slate-400 sm:text-base">{C.intro}</p>
+        <p className="text-sm leading-relaxed text-[#555] sm:text-base">{C.intro}</p>
         <p className="text-xs text-slate-500 sm:text-sm">{C.replyHint}</p>
       </div>
 
       {status === "success" ? (
         <div
           role="status"
-          className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-100 sm:px-5 sm:py-5"
+          className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900 sm:px-5 sm:py-5"
         >
           {C.success}
         </div>
@@ -87,7 +87,7 @@ export function ContactPageClient() {
           />
 
           <div className="grid gap-2">
-            <Label htmlFor="contact-email" className="text-slate-200">
+            <Label htmlFor="contact-email" className="text-[#222]">
               {C.emailLabel}
             </Label>
             <Input
@@ -99,12 +99,12 @@ export function ContactPageClient() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={C.emailPlaceholder}
-              className="min-h-11 border-white/15 bg-black/30 text-base text-slate-100 placeholder:text-slate-500 sm:min-h-10 sm:text-sm"
+              className="min-h-11 rounded-lg border-[#e6e6e6] bg-white text-base text-[#222] sm:min-h-10 sm:text-sm"
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="contact-name" className="text-slate-200">
+            <Label htmlFor="contact-name" className="text-[#222]">
               {C.nameLabel}
             </Label>
             <Input
@@ -115,12 +115,12 @@ export function ContactPageClient() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={C.namePlaceholder}
-              className="min-h-11 border-white/15 bg-black/30 text-base text-slate-100 placeholder:text-slate-500 sm:min-h-10 sm:text-sm"
+              className="min-h-11 rounded-lg border-[#e6e6e6] bg-white text-base text-[#222] sm:min-h-10 sm:text-sm"
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="contact-subject" className="text-slate-200">
+            <Label htmlFor="contact-subject" className="text-[#222]">
               {C.subjectLabel}
             </Label>
             <Input
@@ -133,12 +133,12 @@ export function ContactPageClient() {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder={C.subjectPlaceholder}
-              className="min-h-11 border-white/15 bg-black/30 text-base text-slate-100 placeholder:text-slate-500 sm:min-h-10 sm:text-sm"
+              className="min-h-11 rounded-lg border-[#e6e6e6] bg-white text-base text-[#222] sm:min-h-10 sm:text-sm"
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="contact-message" className="text-slate-200">
+            <Label htmlFor="contact-message" className="text-[#222]">
               {C.messageLabel}
             </Label>
             <Textarea
@@ -151,7 +151,7 @@ export function ContactPageClient() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder={C.messagePlaceholder}
-              className="min-h-[140px] resize-y border-white/15 bg-black/30 text-base text-slate-100 placeholder:text-slate-500 sm:text-sm"
+              className="min-h-[140px] resize-y rounded-lg border-[#e6e6e6] bg-white text-base text-[#222] sm:text-sm"
             />
           </div>
 
@@ -166,7 +166,7 @@ export function ContactPageClient() {
             disabled={status === "sending"}
             size="lg"
             className={cn(
-              "min-h-11 w-full border border-sky-400/35 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25 sm:w-auto sm:min-h-9",
+              "h-11 w-full rounded-lg bg-[#ff5b1f] text-white hover:bg-[#e84e12] sm:w-auto",
             )}
           >
             {status === "sending" ? C.sending : C.submit}
