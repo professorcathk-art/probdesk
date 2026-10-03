@@ -56,7 +56,7 @@ export function ContactPageClient() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-xl px-4 py-10 sm:px-6 sm:py-14 md:py-16">
+    <main className="mx-auto min-h-screen w-full max-w-xl bg-[#070b16] px-4 py-10 text-slate-100 sm:px-6 sm:py-14 md:py-16">
       <div className="mb-8 space-y-3 sm:mb-10">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-sky-400/90">Vennode</p>
         <h1 className="font-[family-name:var(--font-heading)] text-2xl font-semibold tracking-tight text-white sm:text-3xl">

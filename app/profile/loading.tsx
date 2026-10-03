@@ -2,7 +2,7 @@ import { GalaxyBackdrop } from "@/components/galaxy-backdrop";
 
 export default function ProfileLoading() {
   return (
-    <div className="relative min-h-screen text-slate-50">
+    <div className="relative min-h-screen bg-[#070b16] text-slate-50">
       <GalaxyBackdrop />
       <main className="relative z-[1] mx-auto flex max-w-2xl flex-col gap-8 px-4 py-12 md:px-6 md:py-16">
         <div className="h-9 w-56 animate-pulse rounded-lg bg-white/10" />

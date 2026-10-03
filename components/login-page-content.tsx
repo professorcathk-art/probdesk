@@ -148,7 +148,7 @@ export function LoginPageContent() {
   const maskedEmail = maskEmailForDisplay(email);
 
   return (
-    <div className="relative min-h-screen text-slate-50">
+    <div className="relative min-h-screen bg-[#070b16] text-slate-50">
       <GalaxyBackdrop />
       <main className="mx-auto flex max-w-lg flex-col gap-8 px-6 py-16 md:py-24">
         <div>

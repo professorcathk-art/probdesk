@@ -33,7 +33,7 @@ export function ExploreIntentLanding({ listing, viewerUserId }: Props) {
   const primaryLabel = isOwner ? x.ownerCta : x.sendInvite;
 
   return (
-    <div className="relative min-h-screen text-slate-50">
+    <div className="relative min-h-screen bg-[#070b16] text-slate-50">
       <GalaxyBackdrop />
       <main className="relative z-[1] mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-4 py-14 md:max-w-xl md:py-20">
         <div className="mb-8 space-y-3 text-center md:mb-10">

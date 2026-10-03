@@ -8,23 +8,20 @@ export function Footer() {
   const F = strings.footer;
 
   return (
-    <footer className="mt-auto border-t border-white/10 bg-black/40 px-4 py-8 backdrop-blur-xl sm:px-6 sm:py-10">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
-        <nav
-          className="flex flex-wrap gap-x-5 gap-y-3 text-sm text-slate-400 sm:gap-x-6"
-          aria-label="Footer"
-        >
-          <Link href="/privacy" className="min-h-11 inline-flex items-center hover:text-slate-200 sm:min-h-0">
+    <footer className="mt-auto border-t border-violet-100 bg-white px-4 py-8 sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-500" aria-label="Footer">
+          <Link href="/privacy" className="inline-flex min-h-11 items-center hover:text-slate-900">
             {F.privacy}
           </Link>
-          <Link href="/policy" className="min-h-11 inline-flex items-center hover:text-slate-200 sm:min-h-0">
+          <Link href="/policy" className="inline-flex min-h-11 items-center hover:text-slate-900">
             {F.policy}
           </Link>
-          <Link href="/contact" className="min-h-11 inline-flex items-center hover:text-slate-200 sm:min-h-0">
+          <Link href="/contact" className="inline-flex min-h-11 items-center hover:text-slate-900">
             {F.contact}
           </Link>
         </nav>
-        <p className="text-sm text-slate-500">{F.copyright}</p>
+        <p className="text-sm text-slate-400">{F.copyright}</p>
       </div>
     </footer>
   );

@@ -503,6 +503,8 @@ export async function respondToMatch(matchId: string, decision: "Accepted" | "Re
       .eq("id", matchId);
     if (error) return { ok: false as const, message: error.message };
     revalidatePath("/console");
+    revalidatePath("/portal/one-to-one");
+    revalidatePath("/portal/groups");
     return { ok: true as const };
   }
 
@@ -518,6 +520,9 @@ export async function respondToMatch(matchId: string, decision: "Accepted" | "Re
     if (error) return { ok: false as const, message: error.message };
     notifyOutboundSenderConnectionAcceptedAsync(row.sender_id, getSiteOrigin());
     revalidatePath("/console");
+    revalidatePath("/messages");
+    revalidatePath("/portal/one-to-one");
+    revalidatePath("/portal/groups");
     return { ok: true as const };
   }
 
@@ -554,6 +559,9 @@ export async function respondToMatch(matchId: string, decision: "Accepted" | "Re
       if (error) return { ok: false as const, message: error.message };
     }
     revalidatePath("/console");
+    revalidatePath("/messages");
+    revalidatePath("/portal/one-to-one");
+    revalidatePath("/portal/groups");
     return { ok: true as const };
   }
 

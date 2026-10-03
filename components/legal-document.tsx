@@ -10,7 +10,7 @@ export function LegalDocument({
   children: React.ReactNode;
 }) {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-12 text-slate-200 sm:px-6 sm:py-16">
+    <main className="mx-auto min-h-screen max-w-3xl bg-[#070b16] px-4 py-12 text-slate-200 sm:px-6 sm:py-16">
       <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-sky-400/90">Vennode</p>
       <h1 className="font-[family-name:var(--font-heading)] text-2xl font-semibold tracking-tight text-white sm:text-3xl md:text-4xl">
         {title}

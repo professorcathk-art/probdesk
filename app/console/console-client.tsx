@@ -481,7 +481,7 @@ export function ConsoleClient({
   }
 
   return (
-    <div className="relative min-h-screen text-slate-50">
+    <div className="relative min-h-screen bg-[#070b16] text-slate-50">
       <GalaxyBackdrop />
       <main className="relative z-[1] mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 md:gap-10 md:px-6 md:py-16">
         <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">

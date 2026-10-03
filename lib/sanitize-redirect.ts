@@ -1,4 +1,15 @@
-const ALLOWED_PATHS = new Set(["/console", "/square", "/marketplace", "/messages", "/profile"]);
+const ALLOWED_PATHS = new Set([
+  "/console",
+  "/square",
+  "/marketplace",
+  "/messages",
+  "/profile",
+  "/create",
+  "/onboarding",
+  "/portal/one-to-one",
+  "/portal/groups",
+  "/portal/settings",
+]);
 
 /**
  * Allows internal navigations only (pathname must be allow-listed). Preserves query string.

@@ -121,15 +121,13 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-slate-950 text-foreground;
-    background-image:
-      radial-gradient(ellipse 85% 55% at 0% -5%, rgba(37, 99, 235, 0.18), transparent 55%),
-      radial-gradient(ellipse 75% 50% at 100% 105%, rgba(67, 56, 202, 0.14), transparent 52%),
-      radial-gradient(ellipse 50% 40% at 50% 50%, rgba(15, 23, 42, 0.9), rgb(0, 0, 0));
+    @apply bg-[#f6f3fb] text-slate-900;
+    background-image: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(139, 92, 246, 0.12), transparent 55%);
     background-attachment: fixed;
   }
   html {
     font-family: var(--font-sans-body), ui-sans-serif, system-ui, sans-serif;
+    color-scheme: light;
   }
   h1,
   h2,

@@ -13,6 +13,7 @@ import { validateProfileBasicsForPublish } from "@/lib/profile-basics";
 import { normalizeProfileTags } from "@/lib/profile-tags";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
+import { meetupKindFrom, type MeetupKind } from "@/lib/meetup";
 import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
 import { logPairingScoreEvent } from "@/lib/pairing-score-log";
 import { BLOCKING_MATCH_STATUSES } from "@/lib/match-blocking";
@@ -349,6 +350,25 @@ export async function listMyIntents(): Promise<{ intents: IntentRow[] } | { erro
   return { intents: (data ?? []) as IntentRow[] };
 }
 
+export async function listIntentKinds(ids: string[]): Promise<Record<string, MeetupKind>> {
+  const unique = [...new Set(ids.map((id) => id.trim()).filter(Boolean))].slice(0, 80);
+  if (unique.length === 0) return {};
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("intent_requests")
+    .select("id, natural_language_input, must_haves")
+    .in("id", unique);
+  if (error || !data) return {};
+  const out: Record<string, MeetupKind> = {};
+  for (const row of data) {
+    out[row.id as string] = meetupKindFrom(
+      String(row.natural_language_input ?? ""),
+      (row.must_haves as string | null) ?? null,
+    );
+  }
+  return out;
+}
+
 export async function setIntentMarketplacePublic(intentId: string, isPublic: boolean) {
   const supabase = await createClient();
   const {
@@ -374,9 +394,12 @@ export async function setIntentMarketplacePublic(intentId: string, isPublic: boo
     .eq("user_id", user.id);
 
   if (error) return { ok: false as const, message: error.message };
+  revalidatePath("/");
   revalidatePath("/console");
   revalidatePath("/marketplace");
   revalidatePath("/square");
+  revalidatePath("/portal/one-to-one");
+  revalidatePath("/portal/groups");
   return { ok: true as const };
 }
 
@@ -416,7 +439,10 @@ export async function setIntentStatus(
     .eq("user_id", user.id);
 
   if (error) return { ok: false as const, message: error.message };
+  revalidatePath("/");
   revalidatePath("/console");
+  revalidatePath("/portal/one-to-one");
+  revalidatePath("/portal/groups");
   return { ok: true as const };
 }
 
@@ -440,10 +466,12 @@ export async function deleteMyIntent(
   if (error) return { ok: false as const, message: error.message };
   if (!removed?.length) return { ok: false as const, message: "Request not found." };
 
+  revalidatePath("/");
   revalidatePath("/console");
   revalidatePath("/marketplace");
   revalidatePath("/square");
-  revalidatePath("/");
+  revalidatePath("/portal/one-to-one");
+  revalidatePath("/portal/groups");
   return { ok: true as const };
 }
 
@@ -1030,8 +1058,11 @@ export async function createConsoleIntent(
     console.warn("[createConsoleIntent] supply_embedding sync did not persist", user.id);
   }
 
+  revalidatePath("/");
   revalidatePath("/console");
   revalidatePath("/square");
+  revalidatePath("/portal/one-to-one");
+  revalidatePath("/portal/groups");
   return { ok: true as const, intentId: inserted.id as string };
 }
 
@@ -1138,7 +1169,10 @@ export async function updateConsoleIntent(
     console.warn("[updateConsoleIntent] supply_embedding sync did not persist", user.id);
   }
 
+  revalidatePath("/");
   revalidatePath("/console");
   revalidatePath("/square");
+  revalidatePath("/portal/one-to-one");
+  revalidatePath("/portal/groups");
   return { ok: true as const };
 }

@@ -33,7 +33,7 @@ export default async function MessagesPage({
   }
 
   return (
-    <div className="relative min-h-screen text-slate-50">
+    <div className="relative min-h-screen bg-[#070b16] text-slate-50">
       <GalaxyBackdrop />
       <main className="relative mx-auto flex max-w-6xl flex-col px-4 py-8 sm:px-6 md:py-10">
         <MessagesPageClient

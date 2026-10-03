@@ -174,7 +174,7 @@ export default function OnboardingPage() {
 
   if (checkingAuth) {
     return (
-      <div className="relative min-h-screen text-slate-50">
+      <div className="relative min-h-screen bg-[#070b16] text-slate-50">
         <GalaxyBackdrop />
         <main className="mx-auto max-w-3xl px-6 py-24 text-slate-400">{ob.authChecking}</main>
       </div>
@@ -182,7 +182,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="relative min-h-screen text-slate-50">
+    <div className="relative min-h-screen bg-[#070b16] text-slate-50">
       <GalaxyBackdrop />
       <main className="mx-auto flex max-w-3xl flex-col gap-10 px-6 py-16 md:py-24">
         <header className="space-y-3">

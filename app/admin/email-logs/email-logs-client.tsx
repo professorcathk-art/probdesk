@@ -46,7 +46,7 @@ export default function EmailLogsClient() {
   }
 
   return (
-    <div className="relative min-h-screen text-slate-50">
+    <div className="relative min-h-screen bg-[#070b16] text-slate-50">
       <GalaxyBackdrop />
       <main className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-16 md:py-20">
         <header className="flex flex-wrap items-end justify-between gap-4">

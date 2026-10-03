@@ -20,25 +20,25 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Vennode — Matching built on what you're looking for",
+  title: "Vennode — 尋找對的人，不論是 1 對 1 還是群組活動",
   description:
-    "Thoughtful human matching with Smart Matchmaking, Explore, and mutual acceptance before identities unlock.",
+    "A light, person-centered place to meet one to one or join a group. You apply, the host decides, and contact unlocks only after approval.",
   metadataBase: getMetadataBase(),
   icons: {
     icon: [{ url: "/logo.png", type: "image/png", sizes: "any" }],
     apple: [{ url: "/logo.png", type: "image/png", sizes: "180x180" }],
   },
   openGraph: {
-    title: "Vennode — Matching built on what you're looking for",
+    title: "Vennode — 尋找對的人，不論是 1 對 1 還是群組活動",
     description:
-      "Thoughtful human matching with Smart Matchmaking, Explore, and mutual acceptance before identities unlock.",
+      "A light, person-centered place to meet one to one or join a group. You apply, the host decides, and contact unlocks only after approval.",
     images: [{ url: "/logo.png", alt: "Vennode" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Vennode — Matching built on what you're looking for",
+    title: "Vennode — 尋找對的人，不論是 1 對 1 還是群組活動",
     description:
-      "Thoughtful human matching with Smart Matchmaking, Explore, and mutual acceptance before identities unlock.",
+      "A light, person-centered place to meet one to one or join a group. You apply, the host decides, and contact unlocks only after approval.",
     images: ["/logo.png"],
   },
 };
@@ -65,7 +65,7 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en" className={`dark ${inter.variable} ${spaceGrotesk.variable} h-full`}>
+    <html lang="zh-Hant" className={`${inter.variable} ${spaceGrotesk.variable} h-full`}>
       <body className="flex min-h-full flex-col antialiased">
         <LanguageProvider>
           <SiteNav

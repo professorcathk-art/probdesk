@@ -49,7 +49,7 @@ function detectInitialLang(): Lang {
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("en");
+  const [lang, setLangState] = useState<Lang>("zh");
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- read localStorage / navigator after mount to avoid SSR mismatch */
