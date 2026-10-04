@@ -105,7 +105,7 @@ export default async function RootLayout({
             avatarUrl={avatarUrl}
             messengerUnreadInitial={0}
           />
-          <div className="relative flex-1">{children}</div>
+          <div className="relative flex min-h-0 flex-1 flex-col">{children}</div>
           <Footer />
         </LanguageProvider>
       </body>

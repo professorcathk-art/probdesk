@@ -9,8 +9,14 @@ import { computeHybridSuggestions, setIntentStatus, type IntentRow } from "@/act
 import { respondToMatch, type MatchRow } from "@/actions/matches";
 import { ConnectModal } from "@/components/connect-modal";
 import { useLanguage } from "@/components/language-provider";
-import { listingTitle, meetupKindFrom, type MeetupKind } from "@/lib/meetup";
+import { listingTitle, meetupKindFrom, SUGGESTION_COOLDOWN_MS, type MeetupKind } from "@/lib/meetup";
 import { meetupCopy } from "@/lib/meetup-copy";
+
+function retryHint(deadline: number, zh: boolean) {
+  const mins = Math.max(1, Math.ceil((deadline - Date.now()) / 60000));
+  if (zh) return mins >= 55 ? "一小時後可以再試。" : `約 ${mins} 分鐘後可以再試。`;
+  return mins >= 55 ? "You can try again in an hour." : `You can try again in about ${mins} minutes.`;
+}
 
 function statusLabel(status: string, t: ReturnType<typeof meetupCopy>) {
   if (status === "Accepted") return t.approved;
@@ -38,6 +44,7 @@ export function PortalBoard({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [invite, setInvite] = useState<AiRecommendationListItem | null>(null);
+  const [lockedUntil, setLockedUntil] = useState<Record<string, number>>({});
 
   const mine = intents.filter((row) => meetupKindFrom(row.natural_language_input, row.must_haves) === kind);
 
@@ -73,13 +80,17 @@ export function PortalBoard({
   async function loadSuggestions(intentId: string) {
     setBusyId(`ai-${intentId}`);
     setError(null);
-    const res = await computeHybridSuggestions(intentId);
+    const res = await computeHybridSuggestions(intentId, lang);
     setBusyId(null);
     if (!res.ok) {
       setError(res.message);
       return;
     }
-    router.refresh();
+    if (res.cooledUntil) {
+      const until = Date.parse(res.cooledUntil);
+      if (Number.isFinite(until)) setLockedUntil((prev) => ({ ...prev, [intentId]: until }));
+    }
+    if (!res.skipped) router.refresh();
   }
 
   return (
@@ -90,12 +101,10 @@ export function PortalBoard({
           {t.publish}
         </Link>
       </div>
-      <div className="mt-4 flex gap-2 text-sm">
-        <Link href="/portal/one-to-one" className={`inline-flex min-h-11 items-center rounded-full px-3 ${kind === "one_to_one" ? "bg-[#ff5a5f] text-white" : "bg-white text-slate-600"}`}>
-          {t.oneToOne}
-        </Link>
-        <Link href="/portal/groups" className={`inline-flex min-h-11 items-center rounded-full px-3 ${kind === "group" ? "bg-[#ff5a5f] text-white" : "bg-white text-slate-600"}`}>
-          {t.groups}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-100 bg-rose-50/70 px-4 py-3">
+        <p className="text-sm leading-6 text-slate-600">{kind === "group" ? t.seeGroups : t.seePeople}</p>
+        <Link href="/square" className="inline-flex min-h-11 items-center rounded-full border border-[#ff5a5f] bg-white px-4 text-sm font-medium text-[#e0484d] hover:bg-rose-50">
+          {t.visitSquare}
         </Link>
       </div>
 
@@ -107,6 +116,10 @@ export function PortalBoard({
             const incoming = incomingFor(intent.id);
             const ideas = suggestions.filter((row) => row.intent_id === intent.id).slice(0, 3);
             const open = openId === intent.id;
+            const ranAt = intent.suggestionRanAt ? Date.parse(intent.suggestionRanAt) : NaN;
+            const deadline = Math.max(Number.isFinite(ranAt) ? ranAt + SUGGESTION_COOLDOWN_MS : 0, lockedUntil[intent.id] ?? 0);
+            const cooling = deadline > Date.now();
+            const looking = busyId === `ai-${intent.id}`;
             const title = listingTitle(intent.natural_language_input);
             return (
               <li key={intent.id} className="rounded-2xl border border-[#eee] bg-white p-4">
@@ -151,7 +164,13 @@ export function PortalBoard({
                 <div className="mt-4 rounded-xl border border-rose-100 bg-rose-50/60 p-3">
                   <p className="text-sm font-semibold text-slate-900">{t.suggestions}</p>
                   <p className="mt-1 text-xs leading-5 text-slate-500">{t.suggestHint}</p>
-                  {ideas.length === 0 ? <p className="mt-2 text-sm text-slate-600">{t.suggestEmpty}</p> : null}
+                  {ideas.length === 0 ? (
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      {cooling ? `${t.suggestNone}${retryHint(deadline, lang === "zh")}` : t.suggestEmpty}
+                    </p>
+                  ) : cooling ? (
+                    <p className="mt-2 text-xs leading-5 text-slate-500">{retryHint(deadline, lang === "zh")}</p>
+                  ) : null}
                   <ul className="mt-2 space-y-2">
                     {ideas.map((row) => (
                       <li key={row.id} className="rounded-lg bg-white p-3">
@@ -163,8 +182,13 @@ export function PortalBoard({
                       </li>
                     ))}
                   </ul>
-                  <button type="button" disabled={busyId === `ai-${intent.id}`} onClick={() => void loadSuggestions(intent.id)} className="mt-3 min-h-10 text-sm font-medium text-[#e0484d] disabled:opacity-60">
-                    {busyId === `ai-${intent.id}` ? t.suggesting : t.suggestLoad}
+                  <button
+                    type="button"
+                    disabled={looking || cooling}
+                    onClick={() => void loadSuggestions(intent.id)}
+                    className="mt-3 min-h-10 text-sm font-medium text-[#e0484d] disabled:cursor-not-allowed disabled:text-slate-400"
+                  >
+                    {looking ? t.suggesting : cooling ? t.suggestHold : t.suggestLoad}
                   </button>
                 </div>
               </li>

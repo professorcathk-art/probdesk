@@ -3,6 +3,7 @@ import {
   FALLBACK_MIXED_SIGNALS,
   normalizeIntentMatchingSignals,
 } from "@/lib/intent-matching-signals";
+import { screeningTextForAi } from "@/lib/meetup";
 
 const base = () => process.env.AIML_API_BASE_URL ?? "https://api.aimlapi.com/v1";
 const key = () => process.env.AIML_API_KEY;
@@ -89,9 +90,11 @@ export async function parseIntentWithMini(input: string): Promise<ParsedIntent> 
         {
           role: "system",
           content:
-            "Extract structured intent from the user's natural-language networking request (any natural language acceptable). " +
-            "Return JSON only. location_filter should be a concise city/region string if mentioned, else null. " +
-            "extracted_persona should summarize who they are, who they seek, and the goal. " +
+            "Extract structured intent from a Vennode listing (any natural language acceptable). " +
+            "The listing is labeled Post type, Title, Details, Location, Date and time (group activities only), Expectations, and Hashtags. " +
+            "Expectations are who they want. Hashtags are topics. A group activity is an event to join, not a 1:1 partner search, unless Expectations say otherwise. " +
+            "Return JSON only. If a Location line is present and is not \"(none stated)\", copy that place into location_filter; otherwise use a city or region from the text, else null. " +
+            "extracted_persona should summarize the title, details, expectations, and goal. Do not treat post_type: or when: as words the user wrote. " +
             parseIntentSignalsSystemPromptExtra(),
         },
         { role: "user", content: input },
@@ -140,7 +143,8 @@ export async function parseIntentMatchingSignalsMini(userContent: string): Promi
         {
           role: "system",
           content:
-            "Classify a Vennode Explore request for hybrid matching guardrails only. Respond JSON only (any input language). " +
+            "Classify a Vennode listing for hybrid matching guardrails only. The text is labeled Post type, Title, Details, Location, Date and time, Expectations, and Hashtags. " +
+            "Use Expectations for who they want. A group activity is an event unless Expectations ask for a personal relationship. Respond JSON only (any input language). " +
             parseIntentSignalsSystemPromptExtra(),
         },
         { role: "user", content: userContent.slice(0, 8000) },
@@ -207,11 +211,15 @@ export async function vibeCheckWith4o(params: {
   candidateGender?: string | null;
   /** Optional slug from profiles.attraction_orientation — use only when intent is romantic/personal; ignore for recruiting/service workflows. */
   senderAttractionOrientationSlug?: string | null;
+  /** Language for the one-sentence reason shown in the product. */
+  reasonLanguage?: "zh" | "en";
 }): Promise<VibeResult> {
-  const reqLine = (label: string, text: string | null | undefined) => {
-    const t = text?.trim();
-    return `${label}:\n${t && t.length > 0 ? t : "(none stated)"}`;
-  };
+  const reasonLanguage: "zh" | "en" =
+    params.reasonLanguage ?? (/[\u3400-\u9fff]/.test(params.senderIntent) ? "zh" : "en");
+  const reasonRule =
+    reasonLanguage === "zh"
+      ? "Write `reason` in Traditional Chinese (繁體中文) only, as one sentence. Do not use English."
+      : "Write `reason` in English, as one sentence.";
 
   const geoParts: string[] = [];
   const sl = params.senderLocationPreference?.trim();
@@ -263,13 +271,23 @@ export async function vibeCheckWith4o(params: {
             "FRIENDSHIP / PLATONIC / GENERAL INTROS: If the sender intent **clearly specifies the gender of the person they want to meet** (e.g. \"friends with a girl/woman/lady\", \"找女生／女性朋友\", analogous male-seeking wording), compare to **Candidate profile gender marker** when present. If candidate gender **plainly contradicts** that stated target (e.g. seeks women; candidate marker is male), assign a **low score (cap at 25)** and briefly say why. This rule **overrides** the dating complementary logic above — do **not** mark that as complementary. If candidate gender is missing, do not infer; score on other axes but mention uncertainty about gender alignment. " +
             "SPOUSE / FAMILY INTENT: Life-partner wording (marriage, children,組織家庭, long‑term parenting) plus **matching** profile gender markers (both man/both woman) normally signals a **hetero-shaped** mismatch vs stated opposite‑sex wording — score such pairings conservatively (**≤20**) unless the text clearly welcomes LGBTQ+ paths. Vennode also applies deterministic post‑filters downstream. " +
             "**WORK / HIRING / SERVICES / BUSINESS:** When the sender request is mainly about recruiting, gigs, freelancers, agencies, mentorship, tutoring, internships, cofounders, investors, collaborators, introductions, hobbies, friendships **without** a stated romantic partner gender, or similar non-romantic goals, treat profile gender markers and romantic-orientation slug as **orthogonal** guidance — score fit on complementary skills, supply/demand overlap, geography, expectations, etc.; **do not** downgrade solely for gender pairing or opposite-sex default logic unless the wording is plainly romantic or partner-gender constrained. " +
-            "Input data may include: Sender intent & must-haves; Candidate intent/listing (if any); Candidate superpower/bio/profile snippet; geography as a secondary constraint. " +
-            "Respond strictly as JSON with integer `score` (0–100) and a single-sentence `reason` explaining complementary fit or mismatch. Be conservative.",
+            "LISTING FIELDS: Each side may be labeled Post type, Title, Details, Location, Date and time, Expectations, and Hashtags. Expectations are the requirements. Hashtags are topics, not requirements by themselves. Date and time applies only to a group activity and is a scheduling constraint. One-to-one posts have no event time. For a group activity, score whether the candidate fits that activity (interest, skills, place, and time), not as a private 1:1 partner, unless Expectations clearly ask for a personal relationship. " +
+            "Input data may include those labeled listings, profile snippets, and geography as a secondary constraint. " +
+            "Respond strictly as JSON with integer `score` (0–100) and a single-sentence `reason` explaining complementary fit or mismatch. Be conservative. " +
+            reasonRule,
         },
         {
           role: "user",
           content:
-            `Input data provided:\n\n${reqLine("Sender intent", params.senderIntent)}\n\n${reqLine("Candidate intent / listing", params.candidateIntent)}\n\n${reqLine("Sender requirements / expectations", params.senderMustHaves)}\n\n${reqLine("Candidate requirements / expectations", params.candidateMustHaves)}` +
+            `Input data provided:\n\nSender listing:\n${screeningTextForAi({
+              naturalLanguage: params.senderIntent,
+              mustHaves: params.senderMustHaves,
+              location: params.senderLocationPreference,
+            })}\n\nCandidate listing:\n${screeningTextForAi({
+              naturalLanguage: params.candidateIntent,
+              mustHaves: params.candidateMustHaves,
+              location: params.candidateLocation,
+            })}` +
             (geoParts.length > 0
               ? `\n\nGeographic context (secondary):\n${geoParts.join("\n")}`
               : "") +
@@ -279,7 +297,8 @@ export async function vibeCheckWith4o(params: {
               : "") +
             (params.candidateProfileSnippet?.trim()
               ? `\n\nCandidate profile context:\n${params.candidateProfileSnippet.trim()}`
-              : ""),
+              : "") +
+            `\n\n${reasonRule}`,
         },
       ],
     }),
@@ -304,7 +323,9 @@ export async function vibeCheckWith4o(params: {
   const compatibility_reason =
     typeof rawReason === "string" && rawReason.trim().length > 0
       ? rawReason.trim()
-      : "Fit could not be summarized cleanly — verify complementary demand/supply before inviting.";
+      : reasonLanguage === "zh"
+        ? "這次沒能寫出清楚的理由，邀請前請再確認是否合適。"
+        : "Fit could not be summarized cleanly — verify complementary demand/supply before inviting.";
   return { match_score: score, compatibility_reason };
 }
 
@@ -321,7 +342,7 @@ export async function polishListingDetails(details: string, lang: "zh" | "en"): 
         {
           role: "system",
           content:
-            "You edit one person's listing details for a meetup site. Keep their facts, language, and intent. " +
+            "You edit only the Details field of a meetup listing. Title, location, hashtags, date, and expectations are separate fields. Do not add or restate them. Keep the writer's facts, language, and intent. " +
             "Make the writing clearer and more natural. Return plain text only, no title, no hashtags, no quotation marks. " +
             "Do not add a disclaimer. Do not say you will not match anyone. Do not tell the reader to leave a note or that the host will decide. " +
             (lang === "zh" ? "Write in Traditional Chinese unless the user wrote in another language." : "Write in English unless the user wrote in another language."),

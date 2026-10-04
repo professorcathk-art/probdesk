@@ -75,14 +75,6 @@ export function SettingsScreen({ identity }: { identity: ProfileIdentity }) {
     <main className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
       <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{t.settings}</h1>
       <p className="mt-2 text-sm text-slate-500">{t.settingsLead}</p>
-      <div className="mt-4 flex gap-2 text-sm">
-        <Link href="/portal/one-to-one" className="inline-flex min-h-11 items-center rounded-full bg-white px-3 text-slate-600">
-          {t.oneToOne}
-        </Link>
-        <Link href="/portal/groups" className="inline-flex min-h-11 items-center rounded-full bg-white px-3 text-slate-600">
-          {t.groups}
-        </Link>
-      </div>
       <form onSubmit={onSave} className="mt-6 space-y-4 rounded-2xl shadow-sm border border-[#e6e6e6] bg-white p-5">
         <label className="block text-sm font-medium text-slate-800">
           {t.nickname}

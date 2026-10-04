@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseIntentMatchingSignalsMini } from "@/lib/aiml";
+import { screeningTextForAi } from "@/lib/meetup";
 import {
   FALLBACK_MIXED_SIGNALS,
   normalizeIntentMatchingSignals,
@@ -15,6 +16,7 @@ export async function hydrateIntentMatchingSignals(params: {
   ownerUserId: string;
   natural_language_input: string;
   must_haves: string | null;
+  location?: string | null;
   /** Raw `matching_signals` from DB (`null` = never classified / legacy row). */
   stored_signals: unknown;
 }): Promise<IntentMatchingSignals> {
@@ -22,7 +24,11 @@ export async function hydrateIntentMatchingSignals(params: {
     return normalizeIntentMatchingSignals(params.stored_signals);
   }
 
-  const blob = `${params.natural_language_input}\n---\n${params.must_haves ?? ""}`.slice(0, 8000);
+  const blob = screeningTextForAi({
+    naturalLanguage: params.natural_language_input,
+    mustHaves: params.must_haves,
+    location: params.location,
+  }).slice(0, 8000);
   try {
     const sig = await parseIntentMatchingSignalsMini(blob);
     const { error } = await params.supabase

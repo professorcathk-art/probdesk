@@ -247,3 +247,10 @@
     animation: none;
   }
 }
+
+/* The conversation list is the scroller. The page itself must not scroll too, or an upward swipe gets stuck. */
+html:has([data-messages-shell]),
+body:has([data-messages-shell]) {
+  height: 100dvh;
+  overflow: hidden;
+}

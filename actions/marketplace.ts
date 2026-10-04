@@ -1,5 +1,7 @@
 "use server";
 
+import { unstable_cache } from "next/cache";
+import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { embeddingVectorForRpc } from "@/lib/vector-literal";
@@ -87,14 +89,43 @@ export type ListMarketplaceResult =
   | { listings: MarketplaceListing[]; moreAvailable: boolean }
   | { error: string };
 
-/**
- * @param guestPreview When true (Explore/Square for signed-out users), fetch at most 20 listings but probe +1 row to show “sign in for more”.
- */
+/** Public home feed. Skips embedding columns, which made the blended RPC take seconds. */
+async function loadGuestExploreListings(): Promise<ListMarketplaceResult> {
+  const url = process.env["NEXT_PUBLIC_SUPABASE_URL"];
+  const anon = process.env["NEXT_PUBLIC_SUPABASE_ANON_KEY"];
+  if (!url || !anon) return { error: "Missing Supabase configuration" };
+  const supabase = createAnonClient(url, anon, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await supabase
+    .from("intent_requests")
+    .select("id, natural_language_input, location_filter, extracted_persona, user_id, is_demo_listing, must_haves")
+    .eq("is_marketplace_public", true)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(21);
+  if (error) return { error: error.message };
+  let raw = (data ?? []) as ListingRow[];
+  let moreAvailable = false;
+  if (raw.length > 20) {
+    moreAvailable = true;
+    raw = raw.slice(0, 20);
+  }
+  const listings = (await attachExplorePublicIdentityRows(raw)).map((row) => ({ ...row, recommended: false }));
+  return { listings, moreAvailable };
+}
+
+const loadGuestExploreListingsCached = unstable_cache(loadGuestExploreListings, ["guest-explore-listings-v1"], {
+  revalidate: 30,
+});
+
 export async function listMarketplaceListings(options?: { guestPreview?: boolean }): Promise<ListMarketplaceResult> {
   try {
-    const supabase = await createClient();
     const guestPreview = Boolean(options?.guestPreview);
-    const fetchLimit = guestPreview ? 21 : 60;
+    if (guestPreview) return loadGuestExploreListingsCached();
+
+    const supabase = await createClient();
+    const fetchLimit = 60;
 
     const {
       data: { user },
@@ -126,13 +157,8 @@ export async function listMarketplaceListings(options?: { guestPreview?: boolean
       must_haves: r.must_haves ?? undefined,
       recommended: Boolean(r.is_recommended),
     }));
-    let moreAvailable = false;
-    if (guestPreview && raw.length > 20) {
-      moreAvailable = true;
-      raw = raw.slice(0, 20);
-    }
     const listings = await attachExplorePublicIdentityRows(raw);
-    return { listings, moreAvailable };
+    return { listings, moreAvailable: false };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server configuration error";
     return { error: msg };

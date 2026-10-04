@@ -17,6 +17,9 @@ export function stampMustHaves(kind: MeetupKind, who: string): string {
 
 export const TITLE_MAX_UNITS = 20;
 
+/** One AI people-search per post. A repeat inside this window must not call the model. */
+export const SUGGESTION_COOLDOWN_MS = 60 * 60 * 1000;
+
 /** Chinese characters count as 1. Other characters count as half, so 20 Chinese or 40 English fit. */
 export function titleUnits(value: string) {
   let units = 0;
@@ -61,6 +64,30 @@ export function composeMustHaves(kind: MeetupKind, expectations: string, when: s
   const lines = [`post_type:${kind}`];
   if (when.trim()) lines.push(`when:${when.trim()}`);
   if (expectations.trim()) lines.push(expectations.trim());
+  return lines.join("\n");
+}
+
+/** Labeled listing for classifiers, embeddings, and fit checks. */
+export function screeningTextForAi(input: {
+  naturalLanguage: string;
+  mustHaves?: string | null;
+  location?: string | null;
+}): string {
+  const text = input.naturalLanguage.trim();
+  const kind = meetupKindFrom(text, input.mustHaves);
+  const split = splitMeetupPost(text);
+  const expectations = whoFromMustHaves(input.mustHaves);
+  const when = whenFromMustHaves(input.mustHaves);
+  const place = input.location?.trim() ?? "";
+  const lines = [
+    `Post type: ${kind === "group" ? "group activity" : "one-to-one"}`,
+    `Title: ${split.title || "(none)"}`,
+    `Details: ${split.details || "(none)"}`,
+    `Location: ${place || "(none stated)"}`,
+  ];
+  if (kind === "group") lines.push(`Date and time: ${when || "(none stated)"}`);
+  lines.push(`Expectations: ${expectations || "(none stated)"}`);
+  if (split.tags.length > 0) lines.push(`Hashtags: ${split.tags.join(", ")}`);
   return lines.join("\n");
 }
 

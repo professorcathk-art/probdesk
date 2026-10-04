@@ -4,6 +4,7 @@ import { isAdminEmail } from "@/lib/admin-emails";
 import { embeddingNoteForMatchingSignals, normalizeIntentMatchingSignals } from "@/lib/intent-matching-signals";
 import { buildDemandEmbeddingText } from "@/lib/demand-supply-embedding";
 import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
+import { screeningTextForAi } from "@/lib/meetup";
 import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
 import { validateProfileBasicsForPublish } from "@/lib/profile-basics";
 import { syncOnboardingCompleteFromProfile } from "@/lib/sync-onboarding-complete-from-profile";
@@ -70,9 +71,16 @@ export async function createConsoleIntentForMobile(
   let embedding: number[];
 
   try {
-    parsed = await parseIntentWithMini(trimmed);
+    parsed = await parseIntentWithMini(
+      screeningTextForAi({
+        naturalLanguage: trimmed,
+        mustHaves: must_haves,
+        location: params.locationFilterInput,
+      }),
+    );
     embedding = await embedTextSmall(
       buildDemandEmbeddingText(trimmed, must_haves, {
+        location: params.locationFilterInput,
         extracted_persona: parsed.extracted_persona as Record<string, unknown>,
         semantic_match_hints:
           embeddingNoteForMatchingSignals(normalizeIntentMatchingSignals(parsed.matching_signals)) || undefined,

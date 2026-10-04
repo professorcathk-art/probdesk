@@ -57,6 +57,16 @@ export function SiteNav({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
+  function openHomeType(event: React.MouseEvent, next: "one_to_one" | "group") {
+    if (pathname !== "/") return;
+    event.preventDefault();
+    setOpen(false);
+    const url = new URL(window.location.href);
+    url.searchParams.set("type", next);
+    window.history.pushState(null, "", `${url.pathname}${url.search}`);
+    window.dispatchEvent(new CustomEvent("vennode-type", { detail: next }));
+  }
+
   function onSearch(event: React.FormEvent) {
     event.preventDefault();
     const q = query.trim();
@@ -73,6 +83,7 @@ export function SiteNav({
   }
 
   return (
+    <>
     <header className="sticky top-0 z-[200] border-b border-[#eee] bg-white pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-4 sm:px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2 text-[#222]">
@@ -118,7 +129,9 @@ export function SiteNav({
           </button>
         </div>
       </div>
-      <form onSubmit={onSearch} className="mx-auto w-full max-w-3xl px-4 pb-3" role="search">
+    </header>
+    <section className="bg-[#f8fafc]">
+      <form onSubmit={onSearch} className="mx-auto w-full max-w-3xl px-4 pb-2 pt-5 sm:px-6" role="search">
         <label className="block">
           <span className="mb-1 flex items-center gap-1 text-xs font-semibold text-[#ff5a5f]">
             <Sparkles className="h-3.5 w-3.5" aria-hidden />
@@ -144,6 +157,7 @@ export function SiteNav({
           <span className="mt-1 block px-2 text-xs text-slate-500">{t.searchHint}</span>
         </label>
       </form>
+    </section>
       {open ? (
         <div className="fixed inset-0 z-[180]">
           <button type="button" className="absolute inset-0 bg-slate-900/30" aria-label={t.menu} onClick={() => setOpen(false)} />
@@ -155,10 +169,10 @@ export function SiteNav({
             </button>
             {!isAuthenticated ? (
               <>
-                <Link href="/?type=one_to_one" className="min-h-11 py-2 text-sm font-medium text-slate-900" onClick={() => setOpen(false)}>
+                <Link href="/?type=one_to_one" prefetch={false} className="min-h-11 py-2 text-sm font-medium text-slate-900" onClick={(event) => openHomeType(event, "one_to_one")}>
                   {t.oneToOne}
                 </Link>
-                <Link href="/?type=group" className="min-h-11 py-2 text-sm font-medium text-slate-900" onClick={() => setOpen(false)}>
+                <Link href="/?type=group" prefetch={false} className="min-h-11 py-2 text-sm font-medium text-slate-900" onClick={(event) => openHomeType(event, "group")}>
                   {t.groups}
                 </Link>
                 <Link href="/square" className="min-h-11 py-2 text-sm font-medium text-slate-900" onClick={() => setOpen(false)}>
@@ -205,6 +219,6 @@ export function SiteNav({
           </nav>
         </div>
       ) : null}
-    </header>
+    </>
   );
 }

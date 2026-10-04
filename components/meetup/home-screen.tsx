@@ -101,14 +101,37 @@ export function MeetupHome({
   const { lang } = useLanguage();
   const t = meetupCopy(lang);
   const [liveQuery, setLiveQuery] = useState(query);
+  const [liveType, setLiveType] = useState(type);
   useEffect(() => {
     setLiveQuery(query);
   }, [query]);
   useEffect(() => {
+    setLiveType(type);
+  }, [type]);
+  useEffect(() => {
     const onSearch = (event: Event) => setLiveQuery((event as CustomEvent<string>).detail ?? "");
+    const applyType = (value: string | null | undefined) => {
+      setLiveType(value === "group" || value === "one_to_one" ? value : "all");
+    };
+    const onType = (event: Event) => applyType((event as CustomEvent<string>).detail);
+    const onPop = () => applyType(new URL(window.location.href).searchParams.get("type"));
     window.addEventListener("vennode-search", onSearch);
-    return () => window.removeEventListener("vennode-search", onSearch);
+    window.addEventListener("vennode-type", onType);
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("vennode-search", onSearch);
+      window.removeEventListener("vennode-type", onType);
+      window.removeEventListener("popstate", onPop);
+    };
   }, []);
+
+  function showType(next: MeetupKind) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("type", next);
+    window.history.pushState(null, "", `${url.pathname}${url.search}`);
+    setLiveType(next);
+  }
+
   const needle = liveQuery.trim().toLowerCase();
   const matched = listings
     .map((listing) => {
@@ -116,7 +139,7 @@ export function MeetupHome({
       const hay = `${listing.natural_language_input} ${listing.location_filter ?? ""} ${listing.must_haves ?? ""} ${listing.interest_keywords.join(" ")}`;
       return { listing, kind, score: scoreListingText(needle, hay) };
     })
-    .filter((row) => (type === "all" || row.kind === type) && row.score > 0)
+    .filter((row) => (liveType === "all" || row.kind === liveType) && row.score > 0)
     .sort((a, b) => b.score - a.score)
     .map((row) => row.listing);
   const oneToOne = matched.filter((listing) => meetupKindFrom(listing.natural_language_input, listing.must_haves) === "one_to_one");
@@ -128,56 +151,56 @@ export function MeetupHome({
       <p className="mt-2 max-w-xl text-sm text-slate-500 sm:text-base">{t.lead}</p>
       {matched.length === 0 ? (
         <p className="mt-8 rounded-2xl border border-dashed border-slate-200 bg-white px-5 py-12 text-center text-sm text-slate-500">
-          {needle || type !== "all" ? t.emptyFiltered : t.empty}
+          {needle || liveType !== "all" ? t.emptyFiltered : t.empty}
         </p>
       ) : (
         <div className="mt-8 space-y-10">
-          {type !== "group" ? (
+          {liveType !== "group" ? (
             <section>
               <div className="flex items-end justify-between gap-3">
                 <div>
                   <h2 className="text-xl font-semibold text-slate-900">{t.oneToOne}</h2>
                   <p className="mt-1 text-sm text-slate-500">{t.oneToOneHint}</p>
                 </div>
-                {type === "all" ? (
-                  <Link href="/?type=one_to_one" className="text-sm font-medium text-[#ff5a5f]">
+                {liveType === "all" ? (
+                  <button type="button" onClick={() => showType("one_to_one")} className="text-sm font-medium text-[#ff5a5f]">
                     {lang === "zh" ? "查看全部" : "See all"}
-                  </Link>
+                  </button>
                 ) : (
                   <span />
                 )}
               </div>
               {oneToOne.length === 0 ? (
-                <p className="mt-4 text-sm text-slate-500">{needle || type !== "all" ? t.emptyFiltered : t.emptySection}</p>
+                <p className="mt-4 text-sm text-slate-500">{needle || liveType !== "all" ? t.emptyFiltered : t.emptySection}</p>
               ) : (
                 <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {(type === "all" ? oneToOne.slice(0, 6) : oneToOne).map((listing, index) => (
+                  {(liveType === "all" ? oneToOne.slice(0, 6) : oneToOne).map((listing, index) => (
                     <Card key={listing.id} listing={listing} viewerId={viewerId} yoursLabel={t.yours} oneLabel={t.oneToOne} groupLabel={t.groups} eager={index < 3} />
                   ))}
                 </div>
               )}
             </section>
           ) : null}
-          {type !== "one_to_one" ? (
+          {liveType !== "one_to_one" ? (
             <section>
               <div className="flex items-end justify-between gap-3">
                 <div>
                   <h2 className="text-xl font-semibold text-slate-900">{t.groups}</h2>
                   <p className="mt-1 text-sm text-slate-500">{t.groupsHint}</p>
                 </div>
-                {type === "all" ? (
-                  <Link href="/?type=group" className="text-sm font-medium text-[#ff5a5f]">
+                {liveType === "all" ? (
+                  <button type="button" onClick={() => showType("group")} className="text-sm font-medium text-[#ff5a5f]">
                     {lang === "zh" ? "查看全部" : "See all"}
-                  </Link>
+                  </button>
                 ) : (
                   <span />
                 )}
               </div>
               {groups.length === 0 ? (
-                <p className="mt-4 text-sm text-slate-500">{needle || type !== "all" ? t.emptyFiltered : t.emptySection}</p>
+                <p className="mt-4 text-sm text-slate-500">{needle || liveType !== "all" ? t.emptyFiltered : t.emptySection}</p>
               ) : (
                 <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {(type === "all" ? groups.slice(0, 6) : groups).map((listing, index) => (
+                  {(liveType === "all" ? groups.slice(0, 6) : groups).map((listing, index) => (
                     <Card key={listing.id} listing={listing} viewerId={viewerId} yoursLabel={t.yours} oneLabel={t.oneToOne} groupLabel={t.groups} eager={index < 3} />
                   ))}
                 </div>

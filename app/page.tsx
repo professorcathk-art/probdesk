@@ -13,8 +13,10 @@ export default async function Home({
   const sp = (await searchParams) ?? {};
   const query = typeof sp.q === "string" ? sp.q.slice(0, 80) : "";
   const type: "all" | MeetupKind = sp.type === "group" || sp.type === "one_to_one" ? sp.type : "all";
-  const { user } = await getAuthContext();
-  const listingsRes = await listMarketplaceListings({ guestPreview: !user });
+  const authPromise = getAuthContext();
+  const guestListingsPromise = listMarketplaceListings({ guestPreview: true });
+  const { user } = await authPromise;
+  const listingsRes = user ? await listMarketplaceListings({ guestPreview: false }) : await guestListingsPromise;
   const listings = "error" in listingsRes ? [] : listingsRes.listings;
   const moreAvailable = !("error" in listingsRes) && listingsRes.moreAvailable;
 

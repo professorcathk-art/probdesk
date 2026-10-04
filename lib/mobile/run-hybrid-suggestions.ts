@@ -78,6 +78,7 @@ export async function runHybridSuggestionsForMobile(
     ownerUserId: user.id,
     natural_language_input: intent.natural_language_input,
     must_haves: intent.must_haves ?? null,
+    location: intent.location_filter,
     stored_signals: intentRow.matching_signals,
   });
 

@@ -54,7 +54,7 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const transcriptRef = useRef<HTMLDivElement>(null);
 
   const idsKey = selected ? [...selected.matchIds].sort().join(",") : "";
 
@@ -109,17 +109,19 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
     void markMessengerMatchesRead(thread.matchIds);
   }, [selectedPeerId, threads]);
 
+  function pinTranscriptToBottom(behavior: ScrollBehavior = "auto") {
+    const el = transcriptRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior });
+  }
+
   useLayoutEffect(() => {
     if (!pendingThreadBottomRef.current) return;
-    if (!selected) {
+    if (!selected || messages.length === 0) {
       pendingThreadBottomRef.current = false;
       return;
     }
-    if (messages.length === 0) {
-      pendingThreadBottomRef.current = false;
-      return;
-    }
-    bottomRef.current?.scrollIntoView({ behavior: "auto" });
+    pinTranscriptToBottom("auto");
     pendingThreadBottomRef.current = false;
   }, [messages, selected, idsKey]);
 
@@ -141,7 +143,7 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
     setDraft("");
     await loadMessages();
     requestAnimationFrame(() => {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      pinTranscriptToBottom("smooth");
     });
     router.refresh();
   }
@@ -150,7 +152,7 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
   const showChat = isMd || mobileChatFocus;
 
   return (
-    <div className="flex min-h-[calc(100dvh-6.5rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:flex-row">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:flex-row">
       <aside
         className={cn(
           "flex min-h-0 w-full flex-col border-slate-200 md:w-[min(360px,38%)] md:max-w-md md:shrink-0 md:border-r",
@@ -160,7 +162,7 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
         <div className="border-b border-slate-200 px-4 py-4">
           <h1 className="font-[family-name:var(--font-heading)] text-lg font-semibold tracking-tight text-slate-900">{p.title}</h1>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {threads.length === 0 ? (
             <div className="flex flex-col gap-2 px-4 py-10 text-center">
               <p className="text-sm font-medium text-slate-800">{p.emptyTitle}</p>
@@ -227,7 +229,7 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
 
       <section
         className={cn(
-          "flex min-h-0 min-w-0 flex-1 flex-col bg-slate-50",
+          "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-slate-50",
           !showChat && "hidden md:flex",
         )}
       >
@@ -238,7 +240,7 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
           </div>
         ) : (
           <>
-            <header className="sticky top-0 z-10 flex shrink-0 items-start gap-3 border-b border-slate-200 bg-white px-4 py-3 md:px-5 md:py-4">
+            <header className="flex shrink-0 items-start gap-3 border-b border-slate-200 bg-white px-4 py-3 md:px-5 md:py-4">
               {!isMd && mobileChatFocus ? (
                 <Button
                   type="button"
@@ -291,7 +293,7 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
               </p>
             ) : null}
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 md:px-5">
+            <div ref={transcriptRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5">
               {loadError ? <p className="text-center text-sm text-red-400">{loadError}</p> : null}
               {!loadError && messages.length === 0 ? (
                 <p className="py-8 text-center text-sm text-slate-500">{c.noMessages}</p>
@@ -336,12 +338,11 @@ export function MessagesPageClient({ userId, threads, initialPeerId, matchParamI
                       </div>
                     );
                   })}
-                  <div ref={bottomRef} />
                 </div>
               )}
             </div>
 
-            <footer className="sticky bottom-0 z-10 border-t border-slate-200 bg-white p-4 md:px-5">
+            <footer className="shrink-0 border-t border-slate-200 bg-white p-4 md:px-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <Textarea
                   value={draft}

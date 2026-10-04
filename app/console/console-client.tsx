@@ -95,7 +95,7 @@ export function ConsoleClient({
   profileReadyForInvites = true,
 }: Props) {
   const router = useRouter();
-  const { strings } = useLanguage();
+  const { lang, strings } = useLanguage();
   const t = strings.console;
   const pr = strings.profilePage;
   const cr = strings.credits;
@@ -348,10 +348,14 @@ export function ConsoleClient({
   async function loadSuggestions(intentId: string) {
     setBusyIntent(intentId);
     setError(null);
-    const res = await computeHybridSuggestions(intentId);
+    const res = await computeHybridSuggestions(intentId, lang);
     setBusyIntent(null);
     if (!res.ok) {
       setError(res.message);
+      return;
+    }
+    if (res.skipped) {
+      setError(lang === "zh" ? "一小時內已找過，請稍後再試。" : "Already searched in the last hour. Try again later.");
       return;
     }
     setFreshMatchesIntentId(intentId);
@@ -422,10 +426,12 @@ export function ConsoleClient({
     setCreateOpen(false);
     setPostCreateDiscovering(true);
     setError(null);
-    const discover = await computeHybridSuggestions(newIntentId);
+    const discover = await computeHybridSuggestions(newIntentId, lang);
     setPostCreateDiscovering(false);
     await router.refresh();
-    if (discover.ok) {
+    if (discover.ok && discover.skipped) {
+      setError(lang === "zh" ? "一小時內已找過，請稍後再試。" : "Already searched in the last hour. Try again later.");
+    } else if (discover.ok) {
       setFreshMatchesIntentId(newIntentId);
       setFreshMatchesModal(discover.suggestions);
     } else {

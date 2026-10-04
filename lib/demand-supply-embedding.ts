@@ -7,6 +7,7 @@
 
 import type { ProfileAttractionOrientationSlug } from "@/lib/profile-attraction-orientation";
 import { attractionOrientationEmbeddingNote } from "@/lib/profile-attraction-orientation";
+import { screeningTextForAi } from "@/lib/meetup";
 
 const MAX_GOAL_LANE_TOKENS = 32;
 const MAX_GOAL_FRAGMENT_CHARS = 96;
@@ -120,6 +121,8 @@ export type DemandEmbeddingContext = {
   enrichment?: Record<string, unknown> | null | undefined;
   /** AIML-produced lane / gender hints (English tokens) fused into retrieval text — optional */
   semantic_match_hints?: string | null | undefined;
+  /** Dedicated location field from the publish form. */
+  location?: string | null | undefined;
 };
 
 /** Text embedded into `intent_requests.demand_embedding`. */
@@ -134,13 +137,16 @@ export function buildDemandEmbeddingText(
     enrichment: context?.enrichment ?? null,
   });
 
-  const d = intentDescription.trim();
-  const m = mustHaves?.trim();
+  const brief = screeningTextForAi({
+    naturalLanguage: intentDescription,
+    mustHaves,
+    location: context?.location,
+  });
   const hint = context?.semantic_match_hints?.trim();
   const hintsBlock =
     hint && hint.length > 0 ? `\nStructural match hints for retrieval (auto; any language distilled): ${hint}` : "";
 
-  return `${goal} Looking for: ${d}. Must-haves constraints: ${m && m.length > 0 ? m : "(none stated)"}.${hintsBlock}`;
+  return `${goal}\n${brief}${hintsBlock}`;
 }
 
 /** JSON-safe profile record slice for `[Profile Context: …]` */

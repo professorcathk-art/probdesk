@@ -13,7 +13,7 @@ import { validateProfileBasicsForPublish } from "@/lib/profile-basics";
 import { normalizeProfileTags } from "@/lib/profile-tags";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
-import { meetupKindFrom, type MeetupKind } from "@/lib/meetup";
+import { meetupKindFrom, screeningTextForAi, SUGGESTION_COOLDOWN_MS, type MeetupKind } from "@/lib/meetup";
 import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
 import { logPairingScoreEvent } from "@/lib/pairing-score-log";
 import { BLOCKING_MATCH_STATUSES } from "@/lib/match-blocking";
@@ -85,6 +85,8 @@ export type IntentRow = {
   is_marketplace_public: boolean;
   extracted_persona: Record<string, unknown> | null;
   must_haves: string | null;
+  /** ISO time of the last AI people search. Absent until that search has run. */
+  suggestionRanAt?: string | null;
 };
 
 export async function bootstrapIntentFromLanding(naturalLanguageInput: string) {
@@ -121,7 +123,7 @@ export async function bootstrapIntentFromLanding(naturalLanguageInput: string) {
   let embedding: number[];
 
   try {
-    parsed = await parseIntentWithMini(trimmed);
+    parsed = await parseIntentWithMini(screeningTextForAi({ naturalLanguage: trimmed }));
     embedding = await embedTextSmall(
       buildDemandEmbeddingText(trimmed, null, {
         extracted_persona: parsed.extracted_persona as Record<string, unknown>,
@@ -342,12 +344,18 @@ export async function listMyIntents(): Promise<{ intents: IntentRow[] } | { erro
 
   const { data, error } = await supabase
     .from("intent_requests")
-    .select("id, natural_language_input, location_filter, status, is_marketplace_public, extracted_persona, must_haves")
+    .select("id, natural_language_input, location_filter, status, is_marketplace_public, extracted_persona, must_haves, enrichment")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   if (error) return { error: error.message };
-  return { intents: (data ?? []) as IntentRow[] };
+  const rows = (data ?? []) as Array<IntentRow & { enrichment?: unknown }>;
+  return {
+    intents: rows.map((row) => {
+      const { enrichment, ...rest } = row;
+      return { ...rest, suggestionRanAt: suggestionRanAtFrom(enrichment) };
+    }),
+  };
 }
 
 export async function listIntentKinds(ids: string[]): Promise<Record<string, MeetupKind>> {
@@ -497,8 +505,34 @@ export type SuggestionCard = {
 /** Bumped when hybrid discovery logging / guardrail inputs change materially. */
 const HYBRID_DISCOVERY_LOG_PIPELINE = "082-ai-matching-signals-column";
 
-export async function computeHybridSuggestions(intentId: string): Promise<
-  | { ok: true; suggestions: SuggestionCard[] }
+function asEnrichmentRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function suggestionRanAtFrom(enrichment: unknown): string | null {
+  const value = asEnrichmentRecord(enrichment).suggestion_ran_at;
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function cooledUntilFrom(ranAt: string | null, now = Date.now()): string | null {
+  if (!ranAt) return null;
+  const started = Date.parse(ranAt);
+  if (!Number.isFinite(started)) return null;
+  const end = started + SUGGESTION_COOLDOWN_MS;
+  return end > now ? new Date(end).toISOString() : null;
+}
+
+function reasonLanguageFor(intentText: string, explicit?: "zh" | "en"): "zh" | "en" {
+  if (explicit === "zh" || explicit === "en") return explicit;
+  return /[\u3400-\u9fff]/.test(intentText) ? "zh" : "en";
+}
+
+export async function computeHybridSuggestions(
+  intentId: string,
+  lang?: "zh" | "en",
+): Promise<
+  | { ok: true; suggestions: SuggestionCard[]; cooledUntil?: string; skipped?: boolean }
   | { ok: false; message: string }
 > {
   const supabase = await createClient();
@@ -510,7 +544,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
   const { data: intentRow, error } = await supabase
     .from("intent_requests")
     .select(
-      "id, natural_language_input, location_filter, demand_embedding, embedding, must_haves, matching_signals",
+      "id, natural_language_input, location_filter, demand_embedding, embedding, must_haves, matching_signals, enrichment",
     )
     .eq("id", intentId)
     .eq("user_id", user.id)
@@ -518,6 +552,13 @@ export async function computeHybridSuggestions(intentId: string): Promise<
 
   if (error || !intentRow) {
     return { ok: false, message: error?.message ?? "Request not found" };
+  }
+
+  const enrichment = asEnrichmentRecord((intentRow as { enrichment?: unknown }).enrichment);
+  const previousRanAt = suggestionRanAtFrom(enrichment);
+  const alreadyCooling = cooledUntilFrom(previousRanAt);
+  if (alreadyCooling) {
+    return { ok: true, suggestions: [], skipped: true, cooledUntil: alreadyCooling };
   }
 
   let locationForRpc = intentRow.location_filter?.trim() ?? "";
@@ -541,6 +582,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     ownerUserId: user.id,
     natural_language_input: intent.natural_language_input,
     must_haves: intent.must_haves ?? null,
+    location: intent.location_filter,
     stored_signals: intentRow.matching_signals,
   });
 
@@ -752,6 +794,29 @@ export async function computeHybridSuggestions(intentId: string): Promise<
       : { data: [] as { id: string; must_haves: string | null }[] };
   const mustByIntentId = new Map((poolMustRows ?? []).map((r) => [r.id as string, r.must_haves as string | null]));
 
+  const stampedAt = new Date().toISOString();
+  const claim = supabase
+    .from("intent_requests")
+    .update({ enrichment: { ...enrichment, suggestion_ran_at: stampedAt } })
+    .eq("id", intentId)
+    .eq("user_id", user.id);
+  const claimed = previousRanAt
+    ? await claim.eq("enrichment->>suggestion_ran_at", previousRanAt).select("id")
+    : await claim.is("enrichment->>suggestion_ran_at", null).select("id");
+  if (claimed.error) {
+    return { ok: false, message: claimed.error.message };
+  }
+  if (!claimed.data?.length) {
+    return {
+      ok: true,
+      suggestions: [],
+      skipped: true,
+      cooledUntil: new Date(Date.now() + SUGGESTION_COOLDOWN_MS).toISOString(),
+    };
+  }
+  const cooledUntil = new Date(Date.parse(stampedAt) + SUGGESTION_COOLDOWN_MS).toISOString();
+  const reasonLang = reasonLanguageFor(intent.natural_language_input, lang);
+
   const PROFILE_ONLY_STUB =
     "(No posted Explore listing on file — complementary fit is from this member's saved profile / supply embedding vs your request; a listing is optional.)";
 
@@ -790,6 +855,7 @@ export async function computeHybridSuggestions(intentId: string): Promise<
           senderGender: senderProf?.gender ?? null,
           candidateGender: row.gender ?? null,
           senderAttractionOrientationSlug: senderProf?.attraction_orientation ?? null,
+          reasonLanguage: reasonLang,
         });
         const capped = applyPartnershipSemanticsScoreCap({
           sender: senderForMatching,
@@ -855,7 +921,9 @@ export async function computeHybridSuggestions(intentId: string): Promise<
             peer_languages: row.languages,
             match_score: capped.score,
             compatibility_reason:
-              "Demand↔supply retrieval — confirm fit manually while AI scoring is unavailable.",
+              reasonLang === "zh"
+                ? "AI 評分暫時無法使用，請自行確認是否合適。"
+                : "Demand↔supply retrieval — confirm fit manually while AI scoring is unavailable.",
           },
           logMeta: {
             candidate_intent_id: row.linked_intent_id,
@@ -928,7 +996,9 @@ export async function computeHybridSuggestions(intentId: string): Promise<
     console.error("[computeHybridSuggestions] recordImmediateHybridRecommendations:", e);
   }
 
-  return { ok: true, suggestions };
+  revalidatePath("/portal/one-to-one");
+  revalidatePath("/portal/groups");
+  return { ok: true, suggestions, cooledUntil };
 }
 
 export async function createConsoleIntent(
@@ -991,9 +1061,12 @@ export async function createConsoleIntent(
   let embedding: number[];
 
   try {
-    parsed = await parseIntentWithMini(trimmed);
+    parsed = await parseIntentWithMini(
+      screeningTextForAi({ naturalLanguage: trimmed, mustHaves: must_haves, location: locationFilterInput }),
+    );
     embedding = await embedTextSmall(
       buildDemandEmbeddingText(trimmed, must_haves, {
+        location: locationFilterInput,
         extracted_persona: parsed.extracted_persona as Record<string, unknown>,
         semantic_match_hints: embeddingNoteForMatchingSignals(
           normalizeIntentMatchingSignals(parsed.matching_signals),
@@ -1096,9 +1169,12 @@ export async function updateConsoleIntent(
   let embedding: number[];
 
   try {
-    parsed = await parseIntentWithMini(trimmed);
+    parsed = await parseIntentWithMini(
+      screeningTextForAi({ naturalLanguage: trimmed, mustHaves: must_haves, location: locationFilterInput }),
+    );
     embedding = await embedTextSmall(
       buildDemandEmbeddingText(trimmed, must_haves, {
+        location: locationFilterInput,
         extracted_persona: parsed.extracted_persona as Record<string, unknown>,
         enrichment: asEmbeddingContextRecord(existing?.enrichment),
         semantic_match_hints:
