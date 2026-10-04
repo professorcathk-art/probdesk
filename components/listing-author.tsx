@@ -5,11 +5,13 @@ export function ListingAuthor({
   avatar,
   anonymousLabel,
   anonymousHint,
+  genderLabel,
 }: {
   name?: string | null;
   avatar?: string | null;
   anonymousLabel: string;
   anonymousHint: string;
+  genderLabel?: string | null;
 }) {
   if (!name) {
     return (
@@ -18,6 +20,8 @@ export function ListingAuthor({
         <div>
           <p className="text-base font-semibold text-[#222]">{anonymousLabel}</p>
           <p className="text-sm text-slate-500">{anonymousHint}</p>
+          {genderLabel ? <p className="text-sm font-medium text-slate-800">{genderLabel}</p> : null}
+          {genderLabel ? <p className="text-sm text-slate-700">{genderLabel}</p> : null}
         </div>
       </div>
     );
@@ -35,6 +39,7 @@ export function ListingAuthor({
       <div>
         <p className="text-base font-semibold text-[#222]">{name}</p>
         <p className="text-sm text-slate-500">{anonymousHint}</p>
+        {genderLabel ? <p className="text-sm font-medium text-slate-800">{genderLabel}</p> : null}
       </div>
     </div>
   );

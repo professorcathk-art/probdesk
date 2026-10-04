@@ -14,6 +14,7 @@ import { useLanguage } from "@/components/language-provider";
 import { listingCoverSrc } from "@/lib/meetup-cover";
 import { formatListingPrice, listingTitle, meetupKindFrom, priceFromMustHaves, splitMeetupPost } from "@/lib/meetup";
 import { meetupCopy } from "@/lib/meetup-copy";
+import { displayGenderLabel } from "@/lib/display-gender";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -107,6 +108,8 @@ export function MarketplaceGrid({
           const group = meetupKindFrom(item.natural_language_input, item.must_haves) === "group";
           const post = splitMeetupPost(item.natural_language_input);
           const priceLabel = formatListingPrice(lang, priceFromMustHaves(item.must_haves));
+          const genderLine = displayGenderLabel(item.gender, strings.console);
+          const genderLabel = genderLine ? `${mp.publicGenderLabel} · ${genderLine}` : null;
           return (
             <div
               key={item.id}
@@ -125,7 +128,7 @@ export function MarketplaceGrid({
                 <img src={listingCoverSrc(item)} alt="" className="h-full w-full object-cover" />
                 <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-slate-800 shadow-sm">
                   {group ? <Users className="h-3.5 w-3.5" aria-hidden /> : <UserRound className="h-3.5 w-3.5" aria-hidden />}
-                  {group ? copy.groups : copy.oneToOne}
+                  {group ? copy.groups : copy.badgeOne}
                 </span>
                 {item.recommended ? (
                   <Badge className="absolute right-3 top-3 border-0 bg-white/95 text-[10px] font-medium text-[#e0484d] hover:bg-white">
@@ -139,7 +142,8 @@ export function MarketplaceGrid({
                     name={item.author_name}
                     avatar={item.author_avatar}
                     anonymousLabel={mp.anonymous}
-                    anonymousHint={item.author_name ? copy.profilePublic : mp.anonymousHint}
+                    anonymousHint={item.author_name ? copy.hostedBy : mp.anonymousHint}
+                    genderLabel={genderLabel}
                   />
                   <IntentShareButton intentId={item.id} size="sm" variant="ghost" className="h-8 px-2 text-xs" />
                 </div>
@@ -193,7 +197,7 @@ export function MarketplaceGrid({
                     setConnectOpen(true);
                   }}
                 >
-                  {pending.has(item.id) ? mp.pending : outOfCredits ? cr.dailyLimitReached : mp.connect}
+                  {pending.has(item.id) ? copy.alreadyApplied : outOfCredits ? cr.dailyLimitReached : group ? copy.joinGroup : copy.sendInvite}
                 </Button>
               </CardContent>
             </Card>

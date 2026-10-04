@@ -174,12 +174,12 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
           <button type="button" onClick={() => setKind("one_to_one")} className={`rounded-2xl border p-5 text-left shadow-sm ${kind === "one_to_one" ? "border-[#ff5a5f] bg-rose-50" : "border-slate-200 bg-white"}`}>
             <UserRound className="mb-3 h-5 w-5 text-[#ff5a5f]" aria-hidden />
             <p className="font-semibold text-slate-900">{t.oneToOne}</p>
-            <p className="mt-1 text-sm text-slate-500">{t.oneToOneHint}</p>
+            <p className="mt-1 text-sm text-slate-500">{t.typeOneDesc}</p>
           </button>
           <button type="button" onClick={() => setKind("group")} className={`rounded-2xl border p-5 text-left shadow-sm ${kind === "group" ? "border-[#ff5a5f] bg-rose-50" : "border-slate-200 bg-white"}`}>
             <Users className="mb-3 h-5 w-5 text-[#ff5a5f]" aria-hidden />
             <p className="font-semibold text-slate-900">{t.groups}</p>
-            <p className="mt-1 text-sm text-slate-500">{t.groupsHint}</p>
+            <p className="mt-1 text-sm text-slate-500">{t.typeGroupDesc}</p>
           </button>
           <button type="button" onClick={() => setStep(1)} className="min-h-11 rounded-lg bg-[#ff5a5f] px-4 text-sm font-medium text-white hover:bg-[#e0484d] sm:col-span-2">
             {t.next}

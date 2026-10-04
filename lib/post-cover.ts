@@ -23,6 +23,7 @@ export function enrichmentWithoutCoverUrl(enrichment: unknown): Record<string, u
     cover_url: _cover,
     public_display_name: _name,
     public_avatar_url: _avatar,
+    public_gender: _gender,
     ...rest
   } = enrichment as Record<string, unknown>;
   return rest;
@@ -39,6 +40,22 @@ export function publicAuthorFromEnrichment(enrichment: unknown): { name: string 
   const name = typeof record.public_display_name === "string" ? record.public_display_name.trim() : "";
   const avatar = typeof record.public_avatar_url === "string" ? record.public_avatar_url.trim() : "";
   return { name: name || null, avatar: avatar || null };
+}
+
+export function genderFromEnrichment(enrichment: unknown): string | null {
+  if (!enrichment || typeof enrichment !== "object" || Array.isArray(enrichment)) return null;
+  const value = (enrichment as Record<string, unknown>).public_gender;
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+export function enrichmentWithPublicGender(enrichment: unknown, gender: string | null): Record<string, unknown> {
+  const base =
+    enrichment && typeof enrichment === "object" && !Array.isArray(enrichment)
+      ? { ...(enrichment as Record<string, unknown>) }
+      : {};
+  if (gender) base.public_gender = gender;
+  else delete base.public_gender;
+  return base;
 }
 
 export function enrichmentWithProfile(

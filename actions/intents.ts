@@ -19,6 +19,7 @@ import {
   coverUrlFromEnrichment,
   enrichmentWithCover,
   enrichmentWithProfile,
+  enrichmentWithPublicGender,
   enrichmentWithoutCoverUrl,
   profilePublicFromEnrichment,
 } from "@/lib/post-cover";
@@ -1117,27 +1118,27 @@ export async function createConsoleIntent(
 
   let publicName: string | null = null;
   let publicAvatar: string | null = null;
-  if (!location_filter || showProfile) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("location, display_name, avatar_url")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (!location_filter) location_filter = profile?.location?.trim() ?? null;
-    if (showProfile) {
-      publicName = profile?.display_name?.trim() || null;
-      publicAvatar = profile?.avatar_url?.trim() || null;
-    }
+  let publicGender: string | null = null;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("location, display_name, avatar_url, gender")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!location_filter) location_filter = profile?.location?.trim() ?? null;
+  publicGender = profile?.gender?.trim() || null;
+  if (showProfile) {
+    publicName = profile?.display_name?.trim() || null;
+    publicAvatar = profile?.avatar_url?.trim() || null;
   }
 
-  const enrichment =
-    cover_url || showProfile
-      ? enrichmentWithProfile(cover_url ? { cover_url } : {}, {
-          show: Boolean(showProfile),
-          name: publicName,
-          avatar: publicAvatar,
-        })
-      : null;
+  const enrichment = enrichmentWithPublicGender(
+    enrichmentWithProfile(cover_url ? { cover_url } : {}, {
+      show: Boolean(showProfile),
+      name: publicName,
+      avatar: publicAvatar,
+    }),
+    publicGender,
+  );
 
   const { data: inserted, error } = await supabase.from("intent_requests").insert({
     user_id: user.id,
@@ -1150,7 +1151,7 @@ export async function createConsoleIntent(
     status: "active",
     is_marketplace_public: false,
     must_haves,
-    ...(enrichment ? { enrichment } : {}),
+    enrichment,
   }).select("id").single();
 
   if (error || !inserted) return { ok: false as const, message: error?.message ?? "Insert failed" };
@@ -1263,25 +1264,16 @@ export async function updateConsoleIntent(
 
   const matching_signals_update = normalizeIntentMatchingSignals(parsed.matching_signals);
 
-  let enrichmentPatch: Record<string, unknown> | undefined;
-  if (nextCover !== undefined || showProfile !== undefined) {
-    let next: unknown = nextCover !== undefined ? enrichmentWithCover(existing?.enrichment, nextCover) : existing?.enrichment;
-    if (showProfile !== undefined) {
-      let publicName: string | null = null;
-      let publicAvatar: string | null = null;
-      if (showProfile) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("display_name, avatar_url")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        publicName = profile?.display_name?.trim() || null;
-        publicAvatar = profile?.avatar_url?.trim() || null;
-      }
-      next = enrichmentWithProfile(next, { show: showProfile, name: publicName, avatar: publicAvatar });
-    }
-    enrichmentPatch = (next && typeof next === "object" ? next : {}) as Record<string, unknown>;
+  let next: unknown = nextCover !== undefined ? enrichmentWithCover(existing?.enrichment, nextCover) : existing?.enrichment;
+  const { data: genderProfile } = await supabase.from("profiles").select("display_name, avatar_url, gender").eq("user_id", user.id).maybeSingle();
+  if (showProfile !== undefined) {
+    next = enrichmentWithProfile(next, {
+      show: showProfile,
+      name: showProfile ? genderProfile?.display_name?.trim() || null : null,
+      avatar: showProfile ? genderProfile?.avatar_url?.trim() || null : null,
+    });
   }
+  const enrichmentPatch = enrichmentWithPublicGender(next, genderProfile?.gender?.trim() || null);
 
   const { error } = await supabase
     .from("intent_requests")

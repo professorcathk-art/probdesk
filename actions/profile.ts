@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { parseProfileGender, validateProfileBasicsForPublish } from "@/lib/profile-basics";
+import { stampPublicGenderOntoOwnIntents } from "@/lib/stamp-public-gender";
 import { normalizeProfileTags } from "@/lib/profile-tags";
 import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
 import { isAdminEmail } from "@/lib/admin-emails";
@@ -555,6 +556,7 @@ export async function updateMyProfileIdentity(fields: {
 
   if (error) return { ok: false as const, message: error.message };
 
+  await stampPublicGenderOntoOwnIntents(supabase, user.id);
   await syncOnboardingCompleteFromProfile(supabase, user.id);
 
   revalidatePath("/console");

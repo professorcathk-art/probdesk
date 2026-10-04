@@ -9,6 +9,7 @@ import { listingCoverSrc } from "@/lib/meetup-cover";
 import { formatListingPrice, listingTitle, meetupKindFrom, priceFromMustHaves, type MeetupKind } from "@/lib/meetup";
 import { scoreListingText } from "@/lib/meetup-search";
 import { meetupCopy } from "@/lib/meetup-copy";
+import { displayGenderLabel } from "@/lib/display-gender";
 import { HomeStory } from "@/components/meetup/home-story";
 
 function excerpt(text: string) {
@@ -38,6 +39,7 @@ function Card({
   listing,
   viewerId,
   yoursLabel,
+  detailsLabel,
   oneLabel,
   groupLabel,
   eager,
@@ -45,14 +47,16 @@ function Card({
   listing: MarketplaceListing;
   viewerId: string | null;
   yoursLabel: string;
+  detailsLabel: string;
   oneLabel: string;
   groupLabel: string;
   eager?: boolean;
 }) {
-  const { lang } = useLanguage();
+  const { lang, strings } = useLanguage();
   const mine = viewerId != null && listing.user_id === viewerId;
   const kind = meetupKindFrom(listing.natural_language_input, listing.must_haves);
   const priceLabel = formatListingPrice(lang, priceFromMustHaves(listing.must_haves));
+  const genderLine = displayGenderLabel(listing.gender, strings.console);
   const title = listingTitle(listing.natural_language_input);
   const blurb = excerpt(listing.natural_language_input);
   const href = mine ? (kind === "group" ? "/portal/groups" : "/portal/one-to-one") : `/explore/${listing.id}`;
@@ -81,8 +85,9 @@ function Card({
               </span>
             ) : null}
             {priceLabel ? <span className="truncate text-xs font-medium text-slate-700">{priceLabel}</span> : null}
+            {genderLine ? <span className="truncate text-xs text-slate-600">{genderLine}</span> : null}
           </span>
-          {mine ? <span className="text-xs font-semibold text-[#ff5a5f]">{yoursLabel}</span> : null}
+          {mine ? <span className="text-xs font-semibold text-[#ff5a5f]">{yoursLabel}</span> : <span className="shrink-0 text-xs font-semibold text-[#ff5a5f]">{detailsLabel}</span>}
         </div>
       </div>
     </Link>
@@ -181,7 +186,7 @@ export function MeetupHome({
                 </div>
                 {liveType === "all" ? (
                   <button type="button" onClick={() => showType("one_to_one")} className="text-sm font-medium text-[#ff5a5f]">
-                    {lang === "zh" ? "查看全部" : "See all"}
+                    {t.viewAll}
                   </button>
                 ) : (
                   <span />
@@ -192,7 +197,7 @@ export function MeetupHome({
               ) : (
                 <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {(liveType === "all" ? oneToOne.slice(0, 6) : oneToOne).map((listing, index) => (
-                    <Card key={listing.id} listing={listing} viewerId={viewerId} yoursLabel={t.yours} oneLabel={t.oneToOne} groupLabel={t.groups} eager={index < 3} />
+                    <Card key={listing.id} listing={listing} viewerId={viewerId} yoursLabel={t.yours} detailsLabel={t.apply} oneLabel={t.badgeOne} groupLabel={t.groups} eager={index < 3} />
                   ))}
                 </div>
               )}
@@ -207,7 +212,7 @@ export function MeetupHome({
                 </div>
                 {liveType === "all" ? (
                   <button type="button" onClick={() => showType("group")} className="text-sm font-medium text-[#ff5a5f]">
-                    {lang === "zh" ? "查看全部" : "See all"}
+                    {t.viewAll}
                   </button>
                 ) : (
                   <span />
@@ -218,7 +223,7 @@ export function MeetupHome({
               ) : (
                 <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {(liveType === "all" ? groups.slice(0, 6) : groups).map((listing, index) => (
-                    <Card key={listing.id} listing={listing} viewerId={viewerId} yoursLabel={t.yours} oneLabel={t.oneToOne} groupLabel={t.groups} eager={index < 3} />
+                    <Card key={listing.id} listing={listing} viewerId={viewerId} yoursLabel={t.yours} detailsLabel={t.apply} oneLabel={t.badgeOne} groupLabel={t.groups} eager={index < 3} />
                   ))}
                 </div>
               )}

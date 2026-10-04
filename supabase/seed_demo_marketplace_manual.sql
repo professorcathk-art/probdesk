@@ -1,7 +1,7 @@
 -- AUTO-GENERATED from lib/demo-showcase-intents.ts — do not hand-edit listing rows here.
 -- Regenerate: npm run gen:demo-marketplace-sql
 --
--- 若你看到「約 120 行、$demo0$」交友草稿，那是舊緩存；請在編輯器「從磁碟重新載入」此檔。正確約 65 行，且含「羽毛球教練」「裝修師傅」。
+-- 若你看到舊標題（羽毛球教練、裝修師傅），請從磁碟重新載入。正確內容含「羽毛球球友」「石澳龍脊」。
 --
 -- Replace YOUR_USER_UUID with an existing profiles.user_id (e.g. admin), then run in Supabase SQL Editor.
 -- Requires is_demo_listing (migration 049) and must_haves (migration 054). Deletes prior demo intents for that user, then inserts 11 rows.
@@ -43,27 +43,57 @@ begin
     true,
     null
   from (values
-    ($demo_nl_0$[AI SaaS] Building an AI-driven productivity tool for legal professionals. We have early traction and a working MVP. Looking for an angel investor who understands the B2B SaaS space for a casual virtual coffee to share our vision. Not looking for an immediate check, just building meaningful relationships and seeking feedback.
+    ($demo_nl_0$【創業尋找合夥人】AI 產品想找 Tech/Full-Stack Co-founder 咖啡交流 ☕️
 
-Tags: fundraising, AI, English$demo_nl_0$, 'Global / Remote'::text, $demo_nl_0_mh$Experience investing in or advising AI/SaaS startups. Willing to have a 30-min no-pressure chat. Brings strategic value and industry insights beyond just capital.$demo_nl_0_mh$),
-    ($demo_nl_1$【尋找技術合夥人】我是一名有 5 年經驗的產品經理，目前正在籌備一個 AI 應用工具，已有清晰的商業模式與初期客戶名單。尋找一位對打造偉大產品有極致追求、技術功底深厚（尤其是 LLM 應用層）的技術共同創辦人（Technical Co-founder）。
+目前已有清晰商業模式與初期用戶，正在打造下一代 AI 應用。希望能找到對 LLM 應用有熱情、具備技術底子的夥伴一起打造大產品！地點在香港或線上均可。
 
-標籤：co-founder、tech、中文$demo_nl_1$, 'Global / Remote'::text, $demo_nl_1_mh$具備全端開發與 API 串接經驗；能全職投入或每週承諾至少 20 小時；心智堅韌，願意一起經歷創業的起伏；地點不限，接受遠端非同步協作。$demo_nl_1_mh$),
-    ($demo_nl_2$【創立手搖飲新品牌】本人有豐富的餐飲營運與行銷經驗，手上有穩定的資金與潛在店面資源（港島區）。現正尋找一位真正懂茶、具備獨立研發飲品能力的合夥人，一起打造主打健康、質感的全新奶茶品牌。
+#創業 #AI #TechCo-founder #HongKong$demo_nl_0$, '香港 / 線上'::text, $demo_nl_0_mh$post_type:one_to_one
+對 LLM 應用有熱情，有全端或後端底子。可以先約一杯咖啡，香港或線上都可以。$demo_nl_0_mh$),
+    ($demo_nl_1$【職涯請益】倫敦 FinTech 產業經驗分享 & Coffee Chat 🇬🇧
 
-標籤：f&b、business、中文$demo_nl_2$, 'Hong Kong'::text, $demo_nl_2_mh$必須具備手搖飲店實務經驗，熟悉原料採購與 SOP 制定；對品質有堅持，有創業野心；人在香港，能實體開會討論與試茶。$demo_nl_2_mh$),
-    ($demo_nl_3$【尋找羽毛球教練】本身是羽毛球初學者（約打過半年），希望找一位有耐心、能針對動作細節調整的教練。希望每週上一到兩堂課，目標是改善發力技巧跟步法，未來能順利參與業餘雙打比賽。
+目前在倫敦外商擔任 Product Manager，歡迎準備轉職 FinTech、剛到倫敦生活或對英國職場感興趣的朋友一起聊聊交流！
 
-標籤：sports、coach、中文$demo_nl_3$, 'Hong Kong'::text, $demo_nl_3_mh$具備相關教練資格或豐富教學經驗；能安排在九龍或港島區的體育館上課；上課氣氛輕鬆但要求嚴謹，不接受常遲到或臨時改期。$demo_nl_3_mh$),
-    ($demo_nl_4$【貓咪用品 UGC 創作者合作】我們是一個新興的寵物用品品牌，即將推出一款智能貓咪餵食器。正在尋找家裡有養貓、擅長拍攝高質感短影音（Reels/TikTok）的 UGC 創作者，來幫我們拍攝產品開箱與實際使用情境。
+#FinTech #倫敦 #ProductManager #Career$demo_nl_1$, '倫敦 / 線上'::text, $demo_nl_1_mh$post_type:one_to_one
+準備認識 FinTech、倫敦生活或英國職場的朋友。輕鬆 coffee chat，沒有推銷。$demo_nl_1_mh$),
+    ($demo_nl_2$【興趣配對】尋找週末羽毛球球友 🏸（初學者友善！）
 
-標籤：creator、marketing、中文$demo_nl_4$, 'Hong Kong'::text, $demo_nl_4_mh$需提供過往拍攝的短影音作品集；家中有貓且貓咪不排斥新設備；熟悉時下短影音節奏與剪輯技巧；酬勞與合作細節可私訊討論。$demo_nl_4_mh$),
-    ($demo_nl_5$【尋找自動化專家】日常工作有許多重複性的行政與數據處理流程。想尋找一位熟悉 Zapier、Make (Integromat) 或是 Python 爬蟲的自動化專家，以外包或顧問形式協助處理幾個微型專案（Tiny projects），優化我們團隊的工作效率。
+本身是羽毛球初學者，想找一位有耐心、能一起練球調整動作細節的球友。地點主要在港島或九龍體育館。
 
-標籤：automation、freelance、中文$demo_nl_5$, 'Global / Remote'::text, $demo_nl_5_mh$有實際串接 API 與建立自動化工作流的成功案例；溝通能力佳，能快速理解商業邏輯與痛點；按專案計件收費或時薪制皆可討論。$demo_nl_5_mh$),
-    ($demo_nl_6$【尋找靠譜裝修師傅】近期購入位於九龍區約 400 呎的二手居屋，準備進行全屋翻新。希望尋找一位手工細膩、溝通透明的裝修統籌或師傅。重視水電等隱蔽工程的品質，風格偏向日式木質簡約風。
+#羽毛球 #運動Buddy #香港$demo_nl_2$, '港島或九龍'::text, $demo_nl_2_mh$post_type:one_to_one
+初學者友善。希望對方有耐心，願意一起練球、慢慢調動作。週末為主。$demo_nl_2_mh$),
+    ($demo_nl_3$【寵物產品】尋找 UGC 創作者協助測試貓狗自動餵食機 🐾
 
-標籤：renovation、services、中文$demo_nl_6$, 'Hong Kong'::text, $demo_nl_6_mh$能提供過往完工的實景照片或安排參觀；報價單條列清晰，不亂加隱藏收費；好溝通、願意耐心解釋施工細節；工期準確，不隨意拖延。$demo_nl_6_mh$),
+品牌方小額合作！尋找家中養貓養狗、喜歡拍短影音分享的創作者合作產品開箱與實測，提供免費產品與車馬費。
+
+#寵物 #UGCCreator #行銷合作$demo_nl_3$, '香港'::text, $demo_nl_3_mh$post_type:one_to_one
+price_role:receive
+price_amount:800
+price_currency:HKD
+家裡有貓或狗，喜歡拍短影音。提供產品和車馬費，細節可以再聊。$demo_nl_3_mh$),
+    ($demo_nl_4$【週末戶外】石澳龍脊輕鬆健行與海景咖啡 🌊
+
+告別一週工作壓力！週末一起去龍脊步道散步、呼吸新鮮空氣，全程新手友善，結束後可以在石澳海邊喝咖啡聊聊天。
+
+#健行 #戶外 #週末聚會 #香港$demo_nl_4$, '石澳 · 香港'::text, $demo_nl_4_mh$post_type:group
+when:週末上午，約 3 小時
+新手友善，自備水和一雙好走的鞋。結束後在石澳海邊喝咖啡。$demo_nl_4_mh$),
+    ($demo_nl_5$【獨立開發者小聚】Side Project & AI 工具交流夜 💡
+
+歡迎所有對獨立開發、Vibe Coding、AI 工具感興趣的朋友！大家可以帶自己的專案來展示、互相給 Feedback 與交流心得。
+
+#AI #獨立開發 #Networking$demo_nl_5$, '香港 / 線上'::text, $demo_nl_5_mh$post_type:group
+when:平日晚上
+歡迎帶自己的 side project。沒有專案也可以來聽、來認識人。$demo_nl_5_mh$),
+    ($demo_nl_6$【歡樂桌遊】週五晚放鬆派對 🎲 內向者友善！
+
+精選熱門派對與策略桌遊，現場提供零食與飲料。即使一個人來也能快速融入，一起開心地玩遊戲交朋友！
+
+#桌遊 #派對 #週末聚會$demo_nl_6$, '香港'::text, $demo_nl_6_mh$post_type:group
+when:週五晚上
+price_role:pay
+price_amount:80
+price_currency:HKD
+一個人來也沒問題。零食和飲料現場提供。$demo_nl_6_mh$),
     ($demo_nl_7$【香港｜認真交往】我 32 歲，在金融機構做風控分析，平時喜歡爬山、咖啡館看書，也希望對方願意一起規劃週末與長假。想找一位價值觀接近、願意深度溝通的伴侶——不一定要話很多，但要能好好聽彼此說、也把感受講清楚。希望感情節奏踏實一些：先從聊天與散步開始，彼此舒服再談下一步。
 
 標籤：dating、伴侶、香港$demo_nl_7$, '香港'::text, $demo_nl_7_mh$須為單身且願意認真交往；最好長居香港或深港通勤可接受；希望你不抽菸、酒量適度；能接受每月至少一次深度約會（不只吃飯打卡）；若你也喜歡戶外或閱讀更佳。$demo_nl_7_mh$),

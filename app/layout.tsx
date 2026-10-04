@@ -20,9 +20,9 @@ const spaceGrotesk = Space_Grotesk({
   display: "swap",
 });
 
-const siteTitle = "Vennode — 尋找對的人，不論是 1 對 1 還是群組活動";
+const siteTitle = "Vennode — 遇見對的人，開啟靈感與連結";
 const siteDescription =
-  "在 Vennode 發布 1 對 1 或群組活動，用自己的話搜尋合適的人。你先申請，對方同意後才會開啟聯絡。適合找夥伴、教練、活動、合作與認真認識的人。";
+  "不論是一對一咖啡交流，還是有趣的群組活動，在 Vennode 輕鬆展開真實對話。你先送出邀請，對方同意後才會開始聯絡。";
 
 export const metadata: Metadata = {
   title: siteTitle,

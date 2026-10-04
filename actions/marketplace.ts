@@ -6,7 +6,8 @@ import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { embeddingVectorForRpc } from "@/lib/vector-literal";
-import { coverUrlFromEnrichment, publicAuthorFromEnrichment } from "@/lib/post-cover";
+import { coverUrlFromEnrichment, genderFromEnrichment, publicAuthorFromEnrichment } from "@/lib/post-cover";
+import { stampPublicGenderOntoOwnIntents } from "@/lib/stamp-public-gender";
 
 export type MarketplaceListing = {
   id: string;
@@ -30,9 +31,13 @@ export type MarketplaceListing = {
   /** Set only when the author chose to show their profile on this post. */
   author_name?: string | null;
   author_avatar?: string | null;
+  /** Gender copied onto the post so it stays public when the name is hidden. */
+  listed_gender?: string | null;
 };
 
-type ListingRow = Omit<MarketplaceListing, "gender" | "interest_keywords">;
+type ListingRow = Omit<MarketplaceListing, "gender" | "interest_keywords" | "listed_gender"> & {
+  listed_gender?: string | null;
+};
 
 type BlendedExploreRpcRow = {
   id: string;
@@ -77,7 +82,14 @@ async function attachCoverUrls(supabase: SupabaseClient, rows: ListingRow[]): Pr
   const covers = new Map(
     data.map((row) => {
       const author = publicAuthorFromEnrichment(row.enrichment);
-      return [row.id as string, { cover_url: coverUrlFromEnrichment(row.enrichment), ...author }] as const;
+      return [
+        row.id as string,
+        {
+          cover_url: coverUrlFromEnrichment(row.enrichment),
+          listed_gender: genderFromEnrichment(row.enrichment),
+          ...author,
+        },
+      ] as const;
     }),
   );
   return rows.map((row) => {
@@ -85,6 +97,7 @@ async function attachCoverUrls(supabase: SupabaseClient, rows: ListingRow[]): Pr
     return {
       ...row,
       cover_url: extra?.cover_url ?? null,
+      listed_gender: extra?.listed_gender ?? row.listed_gender ?? null,
       author_name: extra?.name ?? null,
       author_avatar: extra?.avatar ?? null,
     };
@@ -94,23 +107,29 @@ async function attachCoverUrls(supabase: SupabaseClient, rows: ListingRow[]): Pr
 /** Loads gender + tag chips via service role — avoids widening profiles RLS to anonymous clients. */
 async function attachExplorePublicIdentityRows(rows: ListingRow[]): Promise<MarketplaceListing[]> {
   if (rows.length === 0) return [];
+  const withFallback = (source: ListingRow[]) =>
+    source.map((row) => {
+      const { listed_gender, ...rest } = row;
+      return { ...rest, gender: listed_gender ?? null, interest_keywords: [] as string[] };
+    });
   let svc;
   try {
     svc = createServiceRoleClient();
   } catch {
-    return rows.map((r) => ({ ...r, gender: null, interest_keywords: [] }));
+    return withFallback(rows);
   }
   const ids = [...new Set(rows.map((r) => r.user_id))];
   const { data, error } = await svc.from("profiles").select("user_id, gender, skills_tags, languages").in("user_id", ids);
   if (error || !data) {
-    return rows.map((r) => ({ ...r, gender: null, interest_keywords: [] }));
+    return withFallback(rows);
   }
   const map = new Map(data.map((p) => [p.user_id as string, p]));
   return rows.map((r) => {
     const p = map.get(r.user_id);
+    const { listed_gender, ...rest } = r;
     return {
-      ...r,
-      gender: (p?.gender as string | null) ?? null,
+      ...rest,
+      gender: (p?.gender as string | null) ?? listed_gender ?? null,
       interest_keywords: mergeInterestKeywords(p?.skills_tags, p?.languages),
     };
   });
@@ -141,6 +160,7 @@ async function loadGuestExploreListings(): Promise<ListMarketplaceResult> {
     return {
       ...row,
       cover_url: coverUrlFromEnrichment(enrichment),
+      listed_gender: genderFromEnrichment(enrichment),
       author_name: author.name,
       author_avatar: author.avatar,
     };
@@ -154,7 +174,7 @@ async function loadGuestExploreListings(): Promise<ListMarketplaceResult> {
   return { listings, moreAvailable };
 }
 
-const loadGuestExploreListingsCached = unstable_cache(loadGuestExploreListings, ["guest-explore-listings-v3"], {
+const loadGuestExploreListingsCached = unstable_cache(loadGuestExploreListings, ["guest-explore-listings-v4"], {
   revalidate: 30,
 });
 
@@ -172,6 +192,7 @@ export async function listMarketplaceListings(options?: { guestPreview?: boolean
 
     let p_supply_embedding: string | null = null;
     if (user) {
+      await stampPublicGenderOntoOwnIntents(supabase, user.id);
       const { data: profile } = await supabase
         .from("profiles")
         .select("supply_embedding")
@@ -235,6 +256,7 @@ export async function getExploreIntentForDeepLink(
     const raw: ListingRow = {
       ...rest,
       cover_url: coverUrlFromEnrichment(enrichment),
+      listed_gender: genderFromEnrichment(enrichment),
       author_name: author.name,
       author_avatar: author.avatar,
     };

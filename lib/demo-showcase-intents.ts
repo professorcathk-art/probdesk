@@ -9,56 +9,56 @@ export type ShowcaseIntentSeed = {
   must_haves?: string | null;
 };
 
-/** Scripted Explore demos (11 rows): business／服務 + 交往／導師／募資補充。 */
+/** Scripted Explore demos: warm 1-to-1 chats, weekend groups, plus a few longer listings. */
 export const DEMO_SHOWCASE_INTENTS: ShowcaseIntentSeed[] = [
   {
     natural_language_input:
-      "[AI SaaS] Building an AI-driven productivity tool for legal professionals. We have early traction and a working MVP. Looking for an angel investor who understands the B2B SaaS space for a casual virtual coffee to share our vision. Not looking for an immediate check, just building meaningful relationships and seeking feedback.\n\nTags: fundraising, AI, English",
-    location_filter: "Global / Remote",
+      "【創業尋找合夥人】AI 產品想找 Tech/Full-Stack Co-founder 咖啡交流 ☕️\n\n目前已有清晰商業模式與初期用戶，正在打造下一代 AI 應用。希望能找到對 LLM 應用有熱情、具備技術底子的夥伴一起打造大產品！地點在香港或線上均可。\n\n#創業 #AI #TechCo-founder #HongKong",
+    location_filter: "香港 / 線上",
     must_haves:
-      "Experience investing in or advising AI/SaaS startups. Willing to have a 30-min no-pressure chat. Brings strategic value and industry insights beyond just capital.",
+      "post_type:one_to_one\n對 LLM 應用有熱情，有全端或後端底子。可以先約一杯咖啡，香港或線上都可以。",
   },
   {
     natural_language_input:
-      "【尋找技術合夥人】我是一名有 5 年經驗的產品經理，目前正在籌備一個 AI 應用工具，已有清晰的商業模式與初期客戶名單。尋找一位對打造偉大產品有極致追求、技術功底深厚（尤其是 LLM 應用層）的技術共同創辦人（Technical Co-founder）。\n\n標籤：co-founder、tech、中文",
-    location_filter: "Global / Remote",
+      "【職涯請益】倫敦 FinTech 產業經驗分享 & Coffee Chat 🇬🇧\n\n目前在倫敦外商擔任 Product Manager，歡迎準備轉職 FinTech、剛到倫敦生活或對英國職場感興趣的朋友一起聊聊交流！\n\n#FinTech #倫敦 #ProductManager #Career",
+    location_filter: "倫敦 / 線上",
     must_haves:
-      "具備全端開發與 API 串接經驗；能全職投入或每週承諾至少 20 小時；心智堅韌，願意一起經歷創業的起伏；地點不限，接受遠端非同步協作。",
+      "post_type:one_to_one\n準備認識 FinTech、倫敦生活或英國職場的朋友。輕鬆 coffee chat，沒有推銷。",
   },
   {
     natural_language_input:
-      "【創立手搖飲新品牌】本人有豐富的餐飲營運與行銷經驗，手上有穩定的資金與潛在店面資源（港島區）。現正尋找一位真正懂茶、具備獨立研發飲品能力的合夥人，一起打造主打健康、質感的全新奶茶品牌。\n\n標籤：f&b、business、中文",
-    location_filter: "Hong Kong",
+      "【興趣配對】尋找週末羽毛球球友 🏸（初學者友善！）\n\n本身是羽毛球初學者，想找一位有耐心、能一起練球調整動作細節的球友。地點主要在港島或九龍體育館。\n\n#羽毛球 #運動Buddy #香港",
+    location_filter: "港島或九龍",
     must_haves:
-      "必須具備手搖飲店實務經驗，熟悉原料採購與 SOP 制定；對品質有堅持，有創業野心；人在香港，能實體開會討論與試茶。",
+      "post_type:one_to_one\n初學者友善。希望對方有耐心，願意一起練球、慢慢調動作。週末為主。",
   },
   {
     natural_language_input:
-      "【尋找羽毛球教練】本身是羽毛球初學者（約打過半年），希望找一位有耐心、能針對動作細節調整的教練。希望每週上一到兩堂課，目標是改善發力技巧跟步法，未來能順利參與業餘雙打比賽。\n\n標籤：sports、coach、中文",
-    location_filter: "Hong Kong",
+      "【寵物產品】尋找 UGC 創作者協助測試貓狗自動餵食機 🐾\n\n品牌方小額合作！尋找家中養貓養狗、喜歡拍短影音分享的創作者合作產品開箱與實測，提供免費產品與車馬費。\n\n#寵物 #UGCCreator #行銷合作",
+    location_filter: "香港",
     must_haves:
-      "具備相關教練資格或豐富教學經驗；能安排在九龍或港島區的體育館上課；上課氣氛輕鬆但要求嚴謹，不接受常遲到或臨時改期。",
+      "post_type:one_to_one\nprice_role:receive\nprice_amount:800\nprice_currency:HKD\n家裡有貓或狗，喜歡拍短影音。提供產品和車馬費，細節可以再聊。",
   },
   {
     natural_language_input:
-      "【貓咪用品 UGC 創作者合作】我們是一個新興的寵物用品品牌，即將推出一款智能貓咪餵食器。正在尋找家裡有養貓、擅長拍攝高質感短影音（Reels/TikTok）的 UGC 創作者，來幫我們拍攝產品開箱與實際使用情境。\n\n標籤：creator、marketing、中文",
-    location_filter: "Hong Kong",
+      "【週末戶外】石澳龍脊輕鬆健行與海景咖啡 🌊\n\n告別一週工作壓力！週末一起去龍脊步道散步、呼吸新鮮空氣，全程新手友善，結束後可以在石澳海邊喝咖啡聊聊天。\n\n#健行 #戶外 #週末聚會 #香港",
+    location_filter: "石澳 · 香港",
     must_haves:
-      "需提供過往拍攝的短影音作品集；家中有貓且貓咪不排斥新設備；熟悉時下短影音節奏與剪輯技巧；酬勞與合作細節可私訊討論。",
+      "post_type:group\nwhen:週末上午，約 3 小時\n新手友善，自備水和一雙好走的鞋。結束後在石澳海邊喝咖啡。",
   },
   {
     natural_language_input:
-      "【尋找自動化專家】日常工作有許多重複性的行政與數據處理流程。想尋找一位熟悉 Zapier、Make (Integromat) 或是 Python 爬蟲的自動化專家，以外包或顧問形式協助處理幾個微型專案（Tiny projects），優化我們團隊的工作效率。\n\n標籤：automation、freelance、中文",
-    location_filter: "Global / Remote",
+      "【獨立開發者小聚】Side Project & AI 工具交流夜 💡\n\n歡迎所有對獨立開發、Vibe Coding、AI 工具感興趣的朋友！大家可以帶自己的專案來展示、互相給 Feedback 與交流心得。\n\n#AI #獨立開發 #Networking",
+    location_filter: "香港 / 線上",
     must_haves:
-      "有實際串接 API 與建立自動化工作流的成功案例；溝通能力佳，能快速理解商業邏輯與痛點；按專案計件收費或時薪制皆可討論。",
+      "post_type:group\nwhen:平日晚上\n歡迎帶自己的 side project。沒有專案也可以來聽、來認識人。",
   },
   {
     natural_language_input:
-      "【尋找靠譜裝修師傅】近期購入位於九龍區約 400 呎的二手居屋，準備進行全屋翻新。希望尋找一位手工細膩、溝通透明的裝修統籌或師傅。重視水電等隱蔽工程的品質，風格偏向日式木質簡約風。\n\n標籤：renovation、services、中文",
-    location_filter: "Hong Kong",
+      "【歡樂桌遊】週五晚放鬆派對 🎲 內向者友善！\n\n精選熱門派對與策略桌遊，現場提供零食與飲料。即使一個人來也能快速融入，一起開心地玩遊戲交朋友！\n\n#桌遊 #派對 #週末聚會",
+    location_filter: "香港",
     must_haves:
-      "能提供過往完工的實景照片或安排參觀；報價單條列清晰，不亂加隱藏收費；好溝通、願意耐心解釋施工細節；工期準確，不隨意拖延。",
+      "post_type:group\nwhen:週五晚上\nprice_role:pay\nprice_amount:80\nprice_currency:HKD\n一個人來也沒問題。零食和飲料現場提供。",
   },
   {
     natural_language_input:

@@ -10,9 +10,10 @@ const MAX = 5;
 type Props = {
   paths: string[];
   onPathsUpdated?: () => void;
+  tone?: "dark" | "light";
 };
 
-export function ProfileAlbumSection({ paths, onPathsUpdated }: Props) {
+export function ProfileAlbumSection({ paths, onPathsUpdated, tone = "dark" }: Props) {
   const { strings } = useLanguage();
   const p = strings.profilePage;
   const [urls, setUrls] = useState<{ path: string; url: string }[]>([]);
@@ -65,17 +66,19 @@ export function ProfileAlbumSection({ paths, onPathsUpdated }: Props) {
     onPathsUpdated?.();
   }
 
+  const light = tone === "light";
+
   return (
-    <div className="rounded-xl border border-white/10 bg-black/25 p-4">
-      <p className="text-sm font-medium text-white">
+    <div className={light ? "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" : "rounded-xl border border-white/10 bg-black/25 p-4"}>
+      <p className={light ? "text-sm font-medium text-slate-900" : "text-sm font-medium text-white"}>
         <span>{p.albumTitle}</span>
-        <span className="ml-2 font-normal text-slate-500">({p.optionalMark})</span>
+        <span className={light ? "ml-2 font-normal text-slate-500" : "ml-2 font-normal text-slate-500"}>({p.optionalMark})</span>
       </p>
       <p className="mt-1 text-xs leading-relaxed text-slate-500">{p.albumPrivacyHint}</p>
-      {error ? <p className="mt-2 text-xs text-red-400">{error}</p> : null}
+      {error ? <p className="mt-2 text-xs text-rose-600">{error}</p> : null}
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
         {urls.map((item) => (
-          <div key={item.path} className="relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-black/40">
+          <div key={item.path} className={light ? "relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100" : "relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-black/40"}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={item.url} alt="" className="h-full w-full object-cover" />
             <Button
@@ -91,13 +94,13 @@ export function ProfileAlbumSection({ paths, onPathsUpdated }: Props) {
           </div>
         ))}
         {paths.length < MAX ? (
-          <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-white/20 bg-white/[0.03] text-center text-[11px] text-slate-400 hover:border-sky-400/35 hover:text-slate-300">
+          <label className={light ? "flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-center text-[11px] text-slate-500 hover:border-[#ff5a5f] hover:text-slate-700" : "flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-white/20 bg-white/[0.03] text-center text-[11px] text-slate-400 hover:border-sky-400/35 hover:text-slate-300"}>
             <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" disabled={busy} onChange={(ev) => void onPick(ev)} />
             <span className="px-2">{busy ? p.uploading : p.albumAdd}</span>
           </label>
         ) : null}
       </div>
-      <p className="mt-2 text-[11px] text-slate-600">
+      <p className="mt-2 text-[11px] text-slate-500">
         {paths.length}/{MAX} · {p.albumMaxNote}
       </p>
     </div>

@@ -5,6 +5,8 @@ import { listMatches } from "@/actions/matches";
 import { PortalBoard } from "@/components/meetup/portal-board";
 import { getAuthContext } from "@/lib/auth-context";
 import { ensureProfileCoreCompleteForAppUse } from "@/lib/ensure-profile-core";
+import { createClient } from "@/lib/supabase/server";
+import { stampPublicGenderOntoOwnIntents } from "@/lib/stamp-public-gender";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +14,7 @@ export default async function GroupsPortalPage() {
   const { user } = await getAuthContext();
   if (!user) redirect("/login?after=%2Fportal%2Fgroups");
   await ensureProfileCoreCompleteForAppUse();
+  await stampPublicGenderOntoOwnIntents(await createClient(), user.id);
   const [intentsRes, matchesRes, suggestionsRes] = await Promise.all([listMyIntents(), listMatches(), listMyAiRecommendations()]);
   const intents = "error" in intentsRes ? [] : intentsRes.intents;
   const matches = "error" in matchesRes ? [] : matchesRes.matches;

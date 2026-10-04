@@ -8,10 +8,12 @@ import { updateMyProfileIdentity, type ProfileIdentity } from "@/actions/profile
 import { useLanguage } from "@/components/language-provider";
 import { INTEREST_SUGGESTIONS, meetupCopy } from "@/lib/meetup-copy";
 import { PROFILE_AGE_GROUP_VALUES } from "@/lib/profile-age-groups";
-import { PROFILE_GENDER_VALUES } from "@/lib/profile-basics";
+import { PROFILE_GENDER_VALUES, type ProfileGenderValue } from "@/lib/profile-basics";
+import { displayGenderLabel } from "@/lib/display-gender";
+import { ProfileAlbumSection } from "@/components/profile-album-section";
 
 export function SettingsScreen({ identity }: { identity: ProfileIdentity }) {
-  const { lang } = useLanguage();
+  const { lang, strings } = useLanguage();
   const t = meetupCopy(lang);
   const router = useRouter();
   const [displayName, setDisplayName] = useState(identity.display_name ?? "");
@@ -35,6 +37,11 @@ export function SettingsScreen({ identity }: { identity: ProfileIdentity }) {
   async function onSave(event: React.FormEvent) {
     event.preventDefault();
     const skills = tags.map((tag) => tag.trim()).filter(Boolean);
+    if (!PROFILE_GENDER_VALUES.includes(gender as ProfileGenderValue)) {
+      setError(t.needGender);
+      setSaved(false);
+      return;
+    }
     if (skills.length < 3) {
       setError(t.needTags);
       setSaved(false);
@@ -75,7 +82,10 @@ export function SettingsScreen({ identity }: { identity: ProfileIdentity }) {
     <main className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
       <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{t.settings}</h1>
       <p className="mt-2 text-sm text-slate-500">{t.settingsLead}</p>
-      <form onSubmit={onSave} className="mt-6 space-y-4 rounded-2xl shadow-sm border border-[#e6e6e6] bg-white p-5">
+      <div className="mt-6">
+        <ProfileAlbumSection paths={identity.album_storage_paths ?? []} tone="light" onPathsUpdated={() => router.refresh()} />
+      </div>
+      <form onSubmit={onSave} className="mt-4 space-y-4 rounded-2xl shadow-sm border border-[#e6e6e6] bg-white p-5">
         <label className="block text-sm font-medium text-slate-800">
           {t.nickname}
           <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} className="mt-1 h-11 w-full rounded-2xl border border-[#e6e6e6] px-3 text-base" />
@@ -101,14 +111,16 @@ export function SettingsScreen({ identity }: { identity: ProfileIdentity }) {
         </label>
         <label className="block text-sm font-medium text-slate-800">
           {t.gender}
-          <select value={gender} onChange={(event) => setGender(event.target.value)} className="mt-1 h-11 w-full rounded-2xl border border-[#e6e6e6] bg-white px-3 text-base">
+          <span className="ml-1 text-[#ff5a5f]">*</span>
+          <select value={gender} onChange={(event) => setGender(event.target.value)} required className="mt-1 h-11 w-full rounded-2xl border border-[#e6e6e6] bg-white px-3 text-base">
             <option value="">{lang === "zh" ? "請選擇" : "Choose"}</option>
             {PROFILE_GENDER_VALUES.map((value) => (
               <option key={value} value={value}>
-                {value}
+                {displayGenderLabel(value, strings.console)}
               </option>
             ))}
           </select>
+          <span className="mt-1 block text-xs leading-5 text-slate-500">{t.genderHint}</span>
         </label>
         <div>
           <p className="text-sm font-medium text-slate-800">{t.interests}</p>
