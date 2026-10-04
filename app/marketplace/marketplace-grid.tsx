@@ -7,16 +7,16 @@ import type { MarketplaceListing } from "@/actions/marketplace";
 import { ConnectModal } from "@/components/connect-modal";
 import { CreditsLimitModal } from "@/components/credits-limit-modal";
 import { IntentShareButton } from "@/components/intent-share-button";
-import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
+import { ListingAuthor } from "@/components/listing-author";
 import { IntentMustHavesCallout } from "@/components/intent-must-haves-callout";
 import { MarketplaceListingIdentity } from "@/components/marketplace-listing-identity";
 import { useLanguage } from "@/components/language-provider";
 import { listingCoverSrc } from "@/lib/meetup-cover";
-import { listingTitle, meetupKindFrom, splitMeetupPost } from "@/lib/meetup";
+import { formatListingPrice, listingTitle, meetupKindFrom, priceFromMustHaves, splitMeetupPost } from "@/lib/meetup";
 import { meetupCopy } from "@/lib/meetup-copy";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useConnectionCredits } from "@/hooks/use-connection-credits";
 import { cn } from "@/lib/utils";
 
@@ -106,6 +106,7 @@ export function MarketplaceGrid({
           const isHi = highlightIntentId === item.id;
           const group = meetupKindFrom(item.natural_language_input, item.must_haves) === "group";
           const post = splitMeetupPost(item.natural_language_input);
+          const priceLabel = formatListingPrice(lang, priceFromMustHaves(item.must_haves));
           return (
             <div
               key={item.id}
@@ -134,13 +135,12 @@ export function MarketplaceGrid({
               </div>
               <CardHeader className="gap-3 px-4 pt-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <LockedAvatarPreview />
-                    <div>
-                      <CardTitle className="text-base text-[#222]">{mp.anonymous}</CardTitle>
-                      <CardDescription className="text-slate-500">{mp.anonymousHint}</CardDescription>
-                    </div>
-                  </div>
+                  <ListingAuthor
+                    name={item.author_name}
+                    avatar={item.author_avatar}
+                    anonymousLabel={mp.anonymous}
+                    anonymousHint={item.author_name ? copy.profilePublic : mp.anonymousHint}
+                  />
                   <IntentShareButton intentId={item.id} size="sm" variant="ghost" className="h-8 px-2 text-xs" />
                 </div>
               </CardHeader>
@@ -160,6 +160,12 @@ export function MarketplaceGrid({
                 ) : null}
                 <IntentMustHavesCallout heading={mp.mustHavesHeading} body={item.must_haves ?? ""} tone="neutral" />
                 <MarketplaceListingIdentity listing={item} />
+                {priceLabel ? (
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">{priceLabel}</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">{copy.priceHint}</p>
+                  </div>
+                ) : null}
                 {item.location_filter ? (
                   <p className="inline-flex items-center gap-1 text-xs text-slate-500">
                     <MapPin className="h-3.5 w-3.5" aria-hidden />

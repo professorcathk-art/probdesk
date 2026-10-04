@@ -16,11 +16,51 @@ export function enrichmentWithCover(enrichment: unknown, coverUrl: string | null
   return base;
 }
 
-/** Drop the photo URL before it is folded into matching text. */
+/** Drop photo and public-profile fields before they are folded into matching text. */
 export function enrichmentWithoutCoverUrl(enrichment: unknown): Record<string, unknown> | undefined {
   if (!enrichment || typeof enrichment !== "object" || Array.isArray(enrichment)) return undefined;
-  const { cover_url: _cover, ...rest } = enrichment as Record<string, unknown>;
+  const {
+    cover_url: _cover,
+    public_display_name: _name,
+    public_avatar_url: _avatar,
+    ...rest
+  } = enrichment as Record<string, unknown>;
   return rest;
+}
+
+export function profilePublicFromEnrichment(enrichment: unknown): boolean {
+  if (!enrichment || typeof enrichment !== "object" || Array.isArray(enrichment)) return false;
+  return (enrichment as Record<string, unknown>).profile_public === true;
+}
+
+export function publicAuthorFromEnrichment(enrichment: unknown): { name: string | null; avatar: string | null } {
+  if (!profilePublicFromEnrichment(enrichment)) return { name: null, avatar: null };
+  const record = enrichment as Record<string, unknown>;
+  const name = typeof record.public_display_name === "string" ? record.public_display_name.trim() : "";
+  const avatar = typeof record.public_avatar_url === "string" ? record.public_avatar_url.trim() : "";
+  return { name: name || null, avatar: avatar || null };
+}
+
+export function enrichmentWithProfile(
+  enrichment: unknown,
+  input: { show: boolean; name: string | null; avatar: string | null },
+): Record<string, unknown> {
+  const base =
+    enrichment && typeof enrichment === "object" && !Array.isArray(enrichment)
+      ? { ...(enrichment as Record<string, unknown>) }
+      : {};
+  if (!input.show) {
+    delete base.profile_public;
+    delete base.public_display_name;
+    delete base.public_avatar_url;
+    return base;
+  }
+  base.profile_public = true;
+  if (input.name) base.public_display_name = input.name;
+  else delete base.public_display_name;
+  if (input.avatar) base.public_avatar_url = input.avatar;
+  else delete base.public_avatar_url;
+  return base;
 }
 
 export function acceptedPostCoverUrl(raw: string | null | undefined, userId: string): string | null {

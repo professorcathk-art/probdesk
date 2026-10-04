@@ -6,7 +6,7 @@ import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { embeddingVectorForRpc } from "@/lib/vector-literal";
-import { coverUrlFromEnrichment } from "@/lib/post-cover";
+import { coverUrlFromEnrichment, publicAuthorFromEnrichment } from "@/lib/post-cover";
 
 export type MarketplaceListing = {
   id: string;
@@ -27,6 +27,9 @@ export type MarketplaceListing = {
   interest_keywords: string[];
   /** Author-uploaded cover. Empty until they add one. */
   cover_url?: string | null;
+  /** Set only when the author chose to show their profile on this post. */
+  author_name?: string | null;
+  author_avatar?: string | null;
 };
 
 type ListingRow = Omit<MarketplaceListing, "gender" | "interest_keywords">;
@@ -71,8 +74,21 @@ async function attachCoverUrls(supabase: SupabaseClient, rows: ListingRow[]): Pr
     rows.map((row) => row.id),
   );
   if (error || !data) return rows;
-  const covers = new Map(data.map((row) => [row.id as string, coverUrlFromEnrichment(row.enrichment)]));
-  return rows.map((row) => ({ ...row, cover_url: covers.get(row.id) ?? null }));
+  const covers = new Map(
+    data.map((row) => {
+      const author = publicAuthorFromEnrichment(row.enrichment);
+      return [row.id as string, { cover_url: coverUrlFromEnrichment(row.enrichment), ...author }] as const;
+    }),
+  );
+  return rows.map((row) => {
+    const extra = covers.get(row.id);
+    return {
+      ...row,
+      cover_url: extra?.cover_url ?? null,
+      author_name: extra?.name ?? null,
+      author_avatar: extra?.avatar ?? null,
+    };
+  });
 }
 
 /** Loads gender + tag chips via service role — avoids widening profiles RLS to anonymous clients. */
@@ -120,10 +136,15 @@ async function loadGuestExploreListings(): Promise<ListMarketplaceResult> {
     .order("created_at", { ascending: false })
     .limit(21);
   if (error) return { error: error.message };
-  let raw = ((data ?? []) as Array<ListingRow & { enrichment?: unknown }>).map(({ enrichment, ...row }) => ({
-    ...row,
-    cover_url: coverUrlFromEnrichment(enrichment),
-  }));
+  let raw = ((data ?? []) as Array<ListingRow & { enrichment?: unknown }>).map(({ enrichment, ...row }) => {
+    const author = publicAuthorFromEnrichment(enrichment);
+    return {
+      ...row,
+      cover_url: coverUrlFromEnrichment(enrichment),
+      author_name: author.name,
+      author_avatar: author.avatar,
+    };
+  });
   let moreAvailable = false;
   if (raw.length > 20) {
     moreAvailable = true;
@@ -133,7 +154,7 @@ async function loadGuestExploreListings(): Promise<ListMarketplaceResult> {
   return { listings, moreAvailable };
 }
 
-const loadGuestExploreListingsCached = unstable_cache(loadGuestExploreListings, ["guest-explore-listings-v2"], {
+const loadGuestExploreListingsCached = unstable_cache(loadGuestExploreListings, ["guest-explore-listings-v3"], {
   revalidate: 30,
 });
 
@@ -210,7 +231,13 @@ export async function getExploreIntentForDeepLink(
     if (!data) return { error: "Not found" };
     const row = data as ListingRow & { enrichment?: unknown };
     const { enrichment, ...rest } = row;
-    const raw: ListingRow = { ...rest, cover_url: coverUrlFromEnrichment(enrichment) };
+    const author = publicAuthorFromEnrichment(enrichment);
+    const raw: ListingRow = {
+      ...rest,
+      cover_url: coverUrlFromEnrichment(enrichment),
+      author_name: author.name,
+      author_avatar: author.avatar,
+    };
     const [listing] = await attachExplorePublicIdentityRows([raw]);
     return { listing };
   } catch (e) {

@@ -1,4 +1,5 @@
 import { CheckCircle2 } from "lucide-react";
+import { isStoredMetaLine } from "@/lib/meetup";
 import { cn } from "@/lib/utils";
 
 export function IntentMustHavesCallout({
@@ -18,7 +19,7 @@ export function IntentMustHavesCallout({
     .split("\n")
     .filter((line) => {
       const trimmed = line.trim();
-      return trimmed && !trimmed.startsWith("post_type:") && !trimmed.startsWith("when:");
+      return trimmed && !isStoredMetaLine(trimmed);
     })
     .join("\n")
     .trim();

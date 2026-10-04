@@ -6,7 +6,7 @@ import { MapPin, Users, UserRound } from "lucide-react";
 import type { MarketplaceListing } from "@/actions/marketplace";
 import { useLanguage } from "@/components/language-provider";
 import { listingCoverSrc } from "@/lib/meetup-cover";
-import { listingTitle, meetupKindFrom, type MeetupKind } from "@/lib/meetup";
+import { formatListingPrice, listingTitle, meetupKindFrom, priceFromMustHaves, type MeetupKind } from "@/lib/meetup";
 import { scoreListingText } from "@/lib/meetup-search";
 import { meetupCopy } from "@/lib/meetup-copy";
 import { HomeStory } from "@/components/meetup/home-story";
@@ -49,8 +49,10 @@ function Card({
   groupLabel: string;
   eager?: boolean;
 }) {
+  const { lang } = useLanguage();
   const mine = viewerId != null && listing.user_id === viewerId;
   const kind = meetupKindFrom(listing.natural_language_input, listing.must_haves);
+  const priceLabel = formatListingPrice(lang, priceFromMustHaves(listing.must_haves));
   const title = listingTitle(listing.natural_language_input);
   const blurb = excerpt(listing.natural_language_input);
   const href = mine ? (kind === "group" ? "/portal/groups" : "/portal/one-to-one") : `/explore/${listing.id}`;
@@ -71,14 +73,15 @@ function Card({
         <h3 className="line-clamp-2 text-base font-semibold leading-6 text-slate-900 group-hover:text-[#ff5a5f]">{title}</h3>
         {blurb ? <p className="mt-2 line-clamp-2 text-sm leading-5 text-slate-500">{blurb}</p> : null}
         <div className="mt-auto flex items-center justify-between gap-2 pt-4">
-          {listing.location_filter ? (
-            <span className="inline-flex min-w-0 items-center gap-1 truncate text-xs text-slate-500">
-              <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              {listing.location_filter}
-            </span>
-          ) : (
-            <span />
-          )}
+          <span className="flex min-w-0 flex-col gap-1">
+            {listing.location_filter ? (
+              <span className="inline-flex min-w-0 items-center gap-1 truncate text-xs text-slate-500">
+                <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                {listing.location_filter}
+              </span>
+            ) : null}
+            {priceLabel ? <span className="truncate text-xs font-medium text-slate-700">{priceLabel}</span> : null}
+          </span>
           {mine ? <span className="text-xs font-semibold text-[#ff5a5f]">{yoursLabel}</span> : null}
         </div>
       </div>

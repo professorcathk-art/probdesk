@@ -26,7 +26,7 @@ function maskEmailForDisplay(raw: string): string {
 }
 
 export function LoginPageContent() {
-  const { strings } = useLanguage();
+  const { lang, strings } = useLanguage();
   const L = strings.login;
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -35,6 +35,7 @@ export function LoginPageContent() {
   const [info, setInfo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   useEffect(() => {
     const flow = searchParams.get("flow");
@@ -57,8 +58,15 @@ export function LoginPageContent() {
     }
   }, [searchParams]);
 
+  function requireAgree() {
+    if (agreed) return true;
+    setError(L.agreeRequired);
+    return false;
+  }
+
   async function onSendCode(e: React.FormEvent) {
     e.preventDefault();
+    if (!requireAgree()) return;
     setBusy(true);
     setError(null);
     setInfo(null);
@@ -87,6 +95,7 @@ export function LoginPageContent() {
 
   async function onVerifyOtp(e: React.FormEvent) {
     e.preventDefault();
+    if (!requireAgree()) return;
     const code = digitsOnlyOtp(otp);
     if (code.length !== 8) {
       setError(L.otpInvalidLength);
@@ -133,6 +142,7 @@ export function LoginPageContent() {
   }
 
   async function onGoogle() {
+    if (!requireAgree()) return;
     setBusy(true);
     setError(null);
     const res = await signInWithGoogle();
@@ -156,13 +166,29 @@ export function LoginPageContent() {
         </div>
 
         <div className="rounded-2xl border border-[#eee] bg-white p-5 shadow-sm sm:p-6">
-          <p className="mb-4 text-center text-xs leading-relaxed text-[#757575]">
-            {L.implicitConsentPrefix}
-            <Link href="/privacy" className="text-primary hover:underline mx-1">
-              {L.implicitConsentLinkLabel}
-            </Link>
-            {L.implicitConsentSuffix}
-          </p>
+          <label className="mb-4 flex cursor-pointer items-start gap-3 rounded-xl border border-rose-100 bg-rose-50/60 px-3 py-3">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(event) => {
+                setAgreed(event.target.checked);
+                if (event.target.checked) setError(null);
+              }}
+              className="mt-0.5 h-5 w-5 shrink-0 accent-[#ff5a5f]"
+            />
+            <span className="text-xs leading-5 text-slate-600">
+              {L.agreeLead}{" "}
+              <Link href="/policy" className="font-medium text-[#e0484d] hover:underline" onClick={(event) => event.stopPropagation()}>
+                {L.agreeTerms}
+              </Link>{" "}
+              {L.agreeAnd}{" "}
+              <Link href="/privacy" className="font-medium text-[#e0484d] hover:underline" onClick={(event) => event.stopPropagation()}>
+                {L.agreePrivacy}
+              </Link>
+              {lang === "zh" ? "。" : ". "}
+              {L.agreeBody}
+            </span>
+          </label>
 
           <Button
             type="button"

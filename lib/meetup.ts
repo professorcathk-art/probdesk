@@ -27,14 +27,15 @@ export function titleUnits(value: string) {
   return units;
 }
 
+export function isStoredMetaLine(line: string) {
+  return /^(post_type:|when:|price_role:|price_amount:|price_currency:)/.test(line.trim());
+}
+
 export function whoFromMustHaves(mustHaves: string | null | undefined): string {
   if (!mustHaves) return "";
   return mustHaves
     .split("\n")
-    .filter((line) => {
-      const trimmed = line.trim();
-      return trimmed && !trimmed.startsWith("post_type:") && !trimmed.startsWith("when:");
-    })
+    .filter((line) => line.trim() && !isStoredMetaLine(line))
     .join("\n")
     .trim();
 }
@@ -60,11 +61,46 @@ export function composeMeetupPost(input: { title: string; details: string; tags:
   return [input.title.trim(), "", input.details.trim(), tagLine].filter((part, index) => part || index === 1).join("\n").trim();
 }
 
-export function composeMustHaves(kind: MeetupKind, expectations: string, when: string) {
+export const PRICE_CURRENCIES = ["HKD", "TWD", "CNY", "USD", "SGD", "JPY", "EUR", "GBP", "AUD", "KRW", "MYR"] as const;
+
+export type PriceRole = "none" | "pay" | "receive";
+
+export type ListingPrice = {
+  role: PriceRole;
+  amount: string;
+  currency: string;
+};
+
+export function priceFromMustHaves(mustHaves: string | null | undefined): ListingPrice {
+  const lines = (mustHaves ?? "").split("\n").map((line) => line.trim());
+  const roleRaw = lines.find((line) => line.startsWith("price_role:"))?.slice("price_role:".length) ?? "none";
+  const role: PriceRole = roleRaw === "pay" || roleRaw === "receive" ? roleRaw : "none";
+  const amount = lines.find((line) => line.startsWith("price_amount:"))?.slice("price_amount:".length) ?? "";
+  const currencyRaw = lines.find((line) => line.startsWith("price_currency:"))?.slice("price_currency:".length) ?? "HKD";
+  const currency = (PRICE_CURRENCIES as readonly string[]).includes(currencyRaw) ? currencyRaw : "HKD";
+  return { role, amount, currency };
+}
+
+export function composeMustHaves(kind: MeetupKind, expectations: string, when: string, price?: ListingPrice | null) {
   const lines = [`post_type:${kind}`];
   if (when.trim()) lines.push(`when:${when.trim()}`);
+  if (price && price.role !== "none" && price.amount.trim()) {
+    lines.push(`price_role:${price.role}`);
+    lines.push(`price_amount:${price.amount.trim()}`);
+    lines.push(`price_currency:${price.currency}`);
+  }
   if (expectations.trim()) lines.push(expectations.trim());
   return lines.join("\n");
+}
+
+export function formatListingPrice(lang: "zh" | "en", price: ListingPrice): string | null {
+  if (price.role === "none" || !price.amount.trim()) return null;
+  const numeric = Number(price.amount);
+  const shown = Number.isFinite(numeric)
+    ? new Intl.NumberFormat(lang === "zh" ? "zh-Hant" : "en", { maximumFractionDigits: 2 }).format(numeric)
+    : price.amount.trim();
+  if (lang === "zh") return price.role === "pay" ? `申請人付款 ${price.currency} ${shown}` : `申請人可收 ${price.currency} ${shown}`;
+  return price.role === "pay" ? `Applicants pay ${price.currency} ${shown}` : `Applicants can receive ${price.currency} ${shown}`;
 }
 
 /** Labeled listing for classifiers, embeddings, and fit checks. */
@@ -78,6 +114,7 @@ export function screeningTextForAi(input: {
   const split = splitMeetupPost(text);
   const expectations = whoFromMustHaves(input.mustHaves);
   const when = whenFromMustHaves(input.mustHaves);
+  const price = priceFromMustHaves(input.mustHaves);
   const place = input.location?.trim() ?? "";
   const lines = [
     `Post type: ${kind === "group" ? "group activity" : "one-to-one"}`,
@@ -86,6 +123,8 @@ export function screeningTextForAi(input: {
     `Location: ${place || "(none stated)"}`,
   ];
   if (kind === "group") lines.push(`Date and time: ${when || "(none stated)"}`);
+  if (price.role === "none") lines.push("Price: none (no money on this post)");
+  else lines.push(`Price: applicants ${price.role === "pay" ? "pay" : "can receive"} ${price.amount} ${price.currency}. Settled offline between the people involved. Vennode does not collect or settle this money.`);
   lines.push(`Expectations: ${expectations || "(none stated)"}`);
   if (split.tags.length > 0) lines.push(`Hashtags: ${split.tags.join(", ")}`);
   return lines.join("\n");

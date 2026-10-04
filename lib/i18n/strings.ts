@@ -507,6 +507,13 @@ export const STRINGS = {
       implicitConsentLinkLabel: "Privacy Policy",
       implicitConsentSuffix:
         ", and understand that voluntarily provided information may be used (including automated systems and machine learning) to operate the matching engine and related intelligent features.",
+      agreeLead: "I have read and agree to the",
+      agreeTerms: "Terms",
+      agreeAnd: "and",
+      agreePrivacy: "Privacy Policy",
+      agreeBody:
+        "No sexual activities are allowed. Any money on a post is settled offline between members. Vennode does not handle the payment and is not responsible for the money, the meeting, or the outcome.",
+      agreeRequired: "Please agree to the terms before continuing.",
       backLanding: "Back to landing",
     },
     onboarding: {
@@ -1066,6 +1073,13 @@ export const STRINGS = {
       implicitConsentLinkLabel: "《隱私權政策》",
       implicitConsentSuffix:
         "，並知悉自願提供的資料可能被用於（含自動化 / 機器學習在內）配對引擎與相關智慧功能之運作。",
+      agreeLead: "我已閱讀並同意",
+      agreeTerms: "《條款與網站政策》",
+      agreeAnd: "和",
+      agreePrivacy: "《隱私權政策》",
+      agreeBody:
+        "不得發布或參與性相關活動。帖上的金額由雙方線下自行結算，Vennode 不經手付款，也不對款項、見面或活動結果負責。",
+      agreeRequired: "請先同意條款才能繼續。",
       backLanding: "返回首頁",
     },
     onboarding: {

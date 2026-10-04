@@ -3,10 +3,12 @@ import Link from "next/link";
 export function LegalDocument({
   title,
   updated,
+  updatedLabel = "Last updated",
   children,
 }: {
   title: string;
   updated: string;
+  updatedLabel?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -15,7 +17,7 @@ export function LegalDocument({
       <h1 className="font-[family-name:var(--font-heading)] text-2xl font-semibold tracking-tight text-[#222] sm:text-3xl md:text-4xl">
         {title}
       </h1>
-      <p className="mt-3 text-sm text-slate-500">Last updated: {updated}</p>
+      <p className="mt-3 text-sm text-slate-500">{updatedLabel}: {updated}</p>
       <div className="mt-10 space-y-8 text-sm leading-relaxed text-[#444] [&_a]:text-[#ff5a5f] [&_a:hover]:underline [&_h2]:mt-10 [&_h2]:scroll-mt-20 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-[#222] [&_h2:first-child]:mt-0 [&_li]:mt-2 [&_p]:mt-4 [&_strong]:font-semibold [&_strong]:text-[#222] [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5">
         {children}
       </div>

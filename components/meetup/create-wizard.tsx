@@ -9,7 +9,11 @@ import { useLanguage } from "@/components/language-provider";
 import {
   composeMeetupPost,
   composeMustHaves,
+  formatListingPrice,
   meetupKindFrom,
+  priceFromMustHaves,
+  PRICE_CURRENCIES,
+  type ListingPrice,
   splitMeetupPost,
   TITLE_MAX_UNITS,
   titleUnits,
@@ -36,13 +40,18 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
   const [kind, setKind] = useState<MeetupKind>(editing ? meetupKindFrom(editing.natural_language_input, editing.must_haves) : "one_to_one");
   const [title, setTitle] = useState(parsed?.title ?? "");
   const [details, setDetails] = useState(parsed?.details ?? "");
+  const initialPrice = priceFromMustHaves(editing?.must_haves);
   const [place, setPlace] = useState(editing?.location_filter ?? "");
+  const [priceRole, setPriceRole] = useState<ListingPrice["role"]>(initialPrice.role);
+  const [priceAmount, setPriceAmount] = useState(initialPrice.role === "none" ? "" : initialPrice.amount);
+  const [priceCurrency, setPriceCurrency] = useState(initialPrice.currency);
   const [when, setWhen] = useState(editing ? whenFromMustHaves(editing.must_haves) : "");
   const [expectations, setExpectations] = useState(editing ? whoFromMustHaves(editing.must_haves) : "");
   const [tagsText, setTagsText] = useState(parsed?.tags.join(", ") ?? "");
   const [coverUrl, setCoverUrl] = useState<string | null>(editing?.coverUrl ?? null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(editing?.coverUrl ?? null);
+  const [showProfile, setShowProfile] = useState(editing ? Boolean(editing.showProfile) : true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [polishing, setPolishing] = useState(false);
@@ -73,6 +82,14 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
     }
     if (expectations.trim().length < 2) {
       setError(t.needWho);
+      return;
+    }
+    if (priceRole !== "none" && !/^\d+(\.\d{1,2})?$/.test(priceAmount.trim())) {
+      setError(t.priceNeedAmount);
+      return;
+    }
+    if (priceRole !== "none" && Number(priceAmount) <= 0) {
+      setError(t.priceNeedAmount);
       return;
     }
     setError(null);
@@ -109,16 +126,20 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
       }
       nextCover = uploaded.url;
     }
-    const must = composeMustHaves(kind, expectations, kind === "group" ? when : "");
+    const must = composeMustHaves(kind, expectations, kind === "group" ? when : "", {
+      role: priceRole,
+      amount: priceAmount.trim(),
+      currency: priceCurrency,
+    });
     if (editing) {
-      const updated = await updateConsoleIntent(editing.id, text, place, must, nextCover);
+      const updated = await updateConsoleIntent(editing.id, text, place, must, nextCover, showProfile);
       if (!updated.ok) {
         setBusy(false);
         setError(updated.message);
         return;
       }
     } else {
-      const created = await createConsoleIntent(text, place, must, nextCover);
+      const created = await createConsoleIntent(text, place, must, nextCover, showProfile);
       if (!created.ok) {
         setBusy(false);
         setError(created.message);
@@ -186,6 +207,37 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
             {t.place}
             <input value={place} onChange={(event) => setPlace(event.target.value)} placeholder={t.online} className={`${fieldClass} h-11`} />
           </label>
+          <fieldset>
+            <legend className="text-sm font-medium text-slate-800">{t.price}</legend>
+            <div className="mt-2 grid gap-2 sm:grid-cols-3">
+              <select value={priceRole} onChange={(event) => setPriceRole(event.target.value as ListingPrice["role"])} className={`${fieldClass} h-11`}>
+                <option value="none">{t.priceNone}</option>
+                <option value="pay">{t.pricePay}</option>
+                <option value="receive">{t.priceReceive}</option>
+              </select>
+              <input
+                inputMode="decimal"
+                value={priceAmount}
+                disabled={priceRole === "none"}
+                onChange={(event) => setPriceAmount(event.target.value)}
+                placeholder={t.priceAmount}
+                aria-label={t.priceAmount}
+                className={`${fieldClass} h-11 disabled:bg-slate-50`}
+              />
+              <select
+                value={priceCurrency}
+                disabled={priceRole === "none"}
+                onChange={(event) => setPriceCurrency(event.target.value)}
+                aria-label={t.priceCurrency}
+                className={`${fieldClass} h-11 disabled:bg-slate-50`}
+              >
+                {PRICE_CURRENCIES.map((code) => (
+                  <option key={code} value={code}>{code}</option>
+                ))}
+              </select>
+            </div>
+            <p className="mt-2 text-xs leading-5 text-slate-500">{t.priceHint}</p>
+          </fieldset>
           <CoverPicker
             label={t.cover}
             hint={t.coverHint}
@@ -220,6 +272,21 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
               <input type="datetime-local" value={when} onChange={(event) => setWhen(event.target.value)} className={`${fieldClass} h-11`} />
             </label>
           ) : null}
+          <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-2xl border border-rose-100 bg-rose-50/70 px-4 py-3">
+            <input
+              type="checkbox"
+              checked={showProfile}
+              onChange={(event) => setShowProfile(event.target.checked)}
+              className="mt-0.5 h-5 w-5 shrink-0 accent-[#ff5a5f]"
+            />
+            <span>
+              <span className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-900">
+                {t.showProfile}
+                <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#e0484d]">{t.showProfileRecommend}</span>
+              </span>
+              <span className="mt-1 block text-xs leading-5 text-slate-600">{t.showProfileHint}</span>
+            </span>
+          </label>
           <label className="block text-sm font-medium text-slate-800">
             {t.who}
             <textarea value={expectations} onChange={(event) => setExpectations(event.target.value)} className={`${fieldClass} min-h-24 py-2`} />
@@ -247,9 +314,17 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
             <div><dt className="text-slate-500">{t.title}</dt><dd className="font-medium text-slate-900">{title}</dd></div>
             <div><dt className="text-slate-500">{t.details}</dt><dd className="whitespace-pre-wrap text-slate-800">{details}</dd></div>
             <div><dt className="text-slate-500">{t.place}</dt><dd className="text-slate-800">{place}</dd></div>
+            <div>
+              <dt className="text-slate-500">{t.price}</dt>
+              <dd className="text-slate-800">
+                {formatListingPrice(lang, { role: priceRole, amount: priceAmount, currency: priceCurrency }) ?? t.priceNone}
+              </dd>
+              {priceRole !== "none" ? <dd className="mt-1 text-xs text-slate-500">{t.priceHint}</dd> : null}
+            </div>
             {tags.length > 0 ? <div><dt className="text-slate-500">{t.hashtags}</dt><dd className="text-slate-800">{tags.map((tag) => `#${tag}`).join(" ")}</dd></div> : null}
             {kind === "group" ? <div><dt className="text-slate-500">{t.when}</dt><dd className="text-slate-800">{when.replace("T", " ")}</dd></div> : null}
             <div><dt className="text-slate-500">{t.who}</dt><dd className="whitespace-pre-wrap text-slate-800">{expectations}</dd></div>
+            <div><dt className="text-slate-500">{t.showProfile}</dt><dd className="text-slate-800">{showProfile ? t.profilePublic : t.profileAnonymous}</dd></div>
           </dl>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setStep(1)} className="min-h-11 rounded-full px-4 text-sm text-slate-600">{t.back}</button>

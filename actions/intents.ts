@@ -14,7 +14,14 @@ import { normalizeProfileTags } from "@/lib/profile-tags";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
 import { meetupKindFrom, screeningTextForAi, SUGGESTION_COOLDOWN_MS, type MeetupKind } from "@/lib/meetup";
-import { acceptedPostCoverUrl, coverUrlFromEnrichment, enrichmentWithCover, enrichmentWithoutCoverUrl } from "@/lib/post-cover";
+import {
+  acceptedPostCoverUrl,
+  coverUrlFromEnrichment,
+  enrichmentWithCover,
+  enrichmentWithProfile,
+  enrichmentWithoutCoverUrl,
+  profilePublicFromEnrichment,
+} from "@/lib/post-cover";
 import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
 import { logPairingScoreEvent } from "@/lib/pairing-score-log";
 import { BLOCKING_MATCH_STATUSES } from "@/lib/match-blocking";
@@ -88,6 +95,8 @@ export type IntentRow = {
   must_haves: string | null;
   /** Public photo for this post. Absent until the author uploads one. */
   coverUrl?: string | null;
+  /** When true, Explore shows this author's name and photo. */
+  showProfile?: boolean;
   /** ISO time of the last AI people search. Absent until that search has run. */
   suggestionRanAt?: string | null;
 };
@@ -356,7 +365,12 @@ export async function listMyIntents(): Promise<{ intents: IntentRow[] } | { erro
   return {
     intents: rows.map((row) => {
       const { enrichment, ...rest } = row;
-      return { ...rest, suggestionRanAt: suggestionRanAtFrom(enrichment), coverUrl: coverUrlFromEnrichment(enrichment) };
+      return {
+        ...rest,
+        suggestionRanAt: suggestionRanAtFrom(enrichment),
+        coverUrl: coverUrlFromEnrichment(enrichment),
+        showProfile: profilePublicFromEnrichment(enrichment),
+      };
     }),
   };
 }
@@ -1009,6 +1023,7 @@ export async function createConsoleIntent(
   locationFilterInput?: string | null,
   mustHavesInput?: string | null,
   coverUrlInput?: string | null,
+  showProfile?: boolean,
 ) {
   const supabase = await createClient();
   const {
@@ -1100,10 +1115,29 @@ export async function createConsoleIntent(
     location_filter = parsedLoc;
   }
 
-  if (!location_filter) {
-    const { data: profile } = await supabase.from("profiles").select("location").eq("user_id", user.id).maybeSingle();
-    location_filter = profile?.location?.trim() ?? null;
+  let publicName: string | null = null;
+  let publicAvatar: string | null = null;
+  if (!location_filter || showProfile) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("location, display_name, avatar_url")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!location_filter) location_filter = profile?.location?.trim() ?? null;
+    if (showProfile) {
+      publicName = profile?.display_name?.trim() || null;
+      publicAvatar = profile?.avatar_url?.trim() || null;
+    }
   }
+
+  const enrichment =
+    cover_url || showProfile
+      ? enrichmentWithProfile(cover_url ? { cover_url } : {}, {
+          show: Boolean(showProfile),
+          name: publicName,
+          avatar: publicAvatar,
+        })
+      : null;
 
   const { data: inserted, error } = await supabase.from("intent_requests").insert({
     user_id: user.id,
@@ -1116,7 +1150,7 @@ export async function createConsoleIntent(
     status: "active",
     is_marketplace_public: false,
     must_haves,
-    ...(cover_url ? { enrichment: { cover_url } } : {}),
+    ...(enrichment ? { enrichment } : {}),
   }).select("id").single();
 
   if (error || !inserted) return { ok: false as const, message: error?.message ?? "Insert failed" };
@@ -1155,6 +1189,7 @@ export async function updateConsoleIntent(
   locationFilterInput?: string | null,
   mustHavesInput?: string | null,
   coverUrlInput?: string | null,
+  showProfile?: boolean,
 ) {
   const supabase = await createClient();
   const {
@@ -1228,6 +1263,26 @@ export async function updateConsoleIntent(
 
   const matching_signals_update = normalizeIntentMatchingSignals(parsed.matching_signals);
 
+  let enrichmentPatch: Record<string, unknown> | undefined;
+  if (nextCover !== undefined || showProfile !== undefined) {
+    let next: unknown = nextCover !== undefined ? enrichmentWithCover(existing?.enrichment, nextCover) : existing?.enrichment;
+    if (showProfile !== undefined) {
+      let publicName: string | null = null;
+      let publicAvatar: string | null = null;
+      if (showProfile) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("display_name, avatar_url")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        publicName = profile?.display_name?.trim() || null;
+        publicAvatar = profile?.avatar_url?.trim() || null;
+      }
+      next = enrichmentWithProfile(next, { show: showProfile, name: publicName, avatar: publicAvatar });
+    }
+    enrichmentPatch = (next && typeof next === "object" ? next : {}) as Record<string, unknown>;
+  }
+
   const { error } = await supabase
     .from("intent_requests")
     .update({
@@ -1239,7 +1294,7 @@ export async function updateConsoleIntent(
       demand_embedding: vectorLiteral(embedding),
       must_haves,
       updated_at: new Date().toISOString(),
-      ...(nextCover !== undefined ? { enrichment: enrichmentWithCover(existing?.enrichment, nextCover) } : {}),
+      ...(enrichmentPatch ? { enrichment: enrichmentPatch } : {}),
     })
     .eq("id", intentId)
     .eq("user_id", user.id);

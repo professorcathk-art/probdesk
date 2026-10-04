@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarClock, MapPin, ShieldCheck } from "lucide-react";
+import { CalendarClock, MapPin } from "lucide-react";
 import type { MarketplaceListing } from "@/actions/marketplace";
 import { IntentMustHavesCallout } from "@/components/intent-must-haves-callout";
-import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
+import { ListingAuthor } from "@/components/listing-author";
 import { MarketplaceListingIdentity } from "@/components/marketplace-listing-identity";
 import { useLanguage } from "@/components/language-provider";
 import { listingCoverSrc } from "@/lib/meetup-cover";
-import { listingTitle, meetupKindFrom } from "@/lib/meetup";
+import { formatListingPrice, listingTitle, meetupKindFrom, priceFromMustHaves } from "@/lib/meetup";
 import { meetupCopy } from "@/lib/meetup-copy";
 
 type Props = {
@@ -22,6 +22,7 @@ export function ExploreIntentLanding({ listing, viewerUserId }: Props) {
   const x = strings.exploreIntent;
   const t = meetupCopy(lang);
   const kind = meetupKindFrom(listing.natural_language_input, listing.must_haves);
+  const priceLabel = formatListingPrice(lang, priceFromMustHaves(listing.must_haves));
   const title = listingTitle(listing.natural_language_input);
   const isOwner = viewerUserId !== null && listing.user_id === viewerUserId;
   const primaryHref = !viewerUserId
@@ -35,15 +36,13 @@ export function ExploreIntentLanding({ listing, viewerUserId }: Props) {
     <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#ff5a5f]">{kind === "group" ? t.groups : t.oneToOne}</p>
       <h1 className="mt-2 max-w-3xl text-[28px] font-bold leading-tight tracking-tight text-slate-900 sm:text-4xl">{title}</h1>
-      <div className="mt-4 flex items-center gap-3">
-        <LockedAvatarPreview />
-        <div>
-          <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-900">
-            {mp.anonymous}
-            <ShieldCheck className="h-4 w-4 text-[#ff5a5f]" aria-hidden />
-          </p>
-          <p className="text-xs text-slate-500">{mp.anonymousHint}</p>
-        </div>
+      <div className="mt-4">
+        <ListingAuthor
+          name={listing.author_name}
+          avatar={listing.author_avatar}
+          anonymousLabel={mp.anonymous}
+          anonymousHint={listing.author_name ? t.profilePublic : mp.anonymousHint}
+        />
       </div>
 
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -77,6 +76,12 @@ export function ExploreIntentLanding({ listing, viewerUserId }: Props) {
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#ff5a5f]" aria-hidden />
                 <span>{listing.location_filter ?? mp.locationUnknown}</span>
               </li>
+              {priceLabel ? (
+                <li className="text-sm">
+                  <p className="font-medium text-slate-900">{priceLabel}</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">{t.priceHint}</p>
+                </li>
+              ) : null}
               <li className="flex items-start gap-2">
                 <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-[#ff5a5f]" aria-hidden />
                 <span>{kind === "group" ? t.groupsHint : t.oneToOneHint}</span>

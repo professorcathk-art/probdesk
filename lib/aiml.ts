@@ -91,7 +91,7 @@ export async function parseIntentWithMini(input: string): Promise<ParsedIntent> 
           role: "system",
           content:
             "Extract structured intent from a Vennode listing (any natural language acceptable). " +
-            "The listing is labeled Post type, Title, Details, Location, Date and time (group activities only), Expectations, and Hashtags. " +
+            "The listing is labeled Post type, Title, Details, Location, Date and time (group activities only), Price, Expectations, and Hashtags. Price, when present, is an offline amount the applicant pays or can receive. Vennode does not settle it, and it is not a relationship requirement. " +
             "Expectations are who they want. Hashtags are topics. A group activity is an event to join, not a 1:1 partner search, unless Expectations say otherwise. " +
             "Return JSON only. If a Location line is present and is not \"(none stated)\", copy that place into location_filter; otherwise use a city or region from the text, else null. " +
             "extracted_persona should summarize the title, details, expectations, and goal. Do not treat post_type: or when: as words the user wrote. " +
@@ -143,7 +143,7 @@ export async function parseIntentMatchingSignalsMini(userContent: string): Promi
         {
           role: "system",
           content:
-            "Classify a Vennode listing for hybrid matching guardrails only. The text is labeled Post type, Title, Details, Location, Date and time, Expectations, and Hashtags. " +
+            "Classify a Vennode listing for hybrid matching guardrails only. The text is labeled Post type, Title, Details, Location, Date and time, Price, Expectations, and Hashtags. Price is an offline amount and is not a relationship requirement. " +
             "Use Expectations for who they want. A group activity is an event unless Expectations ask for a personal relationship. Respond JSON only (any input language). " +
             parseIntentSignalsSystemPromptExtra(),
         },
@@ -271,7 +271,7 @@ export async function vibeCheckWith4o(params: {
             "FRIENDSHIP / PLATONIC / GENERAL INTROS: If the sender intent **clearly specifies the gender of the person they want to meet** (e.g. \"friends with a girl/woman/lady\", \"找女生／女性朋友\", analogous male-seeking wording), compare to **Candidate profile gender marker** when present. If candidate gender **plainly contradicts** that stated target (e.g. seeks women; candidate marker is male), assign a **low score (cap at 25)** and briefly say why. This rule **overrides** the dating complementary logic above — do **not** mark that as complementary. If candidate gender is missing, do not infer; score on other axes but mention uncertainty about gender alignment. " +
             "SPOUSE / FAMILY INTENT: Life-partner wording (marriage, children,組織家庭, long‑term parenting) plus **matching** profile gender markers (both man/both woman) normally signals a **hetero-shaped** mismatch vs stated opposite‑sex wording — score such pairings conservatively (**≤20**) unless the text clearly welcomes LGBTQ+ paths. Vennode also applies deterministic post‑filters downstream. " +
             "**WORK / HIRING / SERVICES / BUSINESS:** When the sender request is mainly about recruiting, gigs, freelancers, agencies, mentorship, tutoring, internships, cofounders, investors, collaborators, introductions, hobbies, friendships **without** a stated romantic partner gender, or similar non-romantic goals, treat profile gender markers and romantic-orientation slug as **orthogonal** guidance — score fit on complementary skills, supply/demand overlap, geography, expectations, etc.; **do not** downgrade solely for gender pairing or opposite-sex default logic unless the wording is plainly romantic or partner-gender constrained. " +
-            "LISTING FIELDS: Each side may be labeled Post type, Title, Details, Location, Date and time, Expectations, and Hashtags. Expectations are the requirements. Hashtags are topics, not requirements by themselves. Date and time applies only to a group activity and is a scheduling constraint. One-to-one posts have no event time. For a group activity, score whether the candidate fits that activity (interest, skills, place, and time), not as a private 1:1 partner, unless Expectations clearly ask for a personal relationship. " +
+            "LISTING FIELDS: Each side may be labeled Post type, Title, Details, Location, Date and time, Price, Expectations, and Hashtags. Expectations are the requirements. Hashtags are topics, not requirements by themselves. Price is money settled offline between the people, not by Vennode, and is not itself a relationship requirement. Date and time applies only to a group activity and is a scheduling constraint. One-to-one posts have no event time. For a group activity, score whether the candidate fits that activity (interest, skills, place, and time), not as a private 1:1 partner, unless Expectations clearly ask for a personal relationship. " +
             "Input data may include those labeled listings, profile snippets, and geography as a secondary constraint. " +
             "Respond strictly as JSON with integer `score` (0–100) and a single-sentence `reason` explaining complementary fit or mismatch. Be conservative. " +
             reasonRule,
