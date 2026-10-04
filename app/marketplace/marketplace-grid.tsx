@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { MapPin, Users, UserRound } from "lucide-react";
 import type { MarketplaceListing } from "@/actions/marketplace";
 import { ConnectModal } from "@/components/connect-modal";
 import { CreditsLimitModal } from "@/components/credits-limit-modal";
@@ -10,6 +11,9 @@ import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
 import { IntentMustHavesCallout } from "@/components/intent-must-haves-callout";
 import { MarketplaceListingIdentity } from "@/components/marketplace-listing-identity";
 import { useLanguage } from "@/components/language-provider";
+import { listingCoverSrc } from "@/lib/meetup-cover";
+import { listingTitle, meetupKindFrom, splitMeetupPost } from "@/lib/meetup";
+import { meetupCopy } from "@/lib/meetup-copy";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,8 +46,9 @@ export function MarketplaceGrid({
   profileReadyForInvites = true,
 }: Props) {
   const router = useRouter();
-  const { strings } = useLanguage();
+  const { lang, strings } = useLanguage();
   const mp = strings.marketplace;
+  const copy = meetupCopy(lang);
   const cr = strings.credits;
   const pending = useMemo(() => new Set(pendingIntentIds), [pendingIntentIds]);
   const [connectOpen, setConnectOpen] = useState(false);
@@ -99,6 +104,8 @@ export function MarketplaceGrid({
       <div className="grid gap-6 md:grid-cols-2">
         {listings.map((item) => {
           const isHi = highlightIntentId === item.id;
+          const group = meetupKindFrom(item.natural_language_input, item.must_haves) === "group";
+          const post = splitMeetupPost(item.natural_language_input);
           return (
             <div
               key={item.id}
@@ -108,11 +115,24 @@ export function MarketplaceGrid({
             >
               <Card
                 className={cn(
-                  "border-[#eee] bg-white shadow-sm transition-shadow",
+                  "overflow-hidden border-[#eee] bg-white py-0 shadow-sm transition-shadow",
                   isHi && "ring-2 ring-[#ff5a5f]/40",
                 )}
               >
-              <CardHeader className="gap-3">
+              <div className="relative h-40 bg-slate-100">
+                {/* eslint-disable-next-line @next/next/no-img-element -- local or uploaded cover */}
+                <img src={listingCoverSrc(item)} alt="" className="h-full w-full object-cover" />
+                <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-slate-800 shadow-sm">
+                  {group ? <Users className="h-3.5 w-3.5" aria-hidden /> : <UserRound className="h-3.5 w-3.5" aria-hidden />}
+                  {group ? copy.groups : copy.oneToOne}
+                </span>
+                {item.recommended ? (
+                  <Badge className="absolute right-3 top-3 border-0 bg-white/95 text-[10px] font-medium text-[#e0484d] hover:bg-white">
+                    {mp.recommendedBadge}
+                  </Badge>
+                ) : null}
+              </div>
+              <CardHeader className="gap-3 px-4 pt-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <LockedAvatarPreview />
@@ -121,38 +141,33 @@ export function MarketplaceGrid({
                       <CardDescription className="text-slate-500">{mp.anonymousHint}</CardDescription>
                     </div>
                   </div>
-                  <div className="flex shrink-0 flex-col items-end gap-2">
-                    <div className="flex flex-wrap justify-end gap-1.5">
-                      {item.recommended ? (
-                        <Badge
-                          variant="outline"
-                          className="border-rose-100 bg-rose-50 text-[10px] font-medium tracking-tight text-[#e0484d]"
-                          title={mp.recommendedBadge}
-                        >
-                          {mp.recommendedBadge}
-                        </Badge>
-                      ) : null}
-                      <Badge variant="outline" className="border-[#eee] text-[#555]">
-                        {item.location_filter ?? mp.locationUnknown}
-                      </Badge>
-                    </div>
-                    <IntentShareButton intentId={item.id} size="sm" variant="ghost" className="h-8 px-2 text-xs" />
-                  </div>
+                  <IntentShareButton intentId={item.id} size="sm" variant="ghost" className="h-8 px-2 text-xs" />
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm leading-relaxed text-[#333]">{item.natural_language_input}</p>
-                <IntentMustHavesCallout heading={mp.mustHavesHeading} body={item.must_haves ?? ""} />
+              <CardContent className="space-y-4 px-4 pb-4">
+                <div>
+                  <h3 className="text-base font-semibold leading-6 text-slate-900">{listingTitle(item.natural_language_input)}</h3>
+                  {post.details ? <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{post.details}</p> : null}
+                </div>
+                {post.tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {post.tags.map((tag) => (
+                      <span key={tag} className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-600">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                <IntentMustHavesCallout heading={mp.mustHavesHeading} body={item.must_haves ?? ""} tone="neutral" />
                 <MarketplaceListingIdentity listing={item} />
+                {item.location_filter ? (
+                  <p className="inline-flex items-center gap-1 text-xs text-slate-500">
+                    <MapPin className="h-3.5 w-3.5" aria-hidden />
+                    {item.location_filter}
+                  </p>
+                ) : null}
                 <Button
-                  className={cn(
-                    "h-11 w-full rounded-lg bg-[#ff5a5f] text-white hover:bg-[#e0484d] disabled:opacity-60",
-                    currentUserId &&
-                      currentUserId !== item.user_id &&
-                      !pending.has(item.id) &&
-                      outOfCredits &&
-                      "opacity-50 hover:bg-sky-500/15",
-                  )}
+                  className="h-11 w-full rounded-lg bg-[#ff5a5f] text-white hover:bg-[#e0484d] disabled:opacity-60"
                   disabled={currentUserId === item.user_id || pending.has(item.id)}
                   onClick={() => {
                     if (!currentUserId) {

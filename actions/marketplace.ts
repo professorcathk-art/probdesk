@@ -1,10 +1,12 @@
 "use server";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { embeddingVectorForRpc } from "@/lib/vector-literal";
+import { coverUrlFromEnrichment } from "@/lib/post-cover";
 
 export type MarketplaceListing = {
   id: string;
@@ -23,6 +25,8 @@ export type MarketplaceListing = {
   gender: string | null;
   /** `skills_tags` ∪ `languages` from profile, deduped */
   interest_keywords: string[];
+  /** Author-uploaded cover. Empty until they add one. */
+  cover_url?: string | null;
 };
 
 type ListingRow = Omit<MarketplaceListing, "gender" | "interest_keywords">;
@@ -58,6 +62,17 @@ function mergeInterestKeywords(skills: unknown, langs: unknown): string[] {
     }
   }
   return [...out];
+}
+
+async function attachCoverUrls(supabase: SupabaseClient, rows: ListingRow[]): Promise<ListingRow[]> {
+  if (rows.length === 0) return rows;
+  const { data, error } = await supabase.from("intent_requests").select("id, enrichment").in(
+    "id",
+    rows.map((row) => row.id),
+  );
+  if (error || !data) return rows;
+  const covers = new Map(data.map((row) => [row.id as string, coverUrlFromEnrichment(row.enrichment)]));
+  return rows.map((row) => ({ ...row, cover_url: covers.get(row.id) ?? null }));
 }
 
 /** Loads gender + tag chips via service role — avoids widening profiles RLS to anonymous clients. */
@@ -99,13 +114,16 @@ async function loadGuestExploreListings(): Promise<ListMarketplaceResult> {
   });
   const { data, error } = await supabase
     .from("intent_requests")
-    .select("id, natural_language_input, location_filter, extracted_persona, user_id, is_demo_listing, must_haves")
+    .select("id, natural_language_input, location_filter, extracted_persona, user_id, is_demo_listing, must_haves, enrichment")
     .eq("is_marketplace_public", true)
     .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(21);
   if (error) return { error: error.message };
-  let raw = (data ?? []) as ListingRow[];
+  let raw = ((data ?? []) as Array<ListingRow & { enrichment?: unknown }>).map(({ enrichment, ...row }) => ({
+    ...row,
+    cover_url: coverUrlFromEnrichment(enrichment),
+  }));
   let moreAvailable = false;
   if (raw.length > 20) {
     moreAvailable = true;
@@ -115,7 +133,7 @@ async function loadGuestExploreListings(): Promise<ListMarketplaceResult> {
   return { listings, moreAvailable };
 }
 
-const loadGuestExploreListingsCached = unstable_cache(loadGuestExploreListings, ["guest-explore-listings-v1"], {
+const loadGuestExploreListingsCached = unstable_cache(loadGuestExploreListings, ["guest-explore-listings-v2"], {
   revalidate: 30,
 });
 
@@ -157,7 +175,7 @@ export async function listMarketplaceListings(options?: { guestPreview?: boolean
       must_haves: r.must_haves ?? undefined,
       recommended: Boolean(r.is_recommended),
     }));
-    const listings = await attachExplorePublicIdentityRows(raw);
+    const listings = await attachExplorePublicIdentityRows(await attachCoverUrls(supabase, raw));
     return { listings, moreAvailable: false };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server configuration error";
@@ -182,7 +200,7 @@ export async function getExploreIntentForDeepLink(
     const { data, error } = await supabase
       .from("intent_requests")
       .select(
-        "id, natural_language_input, location_filter, extracted_persona, user_id, is_demo_listing, must_haves",
+        "id, natural_language_input, location_filter, extracted_persona, user_id, is_demo_listing, must_haves, enrichment",
       )
       .eq("id", id)
       .in("status", ["active", "paused"])
@@ -190,7 +208,9 @@ export async function getExploreIntentForDeepLink(
 
     if (error) return { error: error.message };
     if (!data) return { error: "Not found" };
-    const raw = data as ListingRow;
+    const row = data as ListingRow & { enrichment?: unknown };
+    const { enrichment, ...rest } = row;
+    const raw: ListingRow = { ...rest, cover_url: coverUrlFromEnrichment(enrichment) };
     const [listing] = await attachExplorePublicIdentityRows([raw]);
     return { listing };
   } catch (e) {

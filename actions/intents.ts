@@ -14,6 +14,7 @@ import { normalizeProfileTags } from "@/lib/profile-tags";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { MAX_ACTIVE_INTENTS_PER_USER } from "@/lib/limits";
 import { meetupKindFrom, screeningTextForAi, SUGGESTION_COOLDOWN_MS, type MeetupKind } from "@/lib/meetup";
+import { acceptedPostCoverUrl, coverUrlFromEnrichment, enrichmentWithCover, enrichmentWithoutCoverUrl } from "@/lib/post-cover";
 import { ensurePublicUserRowsForSession } from "@/lib/ensure-public-user";
 import { logPairingScoreEvent } from "@/lib/pairing-score-log";
 import { BLOCKING_MATCH_STATUSES } from "@/lib/match-blocking";
@@ -85,6 +86,8 @@ export type IntentRow = {
   is_marketplace_public: boolean;
   extracted_persona: Record<string, unknown> | null;
   must_haves: string | null;
+  /** Public photo for this post. Absent until the author uploads one. */
+  coverUrl?: string | null;
   /** ISO time of the last AI people search. Absent until that search has run. */
   suggestionRanAt?: string | null;
 };
@@ -353,7 +356,7 @@ export async function listMyIntents(): Promise<{ intents: IntentRow[] } | { erro
   return {
     intents: rows.map((row) => {
       const { enrichment, ...rest } = row;
-      return { ...rest, suggestionRanAt: suggestionRanAtFrom(enrichment) };
+      return { ...rest, suggestionRanAt: suggestionRanAtFrom(enrichment), coverUrl: coverUrlFromEnrichment(enrichment) };
     }),
   };
 }
@@ -1005,6 +1008,7 @@ export async function createConsoleIntent(
   naturalLanguageInput: string,
   locationFilterInput?: string | null,
   mustHavesInput?: string | null,
+  coverUrlInput?: string | null,
 ) {
   const supabase = await createClient();
   const {
@@ -1056,6 +1060,11 @@ export async function createConsoleIntent(
   }
 
   const must_haves = normalizeMustHaves(mustHavesInput);
+  let cover_url: string | null = null;
+  if (coverUrlInput?.trim()) {
+    cover_url = acceptedPostCoverUrl(coverUrlInput, user.id);
+    if (!cover_url) return { ok: false as const, message: "Cover upload was not accepted." };
+  }
 
   let parsed: Awaited<ReturnType<typeof parseIntentWithMini>>;
   let embedding: number[];
@@ -1107,6 +1116,7 @@ export async function createConsoleIntent(
     status: "active",
     is_marketplace_public: false,
     must_haves,
+    ...(cover_url ? { enrichment: { cover_url } } : {}),
   }).select("id").single();
 
   if (error || !inserted) return { ok: false as const, message: error?.message ?? "Insert failed" };
@@ -1144,6 +1154,7 @@ export async function updateConsoleIntent(
   naturalLanguageInput: string,
   locationFilterInput?: string | null,
   mustHavesInput?: string | null,
+  coverUrlInput?: string | null,
 ) {
   const supabase = await createClient();
   const {
@@ -1157,6 +1168,15 @@ export async function updateConsoleIntent(
   }
 
   const must_haves = normalizeMustHaves(mustHavesInput);
+  let nextCover: string | null | undefined;
+  if (coverUrlInput !== undefined) {
+    if (coverUrlInput?.trim()) {
+      nextCover = acceptedPostCoverUrl(coverUrlInput, user.id);
+      if (!nextCover) return { ok: false as const, message: "Cover upload was not accepted." };
+    } else {
+      nextCover = null;
+    }
+  }
 
   const { data: existing } = await supabase
     .from("intent_requests")
@@ -1176,7 +1196,7 @@ export async function updateConsoleIntent(
       buildDemandEmbeddingText(trimmed, must_haves, {
         location: locationFilterInput,
         extracted_persona: parsed.extracted_persona as Record<string, unknown>,
-        enrichment: asEmbeddingContextRecord(existing?.enrichment),
+        enrichment: enrichmentWithoutCoverUrl(existing?.enrichment) ?? asEmbeddingContextRecord(existing?.enrichment),
         semantic_match_hints:
           embeddingNoteForMatchingSignals(normalizeIntentMatchingSignals(parsed.matching_signals)) || undefined,
       }),
@@ -1219,6 +1239,7 @@ export async function updateConsoleIntent(
       demand_embedding: vectorLiteral(embedding),
       must_haves,
       updated_at: new Date().toISOString(),
+      ...(nextCover !== undefined ? { enrichment: enrichmentWithCover(existing?.enrichment, nextCover) } : {}),
     })
     .eq("id", intentId)
     .eq("user_id", user.id);

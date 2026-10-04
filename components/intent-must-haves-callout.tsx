@@ -5,11 +5,13 @@ export function IntentMustHavesCallout({
   heading,
   body,
   compact,
+  tone = "mint",
   className,
 }: {
   heading: string;
   body: string;
   compact?: boolean;
+  tone?: "mint" | "neutral";
   className?: string;
 }) {
   const trimmedBody = body
@@ -24,13 +26,13 @@ export function IntentMustHavesCallout({
   return (
     <div
       className={cn(
-        "flex gap-2 rounded-lg border border-emerald-100 bg-emerald-50",
+        tone === "neutral" ? "flex gap-2 rounded-lg border border-slate-200 bg-slate-50" : "flex gap-2 rounded-lg border border-emerald-100 bg-emerald-50",
         compact ? "px-2 py-1.5" : "px-3 py-2.5",
         className,
       )}
     >
       <CheckCircle2
-        className={cn("mt-0.5 shrink-0 text-emerald-600", compact ? "h-3.5 w-3.5" : "h-4 w-4")}
+        className={cn("mt-0.5 shrink-0", tone === "neutral" ? "text-slate-400" : "text-emerald-600", compact ? "h-3.5 w-3.5" : "h-4 w-4")}
         aria-hidden
       />
       <div className="min-w-0">

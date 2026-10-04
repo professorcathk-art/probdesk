@@ -57,6 +57,12 @@ export function SiteNav({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
+  useEffect(() => {
+    const onSearch = (event: Event) => setQuery((event as CustomEvent<string>).detail ?? "");
+    window.addEventListener("vennode-search", onSearch);
+    return () => window.removeEventListener("vennode-search", onSearch);
+  }, []);
+
   function openHomeType(event: React.MouseEvent, next: "one_to_one" | "group") {
     if (pathname !== "/") return;
     event.preventDefault();

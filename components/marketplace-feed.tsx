@@ -55,7 +55,7 @@ export function MarketplaceFeed({
           ) : null}
           {quotaSnapshot ? (
             <div className="mt-4">
-              <InviteQuotaPill userId={currentUserId} quota={quotaSnapshot} />
+              <InviteQuotaPill userId={currentUserId} quota={quotaSnapshot} tone="light" />
             </div>
           ) : null}
         </div>

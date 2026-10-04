@@ -28,6 +28,17 @@ function hasKey(hay: string, key: string) {
   return hay.includes(needle);
 }
 
+export function listingCoverSrc(listing: {
+  id: string;
+  natural_language_input: string;
+  must_haves?: string | null;
+  cover_url?: string | null;
+}) {
+  const uploaded = listing.cover_url?.trim();
+  if (uploaded) return uploaded;
+  return meetupCoverSrc(`${listing.natural_language_input}\n${listing.must_haves ?? ""}`, listing.id);
+}
+
 export function meetupCoverSrc(text: string, id: string) {
   const hay = text.toLowerCase();
   for (const scene of SCENES) {

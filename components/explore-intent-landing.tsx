@@ -7,7 +7,7 @@ import { IntentMustHavesCallout } from "@/components/intent-must-haves-callout";
 import { LockedAvatarPreview } from "@/components/locked-avatar-preview";
 import { MarketplaceListingIdentity } from "@/components/marketplace-listing-identity";
 import { useLanguage } from "@/components/language-provider";
-import { meetupCoverSrc } from "@/lib/meetup-cover";
+import { listingCoverSrc } from "@/lib/meetup-cover";
 import { listingTitle, meetupKindFrom } from "@/lib/meetup";
 import { meetupCopy } from "@/lib/meetup-copy";
 
@@ -51,7 +51,7 @@ export function ExploreIntentLanding({ listing, viewerUserId }: Props) {
           <div className="relative h-52 overflow-hidden rounded-2xl bg-slate-100 sm:h-64">
             {/* eslint-disable-next-line @next/next/no-img-element -- local cover photo */}
             <img
-              src={meetupCoverSrc(`${listing.natural_language_input}\n${listing.must_haves ?? ""}`, listing.id)}
+              src={listingCoverSrc(listing)}
               alt=""
               className="h-full w-full object-cover"
             />
@@ -61,7 +61,7 @@ export function ExploreIntentLanding({ listing, viewerUserId }: Props) {
             <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700 sm:text-base">{listing.natural_language_input}</p>
             {listing.must_haves?.trim() ? (
               <div className="mt-4">
-                <IntentMustHavesCallout heading={x.expectationsHeading} body={listing.must_haves} />
+                <IntentMustHavesCallout heading={x.expectationsHeading} body={listing.must_haves} tone="neutral" />
               </div>
             ) : null}
             <div className="mt-4">

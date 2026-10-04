@@ -5,10 +5,11 @@ import { useEffect, useState } from "react";
 import { MapPin, Users, UserRound } from "lucide-react";
 import type { MarketplaceListing } from "@/actions/marketplace";
 import { useLanguage } from "@/components/language-provider";
-import { meetupCoverSrc } from "@/lib/meetup-cover";
+import { listingCoverSrc } from "@/lib/meetup-cover";
 import { listingTitle, meetupKindFrom, type MeetupKind } from "@/lib/meetup";
 import { scoreListingText } from "@/lib/meetup-search";
 import { meetupCopy } from "@/lib/meetup-copy";
+import { HomeStory } from "@/components/meetup/home-story";
 
 function excerpt(text: string) {
   const lines = text
@@ -61,7 +62,7 @@ function Card({
       className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
     >
       <Cover
-        src={meetupCoverSrc(`${listing.natural_language_input}\n${listing.must_haves ?? ""}`, listing.id)}
+        src={listingCoverSrc(listing)}
         kind={kind}
         label={kind === "group" ? groupLabel : oneLabel}
         eager={eager}
@@ -132,6 +133,19 @@ export function MeetupHome({
     setLiveType(next);
   }
 
+  function showQuery(next: string) {
+    const url = new URL(window.location.href);
+    const q = next.trim();
+    if (q) url.searchParams.set("q", q);
+    else url.searchParams.delete("q");
+    url.searchParams.delete("type");
+    window.history.pushState(null, "", `${url.pathname}${url.search}`);
+    setLiveQuery(q);
+    setLiveType("all");
+    window.dispatchEvent(new CustomEvent("vennode-search", { detail: q }));
+    document.getElementById("home-listings")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   const needle = liveQuery.trim().toLowerCase();
   const matched = listings
     .map((listing) => {
@@ -150,11 +164,11 @@ export function MeetupHome({
       <h1 className="max-w-3xl text-[28px] font-bold leading-tight tracking-tight text-slate-900 sm:text-4xl">{t.slogan}</h1>
       <p className="mt-2 max-w-xl text-sm text-slate-500 sm:text-base">{t.lead}</p>
       {matched.length === 0 ? (
-        <p className="mt-8 rounded-2xl border border-dashed border-slate-200 bg-white px-5 py-12 text-center text-sm text-slate-500">
+        <p id="home-listings" className="mt-8 scroll-mt-24 rounded-2xl border border-dashed border-slate-200 bg-white px-5 py-12 text-center text-sm text-slate-500">
           {needle || liveType !== "all" ? t.emptyFiltered : t.empty}
         </p>
       ) : (
-        <div className="mt-8 space-y-10">
+        <div id="home-listings" className="mt-8 scroll-mt-24 space-y-10">
           {liveType !== "group" ? (
             <section>
               <div className="flex items-end justify-between gap-3">
@@ -209,6 +223,7 @@ export function MeetupHome({
           ) : null}
         </div>
       )}
+      {liveType === "all" && !needle ? <HomeStory t={t} signedIn={viewerId != null} onBrowse={showQuery} /> : null}
       {moreAvailable ? (
         <p className="mt-8 text-sm text-slate-500">
           <Link href="/login?after=%2F" className="font-semibold text-[#ff5a5f]">

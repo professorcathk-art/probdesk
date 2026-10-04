@@ -18,6 +18,7 @@ import {
   type MeetupKind,
 } from "@/lib/meetup";
 import { meetupCopy } from "@/lib/meetup-copy";
+import { CoverPicker, uploadPostCover } from "@/components/meetup/cover-picker";
 
 function parseTags(value: string) {
   return value
@@ -39,6 +40,9 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
   const [when, setWhen] = useState(editing ? whenFromMustHaves(editing.must_haves) : "");
   const [expectations, setExpectations] = useState(editing ? whoFromMustHaves(editing.must_haves) : "");
   const [tagsText, setTagsText] = useState(parsed?.tags.join(", ") ?? "");
+  const [coverUrl, setCoverUrl] = useState<string | null>(editing?.coverUrl ?? null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(editing?.coverUrl ?? null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [polishing, setPolishing] = useState(false);
@@ -95,16 +99,26 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
     }
     setBusy(true);
     setError(null);
+    let nextCover = coverUrl;
+    if (coverFile) {
+      const uploaded = await uploadPostCover(coverFile);
+      if (!uploaded.ok) {
+        setBusy(false);
+        setError(uploaded.message === "type" ? t.coverType : uploaded.message === "size" ? t.coverSize : t.coverFailed);
+        return;
+      }
+      nextCover = uploaded.url;
+    }
     const must = composeMustHaves(kind, expectations, kind === "group" ? when : "");
     if (editing) {
-      const updated = await updateConsoleIntent(editing.id, text, place, must);
+      const updated = await updateConsoleIntent(editing.id, text, place, must, nextCover);
       if (!updated.ok) {
         setBusy(false);
         setError(updated.message);
         return;
       }
     } else {
-      const created = await createConsoleIntent(text, place, must);
+      const created = await createConsoleIntent(text, place, must, nextCover);
       if (!created.ok) {
         setBusy(false);
         setError(created.message);
@@ -172,6 +186,30 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
             {t.place}
             <input value={place} onChange={(event) => setPlace(event.target.value)} placeholder={t.online} className={`${fieldClass} h-11`} />
           </label>
+          <CoverPicker
+            label={t.cover}
+            hint={t.coverHint}
+            addLabel={t.coverAdd}
+            changeLabel={t.coverChange}
+            removeLabel={t.coverRemove}
+            previewUrl={coverPreview}
+            onFile={(file) => {
+              setCoverFile(file);
+              setCoverPreview((current) => {
+                if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
+                return URL.createObjectURL(file);
+              });
+              setError(null);
+            }}
+            onClear={() => {
+              setCoverFile(null);
+              setCoverUrl(null);
+              setCoverPreview((current) => {
+                if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
+                return null;
+              });
+            }}
+          />
           <label className="block text-sm font-medium text-slate-800">
             {t.hashtags}
             <input value={tagsText} onChange={(event) => setTagsText(event.target.value)} placeholder={t.hashtagsHint} className={`${fieldClass} h-11`} />
@@ -197,6 +235,15 @@ export function CreateWizard({ editing }: { editing: IntentRow | null }) {
         <div className="mt-6 space-y-4 rounded-2xl border border-[#eee] bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">{t.previewLead}</p>
           <dl className="space-y-3 text-sm">
+            {coverPreview ? (
+              <div>
+                <dt className="text-slate-500">{t.cover}</dt>
+                <dd className="mt-1 h-28 w-40 overflow-hidden rounded-xl bg-slate-100">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- local preview or uploaded cover */}
+                  <img src={coverPreview} alt="" className="h-full w-full object-cover" />
+                </dd>
+              </div>
+            ) : null}
             <div><dt className="text-slate-500">{t.title}</dt><dd className="font-medium text-slate-900">{title}</dd></div>
             <div><dt className="text-slate-500">{t.details}</dt><dd className="whitespace-pre-wrap text-slate-800">{details}</dd></div>
             <div><dt className="text-slate-500">{t.place}</dt><dd className="text-slate-800">{place}</dd></div>

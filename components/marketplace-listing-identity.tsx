@@ -49,7 +49,7 @@ export function MarketplaceListingIdentity({ listing, density = "default", class
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500">{mp.publicInterestsLabel}</p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {kw.map((tag) => (
-              <Badge key={tag} variant="outline" className="border-rose-100 bg-rose-50 text-[11px] font-normal text-slate-700">
+              <Badge key={tag} variant="outline" className="border-slate-200 bg-slate-50 text-[11px] font-normal text-slate-600">
                 {tag}
               </Badge>
             ))}
