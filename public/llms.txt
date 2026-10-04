@@ -1,0 +1,12 @@
+# Vennode
+
+Vennode helps people find the right person or group activity. A person publishes a 1-to-1 introduction or a group activity. Someone else reads it and applies with a short note. The host approves or declines. Contact opens only after approval. The product does not auto-match people.
+
+People search in their own words for interests, cities, skills, dating, cofounders, classes, sports, and local activities. Listings are public on the home page and the explore square.
+
+Primary pages:
+- / home, latest 1-to-1 posts and group activities
+- /create publish a post
+- /square browse and send an invite
+- /portal/one-to-one posts you host and applications you received
+- /portal/groups the same for group activities

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, MessageCircle, Search, UserRound, X } from "lucide-react";
+import { Menu, MessageCircle, Sparkles, UserRound, X } from "lucide-react";
 import { getMessengerUnreadThreadCount } from "@/actions/messenger";
 import { signOut } from "@/actions/auth";
 import { useLanguage } from "@/components/language-provider";
@@ -52,6 +52,7 @@ export function SiteNav({
 }) {
   const { lang, setLang } = useLanguage();
   const t = meetupCopy(lang);
+  const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -59,8 +60,16 @@ export function SiteNav({
   function onSearch(event: React.FormEvent) {
     event.preventDefault();
     const q = query.trim();
-    router.push(q ? `/?q=${encodeURIComponent(q)}` : "/");
     setOpen(false);
+    if (pathname === "/") {
+      const url = new URL(window.location.href);
+      if (q) url.searchParams.set("q", q);
+      else url.searchParams.delete("q");
+      window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+      window.dispatchEvent(new CustomEvent("vennode-search", { detail: q }));
+      return;
+    }
+    router.push(q ? `/?q=${encodeURIComponent(q)}` : "/");
   }
 
   return (
@@ -70,19 +79,7 @@ export function SiteNav({
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#ff5a5f] text-sm font-bold text-white">V</span>
           <span className="text-[17px] font-semibold tracking-tight">Vennode</span>
         </Link>
-        <form onSubmit={onSearch} className="mx-auto hidden min-w-0 max-w-md flex-1 md:block" role="search">
-          <label className="relative block">
-            <span className="sr-only">{t.searchLabel}</span>
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9a9a9a]" aria-hidden />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t.searchPlaceholder}
-              className="h-11 w-full rounded-full bg-[#f3f3f3] pl-10 pr-4 text-sm text-[#222] outline-none placeholder:text-[#9a9a9a] focus:bg-white focus:ring-2 focus:ring-[#ff5a5f]/30"
-            />
-          </label>
-        </form>
-        <div className="ml-auto flex items-center gap-1 md:ml-0">
+        <div className="ml-auto flex items-center gap-1">
           <button type="button" onClick={() => setLang(lang === "zh" ? "en" : "zh")} className="hidden h-10 px-2 text-xs font-semibold text-[#555] sm:inline-flex">
             {lang === "zh" ? "EN" : "繁"}
           </button>
@@ -121,16 +118,30 @@ export function SiteNav({
           </button>
         </div>
       </div>
-      <form onSubmit={onSearch} className="mx-auto w-full max-w-6xl px-4 pb-3 md:hidden" role="search">
-        <label className="relative block">
-          <span className="sr-only">{t.searchLabel}</span>
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9a9a9a]" aria-hidden />
+      <form onSubmit={onSearch} className="mx-auto w-full max-w-3xl px-4 pb-3" role="search">
+        <label className="block">
+          <span className="mb-1 flex items-center gap-1 text-xs font-semibold text-[#ff5a5f]">
+            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+            {t.searchLabel}
+          </span>
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            aria-label={t.searchLabel}
+            onChange={(event) => {
+              const next = event.target.value;
+              setQuery(next);
+              if (pathname !== "/" || event.target !== document.activeElement) return;
+              const q = next.trim();
+              const url = new URL(window.location.href);
+              if (q) url.searchParams.set("q", q);
+              else url.searchParams.delete("q");
+              window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+              window.dispatchEvent(new CustomEvent("vennode-search", { detail: q }));
+            }}
             placeholder={t.searchPlaceholder}
-            className="h-11 w-full rounded-full bg-[#f3f3f3] pl-10 pr-4 text-sm outline-none"
+            className="h-12 w-full rounded-full border border-rose-100 bg-white px-5 text-base text-[#222] shadow-sm outline-none placeholder:text-[#9a9a9a] focus:border-[#ff5a5f] focus:ring-4 focus:ring-[#ff5a5f]/15"
           />
+          <span className="mt-1 block px-2 text-xs text-slate-500">{t.searchHint}</span>
         </label>
       </form>
       {open ? (
@@ -174,9 +185,6 @@ export function SiteNav({
                 </Link>
                 <Link href="/messages" className="min-h-11 py-2 text-sm font-medium text-[#222]" onClick={() => setOpen(false)}>
                   {t.messages}
-                </Link>
-                <Link href="/console" className="min-h-11 py-2 text-sm text-[#757575]" onClick={() => setOpen(false)}>
-                  {t.advanced}
                 </Link>
                 <button
                   type="button"

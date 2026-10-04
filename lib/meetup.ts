@@ -15,13 +15,53 @@ export function stampMustHaves(kind: MeetupKind, who: string): string {
   return body ? `post_type:${kind}\n${body}` : `post_type:${kind}`;
 }
 
+export const TITLE_MAX_UNITS = 20;
+
+/** Chinese characters count as 1. Other characters count as half, so 20 Chinese or 40 English fit. */
+export function titleUnits(value: string) {
+  let units = 0;
+  for (const char of value) units += /[\u3400-\u9fff]/.test(char) ? 1 : 0.5;
+  return units;
+}
+
 export function whoFromMustHaves(mustHaves: string | null | undefined): string {
   if (!mustHaves) return "";
   return mustHaves
     .split("\n")
-    .filter((line) => !line.startsWith("post_type:"))
+    .filter((line) => {
+      const trimmed = line.trim();
+      return trimmed && !trimmed.startsWith("post_type:") && !trimmed.startsWith("when:");
+    })
     .join("\n")
     .trim();
+}
+
+export function whenFromMustHaves(mustHaves: string | null | undefined): string {
+  const line = (mustHaves ?? "").split("\n").find((item) => item.trim().startsWith("when:"));
+  return line ? line.trim().slice(5) : "";
+}
+
+export function splitMeetupPost(text: string) {
+  const lines = text.split("\n");
+  const titleLine = lines.find((line) => line.trim()) ?? "";
+  const title = titleLine.trim();
+  const rest = text.slice(text.indexOf(titleLine) + titleLine.length).trim();
+  const tags = [...rest.matchAll(/#([^\s#]+)/g)].map((match) => match[1]);
+  const details = rest.replace(/#[^\s#]+/g, "").replace(/\n{3,}/g, "\n\n").trim();
+  return { title, details, tags };
+}
+
+export function composeMeetupPost(input: { title: string; details: string; tags: string[] }) {
+  const tags = input.tags.map((tag) => tag.replace(/^#/, "").trim()).filter(Boolean);
+  const tagLine = tags.map((tag) => `#${tag}`).join(" ");
+  return [input.title.trim(), "", input.details.trim(), tagLine].filter((part, index) => part || index === 1).join("\n").trim();
+}
+
+export function composeMustHaves(kind: MeetupKind, expectations: string, when: string) {
+  const lines = [`post_type:${kind}`];
+  if (when.trim()) lines.push(`when:${when.trim()}`);
+  if (expectations.trim()) lines.push(expectations.trim());
+  return lines.join("\n");
 }
 
 export function listingTitle(text: string): string {

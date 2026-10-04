@@ -14,7 +14,10 @@ export function IntentMustHavesCallout({
 }) {
   const trimmedBody = body
     .split("\n")
-    .filter((line) => !line.trim().startsWith("post_type:"))
+    .filter((line) => {
+      const trimmed = line.trim();
+      return trimmed && !trimmed.startsWith("post_type:") && !trimmed.startsWith("when:");
+    })
     .join("\n")
     .trim();
   if (!trimmedBody) return null;

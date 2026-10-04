@@ -308,6 +308,38 @@ export async function vibeCheckWith4o(params: {
   return { match_score: score, compatibility_reason };
 }
 
+/** Rewrite listing details only. Never adds a matching disclaimer or a call to apply. */
+export async function polishListingDetails(details: string, lang: "zh" | "en"): Promise<string> {
+  const model = process.env.AIML_PARSE_MODEL ?? "gpt-4o-mini";
+  const res = await fetch(`${base()}/chat/completions`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({
+      model,
+      temperature: 0.4,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You edit one person's listing details for a meetup site. Keep their facts, language, and intent. " +
+            "Make the writing clearer and more natural. Return plain text only, no title, no hashtags, no quotation marks. " +
+            "Do not add a disclaimer. Do not say you will not match anyone. Do not tell the reader to leave a note or that the host will decide. " +
+            (lang === "zh" ? "Write in Traditional Chinese unless the user wrote in another language." : "Write in English unless the user wrote in another language."),
+        },
+        { role: "user", content: details.slice(0, 4000) },
+      ],
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`AIML polish failed: ${res.status} ${err}`);
+  }
+  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if (!text) throw new Error("AIML polish returned empty content");
+  return text.replace(/^["「]|["」]$/g, "").trim();
+}
+
 export async function generateFollowUpQuestions(persona: Record<string, unknown>): Promise<string[]> {
   const model = process.env.AIML_PARSE_MODEL ?? "gpt-4o-mini";
   const res = await fetch(`${base()}/chat/completions`, {

@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { MapPin, Users, UserRound } from "lucide-react";
 import type { MarketplaceListing } from "@/actions/marketplace";
 import { useLanguage } from "@/components/language-provider";
 import { meetupCoverSrc } from "@/lib/meetup-cover";
 import { listingTitle, meetupKindFrom, type MeetupKind } from "@/lib/meetup";
+import { scoreListingText } from "@/lib/meetup-search";
 import { meetupCopy } from "@/lib/meetup-copy";
 
 function excerpt(text: string) {
@@ -17,12 +19,12 @@ function excerpt(text: string) {
   return lines.slice(1).join(" ");
 }
 
-function Cover({ src, kind, label }: { src: string; kind: MeetupKind; label: string }) {
+function Cover({ src, kind, label, eager }: { src: string; kind: MeetupKind; label: string; eager?: boolean }) {
   const group = kind === "group";
   return (
     <div className="relative h-36 overflow-hidden bg-slate-100">
       {/* eslint-disable-next-line @next/next/no-img-element -- local cover photo */}
-      <img src={src} alt="" className="h-full w-full object-cover" />
+      <img src={src} alt="" loading={eager ? "eager" : "lazy"} decoding="async" className="h-full w-full object-cover" />
       <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-slate-800 shadow-sm">
         {group ? <Users className="h-3.5 w-3.5" aria-hidden /> : <UserRound className="h-3.5 w-3.5" aria-hidden />}
         {label}
@@ -37,12 +39,14 @@ function Card({
   yoursLabel,
   oneLabel,
   groupLabel,
+  eager,
 }: {
   listing: MarketplaceListing;
   viewerId: string | null;
   yoursLabel: string;
   oneLabel: string;
   groupLabel: string;
+  eager?: boolean;
 }) {
   const mine = viewerId != null && listing.user_id === viewerId;
   const kind = meetupKindFrom(listing.natural_language_input, listing.must_haves);
@@ -53,12 +57,14 @@ function Card({
   return (
     <Link
       href={href}
+      prefetch={false}
       className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
     >
       <Cover
         src={meetupCoverSrc(`${listing.natural_language_input}\n${listing.must_haves ?? ""}`, listing.id)}
         kind={kind}
         label={kind === "group" ? groupLabel : oneLabel}
+        eager={eager}
       />
       <div className="flex flex-1 flex-col p-4">
         <h3 className="line-clamp-2 text-base font-semibold leading-6 text-slate-900 group-hover:text-[#ff5a5f]">{title}</h3>
@@ -94,14 +100,25 @@ export function MeetupHome({
 }) {
   const { lang } = useLanguage();
   const t = meetupCopy(lang);
-  const needle = query.trim().toLowerCase();
-  const matched = listings.filter((listing) => {
-    const kind = meetupKindFrom(listing.natural_language_input, listing.must_haves);
-    if (type !== "all" && kind !== type) return false;
-    if (!needle) return true;
-    const hay = `${listing.natural_language_input} ${listing.location_filter ?? ""} ${listing.interest_keywords.join(" ")}`.toLowerCase();
-    return hay.includes(needle);
-  });
+  const [liveQuery, setLiveQuery] = useState(query);
+  useEffect(() => {
+    setLiveQuery(query);
+  }, [query]);
+  useEffect(() => {
+    const onSearch = (event: Event) => setLiveQuery((event as CustomEvent<string>).detail ?? "");
+    window.addEventListener("vennode-search", onSearch);
+    return () => window.removeEventListener("vennode-search", onSearch);
+  }, []);
+  const needle = liveQuery.trim().toLowerCase();
+  const matched = listings
+    .map((listing) => {
+      const kind = meetupKindFrom(listing.natural_language_input, listing.must_haves);
+      const hay = `${listing.natural_language_input} ${listing.location_filter ?? ""} ${listing.must_haves ?? ""} ${listing.interest_keywords.join(" ")}`;
+      return { listing, kind, score: scoreListingText(needle, hay) };
+    })
+    .filter((row) => (type === "all" || row.kind === type) && row.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((row) => row.listing);
   const oneToOne = matched.filter((listing) => meetupKindFrom(listing.natural_language_input, listing.must_haves) === "one_to_one");
   const groups = matched.filter((listing) => meetupKindFrom(listing.natural_language_input, listing.must_haves) === "group");
 
@@ -134,8 +151,8 @@ export function MeetupHome({
                 <p className="mt-4 text-sm text-slate-500">{needle || type !== "all" ? t.emptyFiltered : t.emptySection}</p>
               ) : (
                 <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {(type === "all" ? oneToOne.slice(0, 6) : oneToOne).map((listing) => (
-                    <Card key={listing.id} listing={listing} viewerId={viewerId} yoursLabel={t.yours} oneLabel={t.oneToOne} groupLabel={t.groups} />
+                  {(type === "all" ? oneToOne.slice(0, 6) : oneToOne).map((listing, index) => (
+                    <Card key={listing.id} listing={listing} viewerId={viewerId} yoursLabel={t.yours} oneLabel={t.oneToOne} groupLabel={t.groups} eager={index < 3} />
                   ))}
                 </div>
               )}
@@ -160,8 +177,8 @@ export function MeetupHome({
                 <p className="mt-4 text-sm text-slate-500">{needle || type !== "all" ? t.emptyFiltered : t.emptySection}</p>
               ) : (
                 <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {(type === "all" ? groups.slice(0, 6) : groups).map((listing) => (
-                    <Card key={listing.id} listing={listing} viewerId={viewerId} yoursLabel={t.yours} oneLabel={t.oneToOne} groupLabel={t.groups} />
+                  {(type === "all" ? groups.slice(0, 6) : groups).map((listing, index) => (
+                    <Card key={listing.id} listing={listing} viewerId={viewerId} yoursLabel={t.yours} oneLabel={t.oneToOne} groupLabel={t.groups} eager={index < 3} />
                   ))}
                 </div>
               )}
