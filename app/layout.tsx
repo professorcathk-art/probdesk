@@ -22,7 +22,7 @@ const spaceGrotesk = Space_Grotesk({
 
 const siteTitle = "Vennode — 遇見對的人，開啟靈感與連結";
 const siteDescription =
-  "不論是一對一咖啡交流，還是有趣的群組活動，在 Vennode 輕鬆展開真實對話。你先送出邀請，對方同意後才會開始聯絡。";
+  "不論是一對一喝杯咖啡，還是週末一起出遊，在 Vennode 把話聊開就好。邀請由你自己送出，對方同意後才開始聯絡。";
 
 export const metadata: Metadata = {
   title: siteTitle,

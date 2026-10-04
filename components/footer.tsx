@@ -12,9 +12,19 @@ export function Footer({ signedIn = false }: { signedIn?: boolean }) {
   const pathname = usePathname();
   const publishHref = signedIn ? "/create" : "/login?flow=register&after=%2Fcreate";
 
+  function openHomeType(event: React.MouseEvent, next: "one_to_one" | "group") {
+    if (pathname !== "/") return;
+    event.preventDefault();
+    const url = new URL(window.location.href);
+    url.searchParams.set("type", next);
+    window.history.pushState(null, "", `${url.pathname}${url.search}#home-listings`);
+    window.dispatchEvent(new CustomEvent("vennode-type", { detail: next }));
+    document.getElementById("home-listings")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   if (pathname.startsWith("/messages")) {
     return (
-      <footer className="shrink-0 border-t border-[#2a2a2a] bg-[#1c1c1c] px-4 py-2 text-xs text-slate-400">
+      <footer className="relative z-10 shrink-0 border-t border-[#2a2a2a] bg-[#1c1c1c] px-4 py-2 text-xs text-slate-400">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-1">
           <p>{F.copyright}</p>
           <p>{F.madeWith}</p>
@@ -24,7 +34,7 @@ export function Footer({ signedIn = false }: { signedIn?: boolean }) {
   }
 
   return (
-    <footer className="mt-auto px-3 pb-4 pt-8 sm:px-5 sm:pb-6">
+    <footer className="relative z-10 mt-auto px-3 pb-4 pt-8 sm:px-5 sm:pb-6">
       <div className="mx-auto max-w-6xl rounded-[28px] bg-[#1c1c1c] px-6 py-8 text-slate-300 sm:px-10 sm:py-10">
         <div className="flex flex-col gap-5 border-b border-white/10 pb-6 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" className="flex min-w-0 items-center gap-2 text-white">
@@ -42,33 +52,63 @@ export function Footer({ signedIn = false }: { signedIn?: boolean }) {
           <nav aria-label={F.account}>
             <p className="text-sm font-semibold text-white">{F.account}</p>
             <ul className="mt-3 space-y-1 text-sm">
-              <li>
-                <Link href="/login?after=%2F" className="inline-flex min-h-11 items-center text-slate-400 hover:text-white">
-                  {F.login}
-                </Link>
-              </li>
-              <li>
-                <Link href={publishHref} className="inline-flex min-h-11 items-center text-slate-400 hover:text-white">
-                  {F.register}
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="inline-flex min-h-11 items-center text-slate-400 hover:text-white">
-                  {F.contact}
-                </Link>
-              </li>
+              {signedIn ? (
+                <>
+                  <li>
+                    <Link href="/portal" className="inline-flex min-h-11 items-center text-slate-400 hover:text-white">
+                      {F.myPosts}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/messages" className="inline-flex min-h-11 items-center text-slate-400 hover:text-white">
+                      {F.messages}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/portal/settings" className="inline-flex min-h-11 items-center text-slate-400 hover:text-white">
+                      {F.settings}
+                    </Link>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li>
+                    <Link href="/login?after=%2F" className="inline-flex min-h-11 items-center text-slate-400 hover:text-white">
+                      {F.login}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href={publishHref} className="inline-flex min-h-11 items-center text-slate-400 hover:text-white">
+                      {F.register}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/contact" className="inline-flex min-h-11 items-center text-slate-400 hover:text-white">
+                      {F.contact}
+                    </Link>
+                  </li>
+                </>
+              )}
             </ul>
           </nav>
           <nav aria-label={F.discover}>
             <p className="text-sm font-semibold text-white">{F.discover}</p>
             <ul className="mt-3 space-y-1 text-sm">
               <li>
-                <Link href="/?type=one_to_one" className="inline-flex min-h-11 items-center text-slate-400 hover:text-white">
+                <Link
+                  href="/?type=one_to_one#home-listings"
+                  className="inline-flex min-h-11 items-center text-slate-400 hover:text-white"
+                  onClick={(event) => openHomeType(event, "one_to_one")}
+                >
                   {F.oneToOne}
                 </Link>
               </li>
               <li>
-                <Link href="/?type=group" className="inline-flex min-h-11 items-center text-slate-400 hover:text-white">
+                <Link
+                  href="/?type=group#home-listings"
+                  className="inline-flex min-h-11 items-center text-slate-400 hover:text-white"
+                  onClick={(event) => openHomeType(event, "group")}
+                >
                   {F.groups}
                 </Link>
               </li>
